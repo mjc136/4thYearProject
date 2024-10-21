@@ -4548,7 +4548,7 @@
 											"top": 23,
 											"width": 382,
 											"height": 13,
-											"text": "LingoLynx"
+											"text": "LingoLizard"
 										},
 										{
 											"_type": "LabelView",
@@ -4977,7 +4977,7 @@
 					"_parent": {
 						"$ref": "AAAAAAGSmujfPoc76+A="
 					},
-					"name": "LingoLynx"
+					"name": "LingoLizard"
 				}
 			]
 		}
