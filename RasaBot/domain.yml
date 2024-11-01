@@ -1,0 +1,65 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - mood_great
+  - mood_unhappy
+  - bot_challenge
+  - request_language_change
+
+slots:
+  preferred_language:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+  greeting:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+responses:
+  utter_greet:
+    - text: "Hello"
+
+  utter_cheer_up:
+    - text: "Here is something to cheer you up:"
+
+  utter_did_that_help:
+    - text: "Did that help you?"
+
+  utter_happy:
+    - text: "Great, carry on!"
+
+  utter_goodbye:
+    - text: "Bye"
+
+  utter_iamabot:
+    - text: "I am a bot, powered by Rasa."
+
+  utter_ask_language:
+    - text: "Which language would you like to improve?"
+
+  utter_language_changed:
+    - condition:
+        - type: slot
+          name: preferred_language
+          value: "en"
+      text: "Language changed to English."
+    - condition:
+        - type: slot
+          name: preferred_language
+          value: "es"
+      text: "Idioma cambiado a español."
+
+actions:
+  - action_set_language
+  - action_set_greeting
+
+session_config:
+  session_expiration_time: 60  # in minutes
+  carry_over_slots_to_new_session: true
