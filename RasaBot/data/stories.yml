@@ -1,19 +1,30 @@
-- story: Greet with preferred language
-  steps:
-    - intent: greet
-    - slot_was_set:
-        - preferred_language: en  # Example for English
-    - action: action_set_greeting
-    - action: utter_greet
+version: "3.1"
 
-- story: Greet in default language (English)
-  steps:
-    - intent: greet
-    - action: utter_greet
+stories:
 
-- story: Greet and ask language
+- story: Ask preferred language after greeting
   steps:
-    - intent: greet
-    - action: action_set_greeting
-    - action: utter_greet
-    - action: utter_ask_language
+  - intent: greet
+  - action: utter_greet
+  - intent: specify_language
+  - action: action_set_preferred_language
+  - action: action_respond_in_preferred_language
+
+# - story: happy path
+#   steps:
+#   - intent: greet
+#   - action: utter_greet
+#   - intent: specify_language
+#   - action: action_set_preferred_language
+#   - intent: mood_great
+#   - action: utter_happy
+
+# - story: sad path
+#   steps:
+#   - intent: greet
+#   - action: utter_greet
+#   - intent: specify_language
+#   - action: action_set_preferred_language
+#   - intent: mood_unhappy
+#   - action: utter_cheer_up
+#   - action: utter_default

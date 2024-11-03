@@ -12,14 +12,7 @@ rules:
   - intent: bot_challenge
   - action: utter_iamabot
 
-- rule: Ask preferred language after greeting
+- rule: Greet user and ask preferred language
   steps:
-    - intent: greet
-    - action: action_set_greeting
-    - action: utter_greet
-    - action: utter_ask_language
-
-
-
-
-
+  - intent: greet
+  - action: utter_greet

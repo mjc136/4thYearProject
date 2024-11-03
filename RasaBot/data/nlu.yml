@@ -8,6 +8,10 @@ nlu:
     - I need help with French
     - I'd like to learn German
     - Help me with English
+    - Spanish
+    - French
+    - German
+    - English
 
 
 - intent: greet
@@ -25,6 +29,10 @@ nlu:
     - goodmorning
     - goodevening
     - good afternoon
+    - hola
+    - bonjour
+    - salut
+    - ciao
 
 - intent: goodbye
   examples: |
