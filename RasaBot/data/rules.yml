@@ -26,6 +26,6 @@ rules:
   - action: language_form
   - active_loop: null
   - slot_was_set:
-    - requested_slot: null
+      - requested_slot: null
   - action: utter_language_set
   - action: utter_proficiency_set

@@ -20,17 +20,17 @@ slots:
             requested_slot: preferred_language
 
   language_proficiency:
-    type: text
+    type: categorical
     influence_conversation: false
+    values:
+      - beginner
+      - intermediate
+      - advanced
     mappings:
       - type: from_text
         conditions:
           - active_loop: language_form
             requested_slot: language_proficiency
-    allowed_values:
-      - beginner
-      - intermediate
-      - advanced
 
 entities:
   - preferred_language
@@ -44,7 +44,7 @@ forms:
 
 responses:
   utter_greet:
-    - text: "Hello! I am LingoLizard. I am a language teaching AI chatbot here to help you improve in whatever language you want"
+    - text: "Hello! Which language would you like to improve?"
 
   utter_goodbye:
     - text: "Goodbye!"
@@ -56,10 +56,10 @@ responses:
     - text: "I'm sorry, I didn't understand that."
 
   utter_ask_preferred_language:
-    - text: "Which language do you want to improve on?"
+    - text: "Which language do you want to improve on? (e.g., Spanish, French, German)"
 
   utter_ask_language_proficiency:
-    - text: "What's your proficiency level in this language? (beginner, intermediate or advanced)"
+    - text: "What's your proficiency level in this language? (beginner, intermediate, advanced)"
 
   utter_language_set:
     - text: "Your preferred language has been set to {preferred_language}."
@@ -73,6 +73,7 @@ responses:
 actions:
   - action_set_preferred_language
   - action_respond_in_preferred_language
+  - validate_language_form
 
 session_config:
   session_expiration_time: 60  # in minutes
