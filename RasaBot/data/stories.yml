@@ -2,29 +2,5 @@ version: "3.1"
 
 stories:
 
-- story: Ask preferred language after greeting
-  steps:
-  - intent: greet
-  - action: utter_greet
-  - intent: specify_language
-  - action: action_set_preferred_language
-  - action: action_respond_in_preferred_language
 
-# - story: happy path
-#   steps:
-#   - intent: greet
-#   - action: utter_greet
-#   - intent: specify_language
-#   - action: action_set_preferred_language
-#   - intent: mood_great
-#   - action: utter_happy
 
-# - story: sad path
-#   steps:
-#   - intent: greet
-#   - action: utter_greet
-#   - intent: specify_language
-#   - action: action_set_preferred_language
-#   - intent: mood_unhappy
-#   - action: utter_cheer_up
-#   - action: utter_default

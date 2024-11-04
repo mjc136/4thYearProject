@@ -5,10 +5,9 @@ intents:
   - goodbye
   - affirm
   - deny
-  - mood_great
-  - mood_unhappy
   - bot_challenge
   - specify_language
+  - provide_proficiency
 
 slots:
   preferred_language:
@@ -16,25 +15,60 @@ slots:
     influence_conversation: false
     mappings:
       - type: from_text
+        conditions:
+          - active_loop: language_form
+            requested_slot: preferred_language
+
+  language_proficiency:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        conditions:
+          - active_loop: language_form
+            requested_slot: language_proficiency
+    allowed_values:
+      - beginner
+      - intermediate
+      - advanced
+
+entities:
+  - preferred_language
+  - language_proficiency
+
+forms:
+  language_form:
+    required_slots:
+      - preferred_language
+      - language_proficiency
 
 responses:
   utter_greet:
-    - text: "Hello! Which language would you like to improve?"
+    - text: "Hello! I am LingoLizard. I am a language teaching AI chatbot here to help you improve in whatever language you want"
 
   utter_goodbye:
     - text: "Goodbye!"
 
   utter_iamabot:
-    - text: "I am a bot, here to assist you."
-
-  utter_happy:
-    - text: "That's great to hear!"
-
-  utter_cheer_up:
-    - text: "I'm sorry to hear that. Here's something to cheer you up."
+    - text: "I am a language teaching bot, here to assist you."
 
   utter_default:
     - text: "I'm sorry, I didn't understand that."
+
+  utter_ask_preferred_language:
+    - text: "Which language do you want to improve on?"
+
+  utter_ask_language_proficiency:
+    - text: "What's your proficiency level in this language? (beginner, intermediate or advanced)"
+
+  utter_language_set:
+    - text: "Your preferred language has been set to {preferred_language}."
+
+  utter_proficiency_set:
+    - text: "Your language proficiency level has been set to {language_proficiency}."
+
+  utter_test:
+    - text: "This is a test message."
 
 actions:
   - action_set_preferred_language

@@ -16,3 +16,16 @@ rules:
   steps:
   - intent: greet
   - action: utter_greet
+  - action: language_form
+  - active_loop: language_form
+
+- rule: Submit language form
+  condition:
+  - active_loop: language_form
+  steps:
+  - action: language_form
+  - active_loop: null
+  - slot_was_set:
+    - requested_slot: null
+  - action: utter_language_set
+  - action: utter_proficiency_set
