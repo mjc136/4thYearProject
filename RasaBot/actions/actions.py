@@ -4,6 +4,8 @@ from typing import Text, Any, Dict
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
 
+from deep_translator import GoogleTranslator
+
 # Validation for language form
 ALLOWED_LANGUAGES = [
     "spanish", "french", "german", "italian", "portuguese", "polish"

@@ -44,7 +44,7 @@ forms:
 
 responses:
   utter_greet:
-    - text: "Hello! Which language would you like to improve?"
+    - text: "Hello!"
 
   utter_goodbye:
     - text: "Goodbye!"
