@@ -4,28 +4,40 @@ rules:
 
 - rule: Say goodbye anytime the user says goodbye
   steps:
-  - intent: goodbye
-  - action: utter_goodbye
+    - intent: goodbye
+    - action: utter_goodbye
 
 - rule: Say 'I am a bot' anytime the user challenges
   steps:
-  - intent: bot_challenge
-  - action: utter_iamabot
+    - intent: bot_challenge
+    - action: utter_iamabot
 
 - rule: Greet user and ask preferred language
   steps:
-  - intent: greet
-  - action: utter_greet
-  - action: language_form
-  - active_loop: language_form
+    - intent: greet
+    - action: utter_greet
+    - action: language_form
+    - active_loop: language_form
 
 - rule: Submit language form
   condition:
-  - active_loop: language_form
+    - active_loop: language_form
   steps:
-  - action: language_form
-  - active_loop: null
-  - slot_was_set:
-      - requested_slot: null
-  - action: utter_language_set
-  - action: utter_proficiency_set
+    - action: language_form
+    - active_loop: null
+    - slot_was_set:
+        - requested_slot: null
+    - action: utter_language_set
+    - action: utter_proficiency_set
+    - action: scenario_form
+    - active_loop: scenario_form
+
+- rule: Submit scenario form
+  condition:
+    - active_loop: scenario_form
+  steps:
+    - action: scenario_form
+    - active_loop: null
+    - slot_was_set:
+        - requested_slot: null
+    - action: utter_scenario_complete

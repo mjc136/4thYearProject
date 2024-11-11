@@ -14,6 +14,10 @@ ALLOWED_LANGUAGE_PROFICIENCIES = [
     "beginner", "intermediate", "advanced"
 ]
 
+ALLOWED_SCENARIOS = [
+    "restaurant", "taxi", "hotel", "directions"
+]
+
 class ValidateLanguageForm(FormValidationAction):
     def name(self) -> str:
         return "validate_language_form"
@@ -42,8 +46,28 @@ class ValidateLanguageForm(FormValidationAction):
     ) -> Dict[Text, Any]:
         """Validate `language_proficiency` value."""
         if slot_value.lower() not in ALLOWED_LANGUAGE_PROFICIENCIES:
-            dispatcher.utter_message(text="Only valid options are beginner, intermediate, advanced.")
+            dispatcher.utter_message(text="Invalid proficiency")
             return {"language_proficiency": None}
         
         dispatcher.utter_message(text=f"We will practice at a {slot_value} level.")
         return {"language_proficiency": slot_value}
+    
+class ValidateScenarioForm(FormValidationAction):
+    def name(self) -> str:
+        return "validate_scenario_form"
+    
+    def validate_selected_scenario(
+        self,
+        slot_value: Any,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict
+    ) -> Dict[Text, Any]:
+        """Validate `selected_scenario` value."""
+        if slot_value.lower() not in ALLOWED_SCENARIOS:
+            dispatcher.utter_message(text=f"Invalid scenario. Available options are: {', '.join(ALLOWED_SCENARIOS)}.")
+            return {"selected_scenario": None}
+        
+        dispatcher.utter_message(text=f"OK! We will practice the {slot_value} scenario.")
+        return {"selected_scenario": slot_value}
+

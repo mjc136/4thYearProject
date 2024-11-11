@@ -6,8 +6,6 @@ intents:
   - affirm
   - deny
   - bot_challenge
-  - specify_language
-  - provide_proficiency
 
 slots:
   preferred_language:
@@ -21,26 +19,45 @@ slots:
 
   language_proficiency:
     type: categorical
-    influence_conversation: false
     values:
       - beginner
       - intermediate
       - advanced
+    influence_conversation: false
     mappings:
       - type: from_text
         conditions:
           - active_loop: language_form
             requested_slot: language_proficiency
 
+  selected_scenario:
+    type: categorical
+    values:
+      - Order in restaurant
+      - Taxi
+      - Checking into a Hotel
+      - Asking for directions
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        conditions:
+          - active_loop: scenario_form
+            requested_slot: selected_scenario
+
 entities:
   - preferred_language
   - language_proficiency
+  - selected_scenario
 
 forms:
   language_form:
     required_slots:
       - preferred_language
       - language_proficiency
+
+  scenario_form:
+    required_slots:
+      - selected_scenario
 
 responses:
   utter_greet:
@@ -55,11 +72,18 @@ responses:
   utter_default:
     - text: "I'm sorry, I didn't understand that."
 
+ # Questions
+
   utter_ask_preferred_language:
     - text: "Which language do you want to improve on? (e.g., Spanish, French, German)"
 
   utter_ask_language_proficiency:
     - text: "What's your proficiency level in this language? (beginner, intermediate, advanced)"
+
+  utter_ask_selected_scenario:
+    - text: "What Scenario do you want to practice? \n - Hotel \n - Taxi \n - Directions \n - Restaurant"
+
+  # confirmations
 
   utter_language_set:
     - text: "Your preferred language has been set to {preferred_language}."
@@ -67,13 +91,12 @@ responses:
   utter_proficiency_set:
     - text: "Your language proficiency level has been set to {language_proficiency}."
 
-  utter_test:
-    - text: "This is a test message."
+  utter_scenario_complete:
+    - text: "The scenario has been set to {selected_scenario}."
 
 actions:
-  - action_set_preferred_language
-  - action_respond_in_preferred_language
   - validate_language_form
+  - validate_scenario_form
 
 session_config:
   session_expiration_time: 60  # in minutes
