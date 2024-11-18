@@ -40,4 +40,118 @@ rules:
     - active_loop: null
     - slot_was_set:
         - requested_slot: null
-    - action: utter_scenario_complete
+    - action: utter_scenario_set
+
+# Taxi Scenario
+- rule: Activate Taxi Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "taxi"
+  steps:
+    - slot_was_set:
+        - utterance_to_translate: "Where would you like to go?"
+    - action: action_translate_utterance
+
+- rule: Activate Taxi Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "taxi"
+  steps:
+
+
+- rule: Activate Taxi Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "taxi"
+  steps:
+
+
+# Order in Restaurant Scenario
+- rule: Activate Restaurant Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "Order in restaurant"
+  steps:
+
+
+- rule: Activate Restaurant Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "Order in restaurant"
+  steps:
+
+
+- rule: Activate Restaurant Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "Order in restaurant"
+  steps:
+
+
+# Hotel Check-In Scenario
+- rule: Activate Hotel Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "Checking into a Hotel"
+  steps:
+
+
+- rule: Activate Hotel Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "Checking into a Hotel"
+  steps:
+
+
+- rule: Activate Hotel Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "Checking into a Hotel"
+  steps:
+
+
+# Asking for Directions Scenario
+- rule: Activate Directions Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "Asking for directions"
+  steps:
+
+
+- rule: Activate Directions Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "Asking for directions"
+  steps:
+
+
+- rule: Activate Directions Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "Asking for directions"
+  steps:
+

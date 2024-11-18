@@ -29,4 +29,21 @@ stories:
     - slot_was_set:
         - selected_scenario: "Order in restaurant"
     - active_loop: null
-    - action: utter_scenario_complete
+    - action: utter_scenario_set
+
+- story: Taxi Scenario Role-Play with Translations
+  steps:
+    - intent: choose_scenario
+      entities:
+        - scenario: "taxi"
+    - slot_was_set:
+        - utterance_to_translate: "Where would you like to go?"
+    - action: action_translate_utterance
+    - intent: inform  # User provides their destination
+    - slot_was_set:
+        - utterance_to_translate: "Great! Heading to {destination}."
+    - action: action_translate_utterance
+    - intent: affirm  # User confirms
+    - slot_was_set:
+        - utterance_to_translate: "The fare will be $10. Is that okay?"
+    - action: action_translate_utterance

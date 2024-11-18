@@ -44,6 +44,11 @@ slots:
           - active_loop: scenario_form
             requested_slot: selected_scenario
 
+  utterance_to_translate:
+    type: text
+    mappings:
+      - type: from_text
+
 entities:
   - preferred_language
   - language_proficiency
@@ -60,6 +65,9 @@ forms:
       - selected_scenario
 
 responses:
+  utter_test:
+    - text: "This is a test message"
+
   utter_greet:
     - text: "Hello!"
 
@@ -91,12 +99,13 @@ responses:
   utter_proficiency_set:
     - text: "Your language proficiency level has been set to {language_proficiency}."
 
-  utter_scenario_complete:
+  utter_scenario_set:
     - text: "The scenario has been set to {selected_scenario}."
 
 actions:
   - validate_language_form
   - validate_scenario_form
+  - action_translate_and_respond
 
 session_config:
   session_expiration_time: 60  # in minutes
