@@ -6,7 +6,7 @@ from rasa_sdk.types import DomainDict
 
 # Validation for language form
 ALLOWED_LANGUAGES = [
-    "spanish", "french", "german", "italian", "portuguese", "polish"
+    "spanish", "french", "german", "portuguese"
 ]
 ALLOWED_LANGUAGE_PROFICIENCIES = [
     "beginner", "intermediate", "advanced"
@@ -32,7 +32,6 @@ class ValidateLanguageForm(FormValidationAction):
             dispatcher.utter_message(text=f"I can only teach: {', '.join(ALLOWED_LANGUAGES)}.")
             return {"preferred_language": None}
         
-        dispatcher.utter_message(text=f"OK! We will practice {slot_value}.")
         return {"preferred_language": slot_value}
     
     def validate_language_proficiency(
@@ -47,7 +46,6 @@ class ValidateLanguageForm(FormValidationAction):
             dispatcher.utter_message(text="Invalid proficiency")
             return {"language_proficiency": None}
         
-        dispatcher.utter_message(text=f"We will practice at a {slot_value} level.")
         return {"language_proficiency": slot_value}
     
 class ValidateScenarioForm(FormValidationAction):
@@ -66,27 +64,8 @@ class ValidateScenarioForm(FormValidationAction):
             dispatcher.utter_message(text=f"Invalid scenario. Available options are: {', '.join(ALLOWED_SCENARIOS)}.")
             return {"selected_scenario": None}
         
-        dispatcher.utter_message(text=f"OK! We will practice the {slot_value} scenario.")
         return {"selected_scenario": slot_value}
         
-from translation_utils import translate_text
 
-class ActionTranslateUtterance(Action):
-    def name(self) -> str:
-        return "action_translate_utterance"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict) -> list:
-        # Get the text to translate from the tracker and the preferred language slot
-        target_language = tracker.get_slot("preferred_language")
-        response_text = tracker.get_slot("utterance_to_translate")  # Use a slot to capture utterance text
-
-        # Translate the response if a target language is set
-        if target_language and response_text:
-            translated_response = translate_text(response_text, target_lang=target_language)
-        else:
-            translated_response = response_text  # Default to original text if no language is set
-
-        # Send translated response to the user
-        dispatcher.utter_message(text=translated_response)
-        return []
 

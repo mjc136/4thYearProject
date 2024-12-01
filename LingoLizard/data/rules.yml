@@ -2,6 +2,8 @@ version: "3.1"
 
 rules:
 
+# english basics
+
 - rule: Say goodbye anytime the user says goodbye
   steps:
     - intent: goodbye
@@ -11,6 +13,56 @@ rules:
   steps:
     - intent: bot_challenge
     - action: utter_iamabot
+
+# portuguese basics
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+    - intent: goodbye_pt
+    - action: utter_goodbye_pt
+
+- rule: Say 'I am a bot' anytime the user challenges
+  steps:
+    - intent: bot_challenge_pt
+    - action: utter_iamabot_pt
+
+# spanish basics 
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+    - intent: goodbye_es
+    - action: utter_goodbye_es
+
+- rule: Say 'I am a bot' anytime the user challenges
+  steps:
+    - intent: bot_challenge_es
+    - action: utter_iamabot_es
+
+# french basics
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+    - intent: goodbye_fr
+    - action: utter_goodbye_fr
+
+- rule: Say 'I am a bot' anytime the user challenges
+  steps:
+    - intent: bot_challenge_fr
+    - action: utter_iamabot_fr
+
+# german basics
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+    - intent: goodbye_de
+    - action: utter_goodbye_de
+
+- rule: Say 'I am a bot' anytime the user challenges
+  steps:
+    - intent: bot_challenge_de
+    - action: utter_iamabot_de
+
+# english forms
 
 - rule: Greet user and ask preferred language
   steps:
@@ -27,8 +79,6 @@ rules:
     - active_loop: null
     - slot_was_set:
         - requested_slot: null
-    - action: utter_language_set
-    - action: utter_proficiency_set
     - action: scenario_form
     - active_loop: scenario_form
 
@@ -50,9 +100,6 @@ rules:
         - language_proficiency: "beginner"
         - selected_scenario: "taxi"
   steps:
-    - slot_was_set:
-        - utterance_to_translate: "Where would you like to go?"
-    - action: action_translate_utterance
 
 - rule: Activate Taxi Scenario for intermediate learners
   condition:

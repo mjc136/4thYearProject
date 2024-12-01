@@ -7,6 +7,30 @@ intents:
   - deny
   - bot_challenge
 
+  - greet_pt
+  - goodbye_pt
+  - affirm_pt
+  - deny_pt
+  - bot_challenge_pt
+
+  - greet_es
+  - goodbye_es
+  - affirm_es
+  - deny_es
+  - bot_challenge_es
+
+  - greet_fr
+  - goodbye_fr
+  - affirm_fr
+  - deny_fr
+  - bot_challenge_fr
+  
+  - greet_de
+  - goodbye_de
+  - affirm_de
+  - deny_de
+  - bot_challenge_de
+
 slots:
   preferred_language:
     type: text
@@ -43,12 +67,7 @@ slots:
         conditions:
           - active_loop: scenario_form
             requested_slot: selected_scenario
-
-  utterance_to_translate:
-    type: text
-    mappings:
-      - type: from_text
-
+            
 entities:
   - preferred_language
   - language_proficiency
@@ -65,8 +84,14 @@ forms:
       - selected_scenario
 
 responses:
+  # Default Responses
   utter_test:
     - text: "This is a test message"
+
+  utter_default:
+    - text: "I'm sorry, I didn't understand that."
+
+  # English
 
   utter_greet:
     - text: "Hello!"
@@ -77,13 +102,11 @@ responses:
   utter_iamabot:
     - text: "I am a language teaching bot, here to assist you."
 
-  utter_default:
-    - text: "I'm sorry, I didn't understand that."
 
- # Questions
+  # Questions for English Forms
 
   utter_ask_preferred_language:
-    - text: "Which language do you want to improve on? (e.g., Spanish, French, German)"
+    - text: "Which language do you want to improve on? (e.g., Spanish, French, German, portuguese)"
 
   utter_ask_language_proficiency:
     - text: "What's your proficiency level in this language? (beginner, intermediate, advanced)"
@@ -91,16 +114,48 @@ responses:
   utter_ask_selected_scenario:
     - text: "What Scenario do you want to practice? \n - Hotel \n - Taxi \n - Directions \n - Restaurant"
 
-  # confirmations
-
-  utter_language_set:
-    - text: "Your preferred language has been set to {preferred_language}."
-
-  utter_proficiency_set:
-    - text: "Your language proficiency level has been set to {language_proficiency}."
-
   utter_scenario_set:
-    - text: "The scenario has been set to {selected_scenario}."
+    - text: "The scenario has been set to {selected_scenario} with {language_proficiency} level {preferred_language}."
+
+  # Portuguese Responses
+  utter_greet_pt:
+    - text: "Olá!"
+  
+  utter_goodbye_pt:
+    - text: "Adeus!"
+  
+  utter_iamabot_pt:
+    - text: "Eu sou um bot de ensino de línguas, aqui para te ajudar."
+  
+  # Spanish Responses
+  utter_greet_es:
+    - text: "¡Hola!"
+  
+  utter_goodbye_es:
+    - text: "¡Adiós!"
+  
+  utter_iamabot_es:
+    - text: "Soy un bot de enseñanza de idiomas, aquí para ayudarte."
+  
+  # French Responses
+  utter_greet_fr:
+    - text: "Bonjour!"
+  
+  utter_goodbye_fr:
+    - text: "Au revoir!"
+  
+  utter_iamabot_fr:
+    - text: "Je suis un bot d'enseignement des langues, ici pour vous aider."
+  
+  # German Responses
+  utter_greet_de:
+    - text: "Guten Morgen!"
+  
+  utter_goodbye_de:
+    - text: "Auf Wiedersehen!"
+  
+  utter_iamabot_de:
+    - text: "Ich bin ein Sprachlern-Bot, der hier ist, um dir zu helfen."
 
 actions:
   - validate_language_form

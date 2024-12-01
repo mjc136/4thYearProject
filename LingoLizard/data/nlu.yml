@@ -1,0 +1,152 @@
+version: "3.1"
+
+nlu:
+  - intent: greet
+    examples: |
+      - hey
+      - hello
+      - hi
+      - hello there
+      - good morning
+      - good evening
+
+  - intent: greet_pt
+    examples: |
+      - olá
+      - bom dia
+      - boa tarde
+      - oi
+      - olá! 
+
+  - intent: greet_es
+    examples: |
+      - hola
+      - buenos días
+      - buenas tardes
+      - hey
+      - hola! 
+
+  - intent: greet_fr
+    examples: |
+      - bonjour
+      - salut
+      - bonsoir
+      - hello
+      - salut! 
+
+  - intent: goodbye
+    examples: |
+      - good night
+      - bye
+      - goodbye
+      - see you around
+      - bye bye
+      - see you later
+
+  - intent: goodbye_pt
+    examples: |
+      - boa noite
+      - tchau
+      - adeus
+      - até logo
+      - até amanha
+
+  - intent: goodbye_es
+    examples: |
+      - buenas noches
+      - adiós
+      - hasta luego
+      - chau
+      - hasta pronto
+
+  - intent: goodbye_fr
+    examples: |
+      - bonne nuit
+      - au revoir
+      - à bientôt
+      - salut
+      - à plus
+
+  - intent: affirm
+    examples: |
+      - yes
+      - indeed
+      - of course
+      - that sounds good
+      - correct
+
+  - intent: affirm_pt
+    examples: |
+      - sim
+      - claro
+      - com certeza
+      - é claro
+
+  - intent: affirm_es
+    examples: |
+      - sí
+      - claro
+      - por supuesto
+      - correcto
+
+  - intent: affirm_fr
+    examples: |
+      - oui
+      - bien sûr
+      - d'accord
+
+  - intent: deny
+    examples: |
+      - no
+      - n
+      - never
+      - I don't think so
+      - don't like that
+      - no way
+      - not really
+
+  - intent: deny_pt
+    examples: |
+      - não
+      - nunca
+      - não gostei
+      - não, obrigado
+
+  - intent: deny_es
+    examples: |
+      - no
+      - nunca
+      - no me gusta
+      - no quiero
+
+  - intent: deny_fr
+    examples: |
+      - non
+      - jamais
+      - pas du tout
+      - je ne pense pas
+
+  - intent: bot_challenge
+    examples: |
+      - are you a bot?
+      - are you a human?
+      - am I talking to a bot?
+      - am I talking to a human?
+
+  - intent: bot_challenge_pt
+    examples: |
+      - você é um bot?
+      - você é humano?
+      - estou falando com um bot?
+
+  - intent: bot_challenge_es
+    examples: |
+      - eres un bot?
+      - eres un humano?
+      - ¿estás hablando con un bot?
+
+  - intent: bot_challenge_fr
+    examples: |
+      - êtes-vous un bot ?
+      - êtes-vous humain ?
+      - est-ce que je parle à un bot ?
