@@ -5,31 +5,21 @@ intents:
   - goodbye
   - affirm
   - deny
-  - bot_challenge
 
   - greet_pt
   - goodbye_pt
   - affirm_pt
   - deny_pt
-  - bot_challenge_pt
 
   - greet_es
   - goodbye_es
   - affirm_es
   - deny_es
-  - bot_challenge_es
 
   - greet_fr
   - goodbye_fr
   - affirm_fr
   - deny_fr
-  - bot_challenge_fr
-  
-  - greet_de
-  - goodbye_de
-  - affirm_de
-  - deny_de
-  - bot_challenge_de
 
 slots:
   preferred_language:
@@ -99,10 +89,6 @@ responses:
   utter_goodbye:
     - text: "Goodbye!"
 
-  utter_iamabot:
-    - text: "I am a language teaching bot, here to assist you."
-
-
   # Questions for English Forms
 
   utter_ask_preferred_language:
@@ -117,45 +103,141 @@ responses:
   utter_scenario_set:
     - text: "The scenario has been set to {selected_scenario} with {language_proficiency} level {preferred_language}."
 
-  # Portuguese Responses
+  # Portuguese basic Responses
   utter_greet_pt:
-    - text: "Olá!"
+  - text: "Olá! Como posso ajudá-lo?"
+  - text: "Oi! Tudo bem?"
+  - text: "Bem-vindo! Em que posso ajudar?"
+  - text: "Olá! Como está hoje?"
   
   utter_goodbye_pt:
-    - text: "Adeus!"
+  - text: "Adeus! Até logo!"
+  - text: "Tchau! Tenha um bom dia!"
+  - text: "Até a próxima!"
+  - text: "Tchau! Cuide-se!"
+
+  utter_affirm_pt:
+  - text: "Sim, claro!"
+  - text: "Está certo!"
+  - text: "Com certeza!"
+  - text: "Isso mesmo!"
+
+  utter_deny_pt:
+  - text: "Não, obrigado."
+  - text: "Não é isso."
+  - text: "Não, desculpe."
+  - text: "Prefiro não."
+
+  utter_how_are_you_pt:
+  - text: "Estou bem, obrigado! E você?"
+  - text: "Tudo ótimo! E com você?"
+  - text: "Estou aqui para ajudar. E você, como está?"
+
+  utter_thank_you_pt:
+  - text: "Obrigado!"
+  - text: "Muito obrigado!"
+  - text: "Valeu!"
+  - text: "Agradeço!"
+
+  utter_default_pt:
+  - text: "Desculpe, não entendi."
+  - text: "Pode repetir, por favor?"
+  - text: "Não tenho certeza do que você quer dizer."
+  - text: "Desculpe, pode explicar melhor?"
+
+  # Portuguese Taxi Responses
+
+  utter_confirm_destination_pt:
+  - text: "Você quer ir ao {destination}, correto?"
+  - text: "Confirmando: o destino é {destination}?"
+  - text: "Está certo, você quer ir para {destination}?"
   
-  utter_iamabot_pt:
-    - text: "Eu sou um bot de ensino de línguas, aqui para te ajudar."
+# Spanish basic Responses
+utter_greet_es:
+  - text: "¡Hola! ¿Cómo puedo ayudarte?"
+  - text: "¡Hola! ¿Todo bien?"
+  - text: "¡Bienvenido! ¿En qué puedo ayudarte?"
+  - text: "¡Hola! ¿Cómo estás hoy?"
+
+utter_goodbye_es:
+  - text: "¡Adiós! ¡Hasta luego!"
+  - text: "¡Chau! Que tengas un buen día."
+  - text: "¡Hasta la próxima!"
+  - text: "¡Chau! Cuídate."
+
+utter_affirm_es:
+  - text: "¡Sí, claro!"
+  - text: "¡Es correcto!"
+  - text: "¡Por supuesto!"
+  - text: "¡Exactamente!"
+
+utter_deny_es:
+  - text: "No, gracias."
+  - text: "No es eso."
+  - text: "No, lo siento."
+  - text: "Prefiero que no."
+
+utter_how_are_you_es:
+  - text: "¡Estoy bien, gracias! ¿Y tú?"
+  - text: "¡Todo genial! ¿Y contigo?"
+  - text: "Estoy aquí para ayudar. ¿Y tú, cómo estás?"
+
+utter_thank_you_es:
+  - text: "¡Gracias!"
+  - text: "¡Muchas gracias!"
+  - text: "¡Te lo agradezco!"
+  - text: "¡Gracias mil!"
+
+utter_default_es:
+  - text: "Perdón, no entendí."
+  - text: "¿Puedes repetir, por favor?"
+  - text: "No estoy seguro de lo que quieres decir."
+  - text: "Perdón, ¿puedes explicarlo mejor?"
+
   
-  # Spanish Responses
-  utter_greet_es:
-    - text: "¡Hola!"
-  
-  utter_goodbye_es:
-    - text: "¡Adiós!"
-  
-  utter_iamabot_es:
-    - text: "Soy un bot de enseñanza de idiomas, aquí para ayudarte."
-  
-  # French Responses
-  utter_greet_fr:
-    - text: "Bonjour!"
-  
-  utter_goodbye_fr:
-    - text: "Au revoir!"
-  
-  utter_iamabot_fr:
-    - text: "Je suis un bot d'enseignement des langues, ici pour vous aider."
-  
-  # German Responses
-  utter_greet_de:
-    - text: "Guten Morgen!"
-  
-  utter_goodbye_de:
-    - text: "Auf Wiedersehen!"
-  
-  utter_iamabot_de:
-    - text: "Ich bin ein Sprachlern-Bot, der hier ist, um dir zu helfen."
+# French basic Responses
+utter_greet_fr:
+  - text: "Bonjour ! Comment puis-je vous aider ?"
+  - text: "Salut ! Tout va bien ?"
+  - text: "Bienvenue ! Comment puis-je vous aider ?"
+  - text: "Bonjour ! Comment allez-vous aujourd'hui ?"
+
+utter_goodbye_fr:
+  - text: "Au revoir ! À bientôt !"
+  - text: "Salut ! Passez une bonne journée."
+  - text: "À la prochaine !"
+  - text: "Salut ! Prenez soin de vous."
+
+utter_affirm_fr:
+  - text: "Oui, bien sûr !"
+  - text: "C'est exact !"
+  - text: "Absolument !"
+  - text: "Exactement !"
+
+utter_deny_fr:
+  - text: "Non, merci."
+  - text: "Ce n'est pas ça."
+  - text: "Non, désolé."
+  - text: "Je préfère pas."
+
+utter_how_are_you_fr:
+  - text: "Je vais bien, merci ! Et vous ?"
+  - text: "Tout va bien ! Et vous ?"
+  - text: "Je suis ici pour aider. Et vous, comment allez-vous ?"
+
+utter_thank_you_fr:
+  - text: "Merci !"
+  - text: "Merci beaucoup !"
+  - text: "Je vous remercie !"
+  - text: "Un grand merci !"
+
+utter_default_fr:
+  - text: "Désolé, je n'ai pas compris."
+  - text: "Pouvez-vous répéter, s'il vous plaît ?"
+  - text: "Je ne suis pas sûr de ce que vous voulez dire."
+  - text: "Désolé, pouvez-vous expliquer un peu plus ?"
+
+
 
 actions:
   - validate_language_form
