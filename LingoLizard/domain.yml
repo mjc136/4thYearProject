@@ -74,14 +74,12 @@ forms:
       - selected_scenario
 
 responses:
-  # Default Responses
+  # English basic Responses
   utter_test:
     - text: "This is a test message"
 
   utter_default:
     - text: "I'm sorry, I didn't understand that."
-
-  # English
 
   utter_greet:
     - text: "Hello!"
@@ -236,7 +234,6 @@ utter_default_fr:
   - text: "Pouvez-vous répéter, s'il vous plaît ?"
   - text: "Je ne suis pas sûr de ce que vous voulez dire."
   - text: "Désolé, pouvez-vous expliquer un peu plus ?"
-
 
 
 actions:
