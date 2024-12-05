@@ -15,37 +15,37 @@ rules:
 # portuguese basics
 # ------------------------------
 
-  - rule: Greet in Portuguese
-    condition:
-      - slot_was_set:
-          - preferred_language: "portuguese"
-    steps:
-      - intent: greet_pt
-      - action: utter_greet_pt
+- rule: Greet in Portuguese
+  condition:
+    - slot_was_set:
+        - preferred_language: "portuguese"
+  steps:
+    - intent: greet_pt
+    - action: utter_greet_pt
 
 # ------------------------------
 # spanish basics
 # ------------------------------ 
 
-  - rule: Greet in Spanish
-    condition:
-      - slot_was_set:
-          - preferred_language: "spanish"
-    steps:
-      - intent: greet_es
-      - action: utter_greet_es
+- rule: Greet in Spanish
+  condition:
+    - slot_was_set:
+        - preferred_language: "spanish"
+  steps:
+    - intent: greet_es
+    - action: utter_greet_es
 
 # ------------------------------
 # french basics
 # ------------------------------
 
-  - rule: Greet in French
-    condition:
-      - slot_was_set:
-          - preferred_language: "french"
-    steps:
-      - intent: greet_fr
-      - action: utter_greet_fr
+- rule: Greet in French
+  condition:
+    - slot_was_set:
+        - preferred_language: "french"
+  steps:
+    - intent: greet_fr
+    - action: utter_greet_fr
 
 # ------------------------------
 # english forms

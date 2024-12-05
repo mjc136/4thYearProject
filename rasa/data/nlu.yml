@@ -114,9 +114,7 @@ nlu:
     examples: |
       - bonjour
       - salut
-      - bonsoir
-      - hello
-      - salut! 
+      - bonsoir 
 
   - intent: goodbye_fr
     examples: |

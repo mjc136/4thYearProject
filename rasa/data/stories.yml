@@ -7,11 +7,6 @@ stories:
     - intent: goodbye
     - action: utter_goodbye
 
-- story: User challenges bot identity
-  steps:
-    - intent: bot_challenge
-    - action: utter_iamabot
-
 - story: Main flow
   steps:
     - intent: greet
