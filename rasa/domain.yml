@@ -41,7 +41,11 @@ intents:
 # Slots
 slots:
   preferred_language:
-    type: text
+    type: categorical
+    values:
+      - spanish
+      - french
+      - portuguese
     influence_conversation: true
     initial_value: English
     mappings:
@@ -132,7 +136,7 @@ responses:
 
   # Scenario Setup Responses
   utter_ask_preferred_language:
-    - text: "Which language do you want to improve on? (e.g., Spanish, French, German, Portuguese)"
+    - text: "Which language do you want to improve on?"
   utter_ask_language_proficiency:
     - text: "What's your proficiency level in this language? (beginner, intermediate, advanced)"
   utter_ask_selected_scenario:
