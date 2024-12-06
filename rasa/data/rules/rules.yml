@@ -11,41 +11,46 @@ rules:
     - intent: goodbye
     - action: utter_goodbye
 
-# ------------------------------
-# portuguese basics
-# ------------------------------
-
-- rule: Greet in Portuguese
-  condition:
-    - slot_was_set:
-        - preferred_language: "portuguese"
+- rule: Handle low NLU confidence
   steps:
-    - intent: greet_pt
-    - action: utter_greet_pt
+    - intent: nlu_fallback
+    - action: utter_default
 
-# ------------------------------
-# spanish basics
-# ------------------------------ 
+# # ------------------------------
+# # portuguese basics
+# # ------------------------------
 
-- rule: Greet in Spanish
-  condition:
-    - slot_was_set:
-        - preferred_language: "spanish"
-  steps:
-    - intent: greet_es
-    - action: utter_greet_es
+# - rule: Greet in Portuguese
+#   condition:
+#     - slot_was_set:
+#         - preferred_language: "portuguese"
+#   steps:
+#     - intent: greet_pt
+#     - action: utter_greet_pt
 
-# ------------------------------
-# french basics
-# ------------------------------
+# # ------------------------------
+# # spanish basics
+# # ------------------------------ 
 
-- rule: Greet in French
-  condition:
-    - slot_was_set:
-        - preferred_language: "french"
-  steps:
-    - intent: greet_fr
-    - action: utter_greet_fr
+# - rule: Greet in Spanish
+#   condition:
+#     - slot_was_set:
+#         - preferred_language: "spanish"
+#   steps:
+#     - intent: greet_es
+#     - action: utter_greet_es
+
+# # ------------------------------
+# # french basics
+# # ------------------------------
+
+# - rule: Greet in French
+#   condition:
+#     - slot_was_set:
+#         - preferred_language: "french"
+#   steps:
+#     - intent: greet_fr
+#     - action: utter_greet_fr
 
 # ------------------------------
 # english forms
@@ -79,34 +84,18 @@ rules:
         - requested_slot: null
     - action: utter_scenario_set
 
+
 # ------------------------------
 # Taxi Scenario
 # ------------------------------
 
-- rule: Activate Taxi Scenario for beginners
+- rule: Trigger Taxi Scenario
   condition:
     - slot_was_set:
-        - preferred_language: true
-        - language_proficiency: "beginner"
         - selected_scenario: "taxi"
   steps:
+    - action: utter_taxi_prompt
 
-- rule: Activate Taxi Scenario for intermediate learners
-  condition:
-    - slot_was_set:
-        - preferred_language: true
-        - language_proficiency: "intermediate"
-        - selected_scenario: "taxi"
-  steps:
-
-
-- rule: Activate Taxi Scenario for advanced learners
-  condition:
-    - slot_was_set:
-        - preferred_language: true
-        - language_proficiency: "advanced"
-        - selected_scenario: "taxi"
-  steps:
 
 # ------------------------------
 # Order in Restaurant Scenario

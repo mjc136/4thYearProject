@@ -1,0 +1,34 @@
+[
+  {
+    "text": "claro",
+    "intent": "affirm_pt",
+    "intent_prediction": {
+      "name": "affirm_es",
+      "confidence": 0.5959875583648682
+    }
+  },
+  {
+    "text": "no",
+    "intent": "deny_es",
+    "intent_prediction": {
+      "name": "deny",
+      "confidence": 0.28473371267318726
+    }
+  },
+  {
+    "text": "nunca",
+    "intent": "deny_es",
+    "intent_prediction": {
+      "name": "deny_pt",
+      "confidence": 0.37767237424850464
+    }
+  },
+  {
+    "text": "salut",
+    "intent": "greet_fr",
+    "intent_prediction": {
+      "name": "goodbye_fr",
+      "confidence": 0.598605751991272
+    }
+  }
+]

@@ -1,30 +1,49 @@
 version: "3.1"
 
+# Intents
 intents:
+  # English Intents
   - greet
   - goodbye
   - affirm
   - deny
 
+  # Portuguese Intents
   - greet_pt
   - goodbye_pt
   - affirm_pt
   - deny_pt
 
+  # Spanish Intents
   - greet_es
   - goodbye_es
   - affirm_es
   - deny_es
 
+  # French Intents
   - greet_fr
   - goodbye_fr
   - affirm_fr
   - deny_fr
 
+  - select_language
+  - set_proficiency
+  - select_scenario
+
+  # Taxi-Specific Intents
+  - provide_destination
+  - ask_fare
+  - negotiate_fare
+
+  # Other Intents
+  - nlu_fallback
+
+# Slots
 slots:
   preferred_language:
     type: text
-    influence_conversation: false
+    influence_conversation: true
+    initial_value: English
     mappings:
       - type: from_text
         conditions:
@@ -37,7 +56,7 @@ slots:
       - beginner
       - intermediate
       - advanced
-    influence_conversation: false
+    influence_conversation: true
     mappings:
       - type: from_text
         conditions:
@@ -51,196 +70,124 @@ slots:
       - Taxi
       - Checking into a Hotel
       - Asking for directions
-    influence_conversation: false
+    influence_conversation: true
     mappings:
       - type: from_text
         conditions:
           - active_loop: scenario_form
             requested_slot: selected_scenario
-            
+
+  # Taxi Scenario Slots
+  taxi_destination:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: destination
+
+  taxi_negotiation:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: negotiate_fare
+
+  taxi_fare:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_text
+
+
+
+# Entities
 entities:
   - preferred_language
   - language_proficiency
   - selected_scenario
+  - destination
+  - negotiate_fare
 
+# Forms
 forms:
   language_form:
     required_slots:
       - preferred_language
       - language_proficiency
-
   scenario_form:
     required_slots:
       - selected_scenario
 
+# Responses
 responses:
-  # English basic Responses
+  # General Responses
   utter_test:
     - text: "This is a test message"
-
   utter_default:
     - text: "I'm sorry, I didn't understand that."
-
   utter_greet:
     - text: "Hello!"
-
   utter_goodbye:
     - text: "Goodbye!"
 
-  # Questions for English Forms
-
+  # Scenario Setup Responses
   utter_ask_preferred_language:
-    - text: "Which language do you want to improve on? (e.g., Spanish, French, German, portuguese)"
-
+    - text: "Which language do you want to improve on? (e.g., Spanish, French, German, Portuguese)"
   utter_ask_language_proficiency:
     - text: "What's your proficiency level in this language? (beginner, intermediate, advanced)"
-
   utter_ask_selected_scenario:
     - text: "What Scenario do you want to practice? \n - Hotel \n - Taxi \n - Directions \n - Restaurant"
-
   utter_scenario_set:
     - text: "The scenario has been set to {selected_scenario} with {language_proficiency} level {preferred_language}."
 
-  # Portuguese basic Responses
+  # scenario complete
+  utter_scenario_complete:
+    - text: "Well Done! You completed {selected_scenario} at {language_proficiency} level {preferred_language}"
+
+  # Taxi Scenario Responses
+  utter_taxi_prompt:
+    - text: "You're in a taxi. Where would you like to go?"
+  utter_ask_taxi_fare:
+    - text: "Please ask the driver about the fare."
+  utter_taxi_negotiation:
+    - text: "Now negotiate the fare with the driver."
+  utter_taxi_fare:
+    - text: "That will be 30 euro."
+
+  # Portuguese Responses
   utter_greet_pt:
     - text: "Olá! Como posso ajudá-lo?"
     - text: "Oi! Tudo bem?"
-    - text: "Bem-vindo! Em que posso ajudar?"
-    - text: "Olá! Como está hoje?"
-  
   utter_goodbye_pt:
     - text: "Adeus! Até logo!"
     - text: "Tchau! Tenha um bom dia!"
-    - text: "Até a próxima!"
-    - text: "Tchau! Cuide-se!"
 
-  utter_affirm_pt:
-    - text: "Sim, claro!"
-    - text: "Está certo!"
-    - text: "Com certeza!"
-    - text: "Isso mesmo!"
-
-  utter_deny_pt:
-    - text: "Não, obrigado."
-    - text: "Não é isso."
-    - text: "Não, desculpe."
-    - text: "Prefiro não."
-
-  utter_how_are_you_pt:
-    - text: "Estou bem, obrigado! E você?"
-    - text: "Tudo ótimo! E com você?"
-    - text: "Estou aqui para ajudar. E você, como está?"
-
-  utter_thank_you_pt:
-    - text: "Obrigado!"
-    - text: "Muito obrigado!"
-    - text: "Valeu!"
-    - text: "Agradeço!"
-
-  utter_default_pt:
-    - text: "Desculpe, não entendi."
-    - text: "Pode repetir, por favor?"
-    - text: "Não tenho certeza do que você quer dizer."
-    - text: "Desculpe, pode explicar melhor?"
-
-  # Portuguese Taxi Responses
-
-  utter_confirm_destination_pt:
-    - text: "Você quer ir ao {destination}, correto?"
-    - text: "Confirmando: o destino é {destination}?"
-    - text: "Está certo, você quer ir para {destination}?"
-  
-  # Spanish basic Responses
+  # Spanish Responses
   utter_greet_es:
     - text: "¡Hola! ¿Cómo puedo ayudarte?"
     - text: "¡Hola! ¿Todo bien?"
-    - text: "¡Bienvenido! ¿En qué puedo ayudarte?"
-    - text: "¡Hola! ¿Cómo estás hoy?"
-
   utter_goodbye_es:
     - text: "¡Adiós! ¡Hasta luego!"
     - text: "¡Chau! Que tengas un buen día."
-    - text: "¡Hasta la próxima!"
-    - text: "¡Chau! Cuídate."
 
-  utter_affirm_es:
-    - text: "¡Sí, claro!"
-    - text: "¡Es correcto!"
-    - text: "¡Por supuesto!"
-    - text: "¡Exactamente!"
-
-  utter_deny_es:
-    - text: "No, gracias."
-    - text: "No es eso."
-    - text: "No, lo siento."
-    - text: "Prefiero que no."
-
-  utter_how_are_you_es:
-    - text: "¡Estoy bien, gracias! ¿Y tú?"
-    - text: "¡Todo genial! ¿Y contigo?"
-    - text: "Estoy aquí para ayudar. ¿Y tú, cómo estás?"
-
-  utter_thank_you_es:
-    - text: "¡Gracias!"
-    - text: "¡Muchas gracias!"
-    - text: "¡Te lo agradezco!"
-    - text: "¡Gracias mil!"
-
-  utter_default_es:
-    - text: "Perdón, no entendí."
-    - text: "¿Puedes repetir, por favor?"
-    - text: "No estoy seguro de lo que quieres decir."
-    - text: "Perdón, ¿puedes explicarlo mejor?"
-
-  
-  # French basic Responses
+  # French Responses
   utter_greet_fr:
     - text: "Bonjour ! Comment puis-je vous aider ?"
     - text: "Salut ! Tout va bien ?"
-    - text: "Bienvenue ! Comment puis-je vous aider ?"
-    - text: "Bonjour ! Comment allez-vous aujourd'hui ?"
-
   utter_goodbye_fr:
     - text: "Au revoir ! À bientôt !"
     - text: "Salut ! Passez une bonne journée."
-    - text: "À la prochaine !"
-    - text: "Salut ! Prenez soin de vous."
 
-  utter_affirm_fr:
-    - text: "Oui, bien sûr !"
-    - text: "C'est exact !"
-    - text: "Absolument !"
-    - text: "Exactement !"
-
-  utter_deny_fr:
-    - text: "Non, merci."
-    - text: "Ce n'est pas ça."
-    - text: "Non, désolé."
-    - text: "Je préfère pas."
-
-  utter_how_are_you_fr:
-    - text: "Je vais bien, merci ! Et vous ?"
-    - text: "Tout va bien ! Et vous ?"
-    - text: "Je suis ici pour aider. Et vous, comment allez-vous ?"
-
-  utter_thank_you_fr:
-    - text: "Merci !"
-    - text: "Merci beaucoup !"
-    - text: "Je vous remercie !"
-    - text: "Un grand merci !"
-
-  utter_default_fr:
-    - text: "Désolé, je n'ai pas compris."
-    - text: "Pouvez-vous répéter, s'il vous plaît ?"
-    - text: "Je ne suis pas sûr de ce que vous voulez dire."
-    - text: "Désolé, pouvez-vous expliquer un peu plus ?"
-
-
+# Actions
 actions:
+  - utter_greet
+  - utter_scenario_set
+  - utter_taxi_prompt
   - validate_language_form
   - validate_scenario_form
   - action_translate_and_respond
 
+# Session Config
 session_config:
-  session_expiration_time: 60  # in minutes
+  session_expiration_time: 60  # Session duration in minutes
   carry_over_slots_to_new_session: true
