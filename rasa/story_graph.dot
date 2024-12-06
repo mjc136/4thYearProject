@@ -1,0 +1,34 @@
+digraph  {
+0 [class="start active", fillcolor=green, fontsize=12, label=START, style=filled];
+"-1" [class=end, fillcolor=red, fontsize=12, label=END, style=filled];
+1 [class=active, fontsize=12, label=action_session_start];
+2 [class=active, fontsize=12, label=utter_greet];
+3 [class=active, fontsize=12, label=language_form];
+6 [class=active, fontsize=12, label=scenario_form];
+8 [class=active, fontsize=12, label=utter_scenario_set];
+9 [class=active, fontsize=12, label=utter_taxi_prompt];
+10 [class=active, fontsize=12, label=utter_taxi_fare];
+11 [class="dashed active", fontsize=12, label=action_default_fallback];
+12 [class="intent active", fillcolor=lightblue, label="/greet", shape=rect, style=filled];
+13 [class="intent active", fillcolor=lightblue, label="/select_language", shape=rect, style=filled];
+14 [class="intent active", fillcolor=lightblue, label="/set_proficiency", shape=rect, style=filled];
+15 [class="intent active", fillcolor=lightblue, label="/select_scenario", shape=rect, style=filled];
+16 [class="intent active", fillcolor=lightblue, label="/provide_destination", shape=rect, style=filled];
+0 -> "-1"  [class="", key=NONE, label=""];
+0 -> 1  [class=active, key=NONE, label=""];
+1 -> 12  [class=active, key=0];
+2 -> 3  [class=active, key=NONE, label=""];
+3 -> 6  [class=active, key=NONE, label=""];
+3 -> 13  [class=active, key=0];
+3 -> 14  [class=active, key=0];
+6 -> 8  [class=active, key=NONE, label=""];
+6 -> 15  [class=active, key=0];
+8 -> 9  [class=active, key=NONE, label=""];
+9 -> 16  [class=active, key=0];
+10 -> 11  [class=active, key=NONE, label=""];
+12 -> 2  [class=active, key=0];
+13 -> 3  [class=active, key=0];
+14 -> 3  [class=active, key=0];
+15 -> 6  [class=active, key=0];
+16 -> 10  [class=active, key=0];
+}

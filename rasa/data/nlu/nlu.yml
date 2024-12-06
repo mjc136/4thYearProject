@@ -1,0 +1,245 @@
+version: "3.1"
+
+nlu:
+
+# ------------------------------
+# English Intents
+# ------------------------------
+  - intent: greet
+    examples: |
+      - hey
+      - hello
+      - hi
+      - hello there
+      - good morning
+      - good evening
+
+  - intent: goodbye
+    examples: |
+      - good night
+      - bye
+      - goodbye
+      - see you around
+      - bye bye
+      - see you later
+
+  - intent: affirm
+    examples: |
+      - yes
+      - indeed
+      - of course
+      - that sounds good
+      - correct
+
+  - intent: deny
+    examples: |
+      - no
+      - n
+      - never
+      - I don't think so
+      - don't like that
+      - no way
+      - not really
+
+  - intent: select_language
+    examples: |
+      - I want to learn [Spanish](preferred_language)
+      - My preferred language is [French](preferred_language)
+      - [Spanish](preferred_language)
+      - Let's practice [Portuguese](preferred_language)
+
+  - intent: set_proficiency
+    examples: |
+      - I am a [beginner](language_proficiency)
+      - My proficiency level is [beginner](language_proficiency)
+      - [beginner](language_proficiency)
+      - I'm just starting out as a [beginner](language_proficiency)
+      - Let's practice at [beginner](language_proficiency) level
+      - I am at an [intermediate](language_proficiency) level
+      - My proficiency is [intermediate](language_proficiency)
+      - [intermediate](language_proficiency)
+      - Let's practice at [intermediate](language_proficiency) level
+      - I am an [intermediate](language_proficiency) speaker
+      - I am an [advanced](language_proficiency) learner
+      - My proficiency is [advanced](language_proficiency)
+      - [advanced](language_proficiency)
+      - Let's practice at [advanced](language_proficiency) level
+      - I have an [advanced](language_proficiency) understanding
+      - I am fluent [advanced](language_proficiency)
+
+  - intent: select_scenario
+    examples: |
+      - I want to practice the [Hotel](selected_scenario) scenario
+      - Let's try the [Hotel](selected_scenario) scenario
+      - [Hotel](selected_scenario)
+      - Checking into a [Hotel](selected_scenario)
+      - Booking a room at a [Hotel](selected_scenario)
+      - I want to practice the [Taxi](selected_scenario) scenario
+      - Let's try the [Taxi](selected_scenario) scenario
+      - [Taxi](selected_scenario)
+      - Taking a [Taxi](selected_scenario)
+      - Riding in a [Taxi](selected_scenario)
+      - I want to practice the [Directions](selected_scenario) scenario
+      - Let's try the [Directions](selected_scenario) scenario
+      - [Directions](selected_scenario)
+      - Asking for [Directions](selected_scenario)
+      - Finding my way using [Directions](selected_scenario)
+      - I want to practice the [Restaurant](selected_scenario) scenario
+      - Let's try the [Restaurant](selected_scenario) scenario
+      - [Restaurant](selected_scenario)
+      - Ordering in a [Restaurant](selected_scenario)
+      - Dining at a [Restaurant](selected_scenario)
+
+# ------------------------------
+# Taxi Intents
+# ------------------------------
+
+  - intent: provide_destination
+    examples: |
+      - I want to go to the [airport](destination)
+      - Take me to [Central Park](destination)
+      - Please drive me to [Times Square](destination)
+      - Can we head to [123 Main Street](destination)?
+      - I need to go to the [hotel](destination)
+      - The destination is [Boston](destination)
+      - Let's go to [Downtown](destination)
+
+  - intent: ask_fare
+    examples: |
+      - How much is the fare?
+      - What's the cost for this trip?
+      - Can you tell me the fare?
+      - How much will it cost to go to [airport](destination)?
+      - What's the price to [Downtown](destination)?
+      - Tell me the fare, please.
+      - Is it expensive?
+
+  - intent: negotiate_fare
+    examples: |
+      - Can we make it [20 dollars](negotiation)?
+      - How about [15 dollars](negotiation)?
+      - I can only pay [10 bucks](negotiation).
+      - Let's settle at [25 dollars](negotiation).
+      - Can you lower it to [30 dollars](negotiation)?
+      - I'll pay [50 dollars](negotiation) at most.
+      - Reduce the fare to [20](negotiation).
+
+# ------------------------------
+# Portuguese Intents
+# ------------------------------
+  - intent: greet_pt
+    examples: |
+      - olá
+      - bom dia
+      - boa tarde
+      - oi
+      - olá! 
+
+  - intent: goodbye_pt
+    examples: |
+      - boa noite
+      - tchau
+      - adeus
+      - até logo
+      - até amanha
+
+  - intent: affirm_pt
+    examples: |
+      - sim
+      - claro
+      - com certeza
+      - é claro
+
+  - intent: deny_pt
+    examples: |
+      - não
+      - nunca
+      - não gostei
+      - não, obrigado
+
+# ------------------------------
+# Spanish Intents
+# ------------------------------
+  - intent: greet_es
+    examples: |
+      - hola
+      - buenos días
+      - buenas tardes
+      - hola! 
+
+  - intent: goodbye_es
+    examples: |
+      - buenas noches
+      - adiós
+      - hasta luego
+      - chau
+      - hasta pronto
+
+  - intent: affirm_es
+    examples: |
+      - sí
+      - claro
+      - por supuesto
+      - correcto
+
+  - intent: deny_es
+    examples: |
+      - no
+      - nunca
+      - no me gusta
+      - no quiero
+
+# ------------------------------
+# French Intents
+# ------------------------------
+  - intent: greet_fr
+    examples: |
+      - bonjour
+      - salut
+      - bonsoir 
+
+  - intent: goodbye_fr
+    examples: |
+      - bonne nuit
+      - au revoir
+      - à bientôt
+      - salut
+      - à plus
+
+  - intent: affirm_fr
+    examples: |
+      - oui
+      - bien sûr
+      - d'accord
+
+  - intent: deny_fr
+    examples: |
+      - non
+      - jamais
+      - pas du tout
+      - je ne pense pas
+
+
+# ------------------------------
+# Taxi Intents
+# ------------------------------
+  - intent: provide_destination
+    examples: |
+      - To the airport
+      - I want to go to the train station
+      - Take me to the city center
+      - Drop me off at the hotel
+
+  - intent: ask_fare
+    examples: |
+      - How much is the fare?
+      - What's the cost to the destination?
+      - Can you tell me the price?
+      - How much will it cost?
+
+  - intent: negotiate_fare
+    examples: |
+      - Can we lower the price?
+      - That seems too expensive, can we negotiate?
+      - I can't afford that, can you reduce the fare?
+      - Can we agree on $20?

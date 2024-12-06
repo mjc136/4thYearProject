@@ -1,0 +1,17 @@
+version: "3.1"
+stories:
+- story: bot challenge (.\tests\test_stories.yml)
+  steps:
+  - intent: bot_challenge  # predicted: goodbye: are you a bot?
+  - action: utter_iamabot  # predicted: action_default_fallback
+  - action: action_listen  # predicted: action_default_fallback
+- story: specify preferred language (.\tests\test_stories.yml)
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - action: utter_ask_language  # predicted: language_form
+  - action: action_listen  # predicted: action_default_fallback
+  - intent: specify_language  # predicted: select_language: I want to improve my [Spanish](preferred_language)
+  - action: action_set_language  # predicted: action_default_fallback
+  - action: utter_language_changed  # predicted: action_default_fallback
+  - action: action_listen  # predicted: action_default_fallback

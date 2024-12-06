@@ -1,0 +1,189 @@
+version: "3.1"
+
+rules:
+
+# ------------------------------
+# english basics
+# ------------------------------
+
+- rule: Say goodbye anytime the user says goodbye
+  steps:
+    - intent: goodbye
+    - action: utter_goodbye
+
+- rule: Handle low NLU confidence
+  steps:
+    - intent: nlu_fallback
+    - action: utter_default
+
+# # ------------------------------
+# # portuguese basics
+# # ------------------------------
+
+# - rule: Greet in Portuguese
+#   condition:
+#     - slot_was_set:
+#         - preferred_language: "portuguese"
+#   steps:
+#     - intent: greet_pt
+#     - action: utter_greet_pt
+
+# # ------------------------------
+# # spanish basics
+# # ------------------------------ 
+
+# - rule: Greet in Spanish
+#   condition:
+#     - slot_was_set:
+#         - preferred_language: "spanish"
+#   steps:
+#     - intent: greet_es
+#     - action: utter_greet_es
+
+# # ------------------------------
+# # french basics
+# # ------------------------------
+
+# - rule: Greet in French
+#   condition:
+#     - slot_was_set:
+#         - preferred_language: "french"
+#   steps:
+#     - intent: greet_fr
+#     - action: utter_greet_fr
+
+# ------------------------------
+# english forms
+# ------------------------------
+
+- rule: Greet user and ask preferred language
+  steps:
+    - intent: greet
+    - action: utter_greet
+    - action: language_form
+    - active_loop: language_form
+
+- rule: Submit language form
+  condition:
+    - active_loop: language_form
+  steps:
+    - action: language_form
+    - active_loop: null
+    - slot_was_set:
+        - requested_slot: null
+    - action: scenario_form
+    - active_loop: scenario_form
+
+- rule: Submit scenario form
+  condition:
+    - active_loop: scenario_form
+  steps:
+    - action: scenario_form
+    - active_loop: null
+    - slot_was_set:
+        - requested_slot: null
+    - action: utter_scenario_set
+
+
+# ------------------------------
+# Taxi Scenario
+# ------------------------------
+
+- rule: Trigger Taxi Scenario
+  condition:
+    - slot_was_set:
+        - selected_scenario: "taxi"
+  steps:
+    - action: utter_taxi_prompt
+
+
+# ------------------------------
+# Order in Restaurant Scenario
+# ------------------------------
+
+- rule: Activate Restaurant Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "Order in restaurant"
+  steps:
+
+
+- rule: Activate Restaurant Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "Order in restaurant"
+  steps:
+
+
+- rule: Activate Restaurant Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "Order in restaurant"
+  steps:
+
+# ------------------------------
+# Hotel Check-In Scenario
+# ------------------------------
+
+- rule: Activate Hotel Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "Checking into a Hotel"
+  steps:
+
+
+- rule: Activate Hotel Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "Checking into a Hotel"
+  steps:
+
+
+- rule: Activate Hotel Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "Checking into a Hotel"
+  steps:
+
+# ------------------------------
+# Asking for Directions Scenario
+# ------------------------------
+
+- rule: Activate Directions Scenario for beginners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "beginner"
+        - selected_scenario: "Asking for directions"
+  steps:
+
+
+- rule: Activate Directions Scenario for intermediate learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "intermediate"
+        - selected_scenario: "Asking for directions"
+  steps:
+
+
+- rule: Activate Directions Scenario for advanced learners
+  condition:
+    - slot_was_set:
+        - preferred_language: true
+        - language_proficiency: "advanced"
+        - selected_scenario: "Asking for directions"
+  steps:
+
