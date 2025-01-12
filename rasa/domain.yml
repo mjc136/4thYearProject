@@ -78,29 +78,8 @@ slots:
     mappings:
       - type: from_text
         conditions:
-          - active_loop: scenario_form
+          - active_loop: language_form
             requested_slot: selected_scenario
-
-  # Taxi Scenario Slots
-  taxi_destination:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: from_entity
-        entity: destination
-
-  taxi_negotiation:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: from_entity
-        entity: negotiate_fare
-
-  taxi_fare:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: from_text
 
 
 
@@ -118,8 +97,6 @@ forms:
     required_slots:
       - preferred_language
       - language_proficiency
-  scenario_form:
-    required_slots:
       - selected_scenario
 
 # Responses
@@ -148,15 +125,7 @@ responses:
   utter_scenario_complete:
     - text: "Well Done! You completed {selected_scenario} at {language_proficiency} level {preferred_language}"
 
-  # Taxi Scenario Responses
-  utter_taxi_prompt:
-    - text: "You're in a taxi. Where would you like to go?"
-  utter_ask_taxi_fare:
-    - text: "Please ask the driver about the fare."
-  utter_taxi_negotiation:
-    - text: "Now negotiate the fare with the driver."
-  utter_taxi_fare:
-    - text: "That will be 30 euro."
+
 
   # Portuguese Responses
   utter_greet_pt:
@@ -184,12 +153,9 @@ responses:
 
 # Actions
 actions:
-  - utter_greet
-  - utter_scenario_set
-  - utter_taxi_prompt
   - validate_language_form
   - validate_scenario_form
-  - action_translate_and_respond
+  - action_taxi_scenario
 
 # Session Config
 session_config:

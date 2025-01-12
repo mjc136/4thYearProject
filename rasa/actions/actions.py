@@ -66,55 +66,38 @@ class ValidateScenarioForm(FormValidationAction):
         
         return {"selected_scenario": slot_value}
 
-class ValidateTaxiForm(FormValidationAction):
+class ActionTaxiScenario(Action):
     def name(self) -> str:
-        return "validate_taxi_form"
+        return "action_taxi_scenario"
 
-    async def validate_taxi_fare(
-        self, value: str, dispatcher: CollectingDispatcher, tracker, domain: DomainDict
-    ) -> dict:
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: dict):
+        # Get user proficiency and preferred language
         proficiency = tracker.get_slot("language_proficiency")
         language = tracker.get_slot("preferred_language")
+        destination = tracker.get_slot("taxi_destination")
 
-        # Skip fare for beginners
-        if proficiency == "beginner":
-            return {"taxi_fare": None}
+        # Handle taxi scenario dynamically
+        if not destination:
+            if proficiency == "beginner":
+                dispatcher.utter_message(response="utter_taxi_prompt_beginner_en")
+            elif proficiency == "intermediate":
+                dispatcher.utter_message(response=f"utter_taxi_prompt_intermediate_{language.lower()[:2]}")
+            elif proficiency == "advanced":
+                dispatcher.utter_message(response=f"utter_taxi_prompt_advanced_{language.lower()[:2]}")
+            return []
 
-        # Provide localized prompt if fare is invalid
-        if not value:
-            localized_prompt = {
-                "English": "Please provide a valid fare response.",
-                "Spanish": "Por favor, proporcione una respuesta válida sobre la tarifa.",
-                "Portuguese": "Por favor, forneça uma resposta válida sobre a tarifa.",
-                "French": "Veuillez fournir une réponse valide concernant le tarif."
-            }
-            dispatcher.utter_message(text=localized_prompt.get(language, "Please provide a valid response."))
-            return {"taxi_fare": None}
+        # Respond with fare based on destination
+        if destination == "airport":
+            dispatcher.utter_message(text="The fare to the airport is 30 euros.")
+        else:
+            dispatcher.utter_message(text=f"The fare to {destination} is 20 euros.")
+        
+        # Prompt for negotiation if advanced
+        if proficiency == "advanced":
+            dispatcher.utter_message(text="You can negotiate the fare with the driver.")
+        
+        return []
 
-        return {"taxi_fare": value}
-
-    async def validate_taxi_negotiation(
-        self, value: str, dispatcher: CollectingDispatcher, tracker, domain: DomainDict
-    ) -> dict:
-        proficiency = tracker.get_slot("language_proficiency")
-        language = tracker.get_slot("preferred_language")
-
-        # Skip negotiation for non-advanced users
-        if proficiency != "advanced":
-            return {"taxi_negotiation": None}
-
-        # Provide localized prompt if negotiation is invalid
-        if not value:
-            localized_prompt = {
-                "English": "Please provide a valid negotiation response.",
-                "Spanish": "Por favor, proporcione una respuesta válida para la negociación.",
-                "Portuguese": "Por favor, forneça uma resposta válida para a negociação.",
-                "French": "Veuillez fournir une réponse valide pour la négociation."
-            }
-            dispatcher.utter_message(text=localized_prompt.get(language, "Please provide a valid response."))
-            return {"taxi_negotiation": None}
-
-        return {"taxi_negotiation": value}
 
         
 
