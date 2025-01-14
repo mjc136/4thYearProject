@@ -5,7 +5,12 @@ nlp = spacy.load("en_core_web_sm")
 intents = {
     "beginner": ["beginner", "basic", "novice"],
     "intermediate": ["intermediate", "medium", "average"],
-    "advanced": ["advanced", "expert", "proficient", "fluent"]
+    "advanced": ["advanced", "expert", "proficient", "fluent"],
+    "greeting": ["hello", "hi", "hey", "greetings"],
+    "farewell": ["bye", "goodbye", "see you", "farewell"],
+    "thanks": ["thanks", "thank you", "appreciate", "grateful"],
+    "affirmative": ["yes", "yep", "yeah", "correct", "right"],
+    "negative": ["no", "nope", "nah", "incorrect", "wrong"]
 }
 
 def recognise_intent_and_entities(message):
