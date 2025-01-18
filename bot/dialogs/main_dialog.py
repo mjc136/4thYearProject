@@ -1,4 +1,4 @@
-from botbuilder.core import MessageFactory, TurnContext
+from botbuilder.core import MessageFactory, TurnContext, CardFactory
 from botbuilder.dialogs import (
     ComponentDialog,
     WaterfallDialog,
@@ -9,6 +9,7 @@ from botbuilder.dialogs import (
     DialogSet,
     DialogTurnStatus,
 )
+from botbuilder.schema import HeroCard, CardImage, CardAction, ActionTypes
 from state.user_state import UserState
 
 class MainDialog(ComponentDialog):
@@ -23,11 +24,12 @@ class MainDialog(ComponentDialog):
             self.proficiency_step,
             self.final_step
         ]))
-        # Add the text prompt
         self.add_dialog(TextPrompt(TextPrompt.__name__))
 
-    async def run(self, turn_context: TurnContext, accessor):
-        """Runs the MainDialog."""
+    async def run(self, turn_context, accessor):
+        """
+        Runs the dialog.
+        """
         dialog_set = DialogSet(accessor)
         dialog_set.add(self)
 
@@ -39,40 +41,57 @@ class MainDialog(ComponentDialog):
             await dialog_context.begin_dialog(self.id)
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Send a welcome message to the user
+        """
+        Sends a welcome message and proceeds to the next step.
+        """
         await step_context.context.send_activity("Welcome to LingoLizard! Let's start improving your language skills.")
         return await step_context.next(None)
 
     async def language_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Prompt the user for the language they want to improve and save it."""
+        """
+        Sends the language selection HeroCard and processes user input.
+        """
         if step_context.result:
             # Save the language to UserState
             language = step_context.result.strip().capitalize()
-            self.user_state.set_language(language)  # Save to UserState
+            self.user_state.set_language(language)
             return await step_context.next(None)
 
-        # Prompt the user to specify the language
-        prompt_message = MessageFactory.text("Which language would you like to improve? (e.g. Spanish, French, Portuguese)")
-        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
+        # Send the HeroCard for language selection
+        card = HeroCard(
+            title="Select a Language",
+            text="Please select the language you would like to practise:",
+            images=[CardImage(url="https://example.com/language-selection-image.png")],
+            buttons=[
+                CardAction(type=ActionTypes.im_back, title="Spanish", value="Spanish"),
+                CardAction(type=ActionTypes.im_back, title="French", value="French"),
+                CardAction(type=ActionTypes.im_back, title="Portuguese", value="Portuguese"),
+            ],
+        )
+        await step_context.context.send_activity(MessageFactory.attachment(CardFactory.hero_card(card)))
+        return DialogTurnResult(DialogTurnStatus.Waiting)
+
 
     async def proficiency_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Prompt the user for their proficiency level."""
-        # Ask the user for their proficiency level
+        """
+        Prompts the user for their proficiency level.
+        """
         prompt_message = MessageFactory.text("What is your proficiency level? (Beginner, Intermediate, Advanced)")
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
 
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Save proficiency and conclude the dialog."""
+        """
+        Saves the proficiency level and concludes the dialog.
+        """
         proficiency_level = step_context.result.strip().capitalize()
         try:
             # Validate and save the proficiency level
             self.user_state.set_proficiency_level(proficiency_level)
         except ValueError as e:
-            # Handle invalid input by restarting the dialog
             await step_context.context.send_activity(str(e))
             return await step_context.replace_dialog(self.id)
 
-        # Send a confirmation message to the user
+        # Send a confirmation message
         await step_context.context.send_activity(
             MessageFactory.text(
                 f"Language set to {self.user_state.language} and proficiency level set to {self.user_state.proficiency_level}."

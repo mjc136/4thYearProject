@@ -35,20 +35,8 @@ async def messages(req: web.Request) -> web.Response:
         """
         Processes the logic for each turn of the conversation.
         """
-        if activity.type == ActivityTypes.conversation_update:
-            # Handle new members joining the conversation
-            if activity.members_added:
-                for member in activity.members_added:
-                    if member.id != activity.recipient.id:
-                        await turn_context.send_activity("Welcome to the bot!")
-                        await main_dialog.run(turn_context, dialog_state)
-        else:
-            # Recognise user input with the custom recogniser
-            intent, entities = recognise_intent_and_entities(turn_context.activity.text)
-            await turn_context.send_activity(f"Recognised intent: {intent}, Entities: {entities}")
-
-            # Run the main dialogue
-            await main_dialog.run(turn_context, dialog_state)
+        # Start the main dialogue on every user message
+        await main_dialog.run(turn_context, dialog_state)
 
         # Save any state changes to memory
         await conversation_state.save_changes(turn_context)
