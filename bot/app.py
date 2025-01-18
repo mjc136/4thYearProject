@@ -6,79 +6,58 @@ from botbuilder.core import (
     MemoryStorage,
     ConversationState,
 )
-from botbuilder.dialogs import DialogSet
-from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.schema import Activity, ActivityTypes
-from dialogs.taxi_scenario import TaxiScenarioDialog
-from dialogs.hotel_scenario import HotelScenarioDialog
 from dialogs.main_dialog import MainDialog
 from nlu.recogniser import recognise_intent_and_entities
+from state.user_state import UserState
 
 # Adapter settings
 SETTINGS = BotFrameworkAdapterSettings(app_id="", app_password="")
 ADAPTER = BotFrameworkAdapter(SETTINGS)
 
-# State and dialog setup
+# State setup
 memory = MemoryStorage()
 conversation_state = ConversationState(memory)
 dialog_state = conversation_state.create_property("DialogState")
-dialogs = DialogSet(dialog_state)
-
-# Add dialogs
-dialogs = DialogSet(dialog_state)
-dialogs.add(TextPrompt("text_prompt"))
-dialogs.add(MainDialog())
-dialogs.add(TaxiScenarioDialog())
-dialogs.add(HotelScenarioDialog())
+user_state = UserState()
+main_dialog = MainDialog(user_state)
 
 # Bot message handler
 async def messages(req: web.Request) -> web.Response:
+    """
+    Handles incoming messages from the bot framework.
+    """
     body = await req.json()
     activity = Activity().deserialize(body)
     auth_header = req.headers.get("Authorization", "")
 
     async def turn_logic(turn_context: TurnContext):
-        # Create a dialog context
-        dialog_context = await dialogs.create_context(turn_context)
-
+        """
+        Processes the logic for each turn of the conversation.
+        """
         if activity.type == ActivityTypes.conversation_update:
+            # Handle new members joining the conversation
             if activity.members_added:
                 for member in activity.members_added:
                     if member.id != activity.recipient.id:
                         await turn_context.send_activity("Welcome to the bot!")
-                        await dialog_context.begin_dialog("main_dialog")
+                        await main_dialog.run(turn_context, dialog_state)
         else:
-            # Check for active dialog
-            if dialog_context.active_dialog:
-                # Continue the active dialog
-                await dialog_context.continue_dialog()
-            else:
-                # Start the MainDialog when no active dialog exists
-                await dialog_context.begin_dialog("main_dialog")
+            # Recognise user input with the custom recogniser
+            intent, entities = recognise_intent_and_entities(turn_context.activity.text)
+            await turn_context.send_activity(f"Recognised intent: {intent}, Entities: {entities}")
 
-            await conversation_state.save_changes(turn_context)
+            # Run the main dialogue
+            await main_dialog.run(turn_context, dialog_state)
 
-            # Recognize intent and entities only if no active dialog
-            if not dialog_context.active_dialog:
-                user_message = turn_context.activity.text
-                intent, entities = recognise_intent_and_entities(user_message)
+        # Save any state changes to memory
+        await conversation_state.save_changes(turn_context)
 
-                if intent == "beginner":
-                    await turn_context.send_activity("You selected beginner proficiency.")
-                elif intent == "intermediate":
-                    await turn_context.send_activity("You selected intermediate proficiency.")
-                elif intent == "advanced":
-                    await turn_context.send_activity("You selected advanced proficiency.")
-                else:
-                    await turn_context.send_activity("Sorry, I didn't understand that.")
-
-                # Save state changes
-                await conversation_state.save_changes(turn_context)
-
+    # Process the incoming activity using the adapter
     await ADAPTER.process_activity(activity, auth_header, turn_logic)
     return web.Response()
 
-# Create and run the web app
+# Create and run the web application
 APP = web.Application()
 APP.router.add_post("/api/messages", messages)
 

@@ -1,0 +1,194 @@
+[
+  {
+    "type": "conversationUpdate",
+    "membersAdded": [
+      {
+        "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+        "name": "Bot"
+      },
+      {
+        "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+        "name": "User"
+      }
+    ],
+    "membersRemoved": [],
+    "channelId": "emulator",
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "id": "22805670-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "localTimestamp": "2025-01-17T23:59:49+00:00",
+    "recipient": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "timestamp": "2025-01-17T23:59:49.079Z",
+    "from": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "name": "User",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "serviceUrl": "http://localhost:55775"
+  },
+  {
+    "type": "message",
+    "serviceUrl": "http://localhost:55775",
+    "channelId": "emulator",
+    "from": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "recipient": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "text": "Welcome to the bot!",
+    "inputHint": "acceptingInput",
+    "id": "2282ee80-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "localTimestamp": "2025-01-17T23:59:49+00:00",
+    "timestamp": "2025-01-17T23:59:49.096Z"
+  },
+  {
+    "type": "message",
+    "serviceUrl": "http://localhost:55775",
+    "channelId": "emulator",
+    "from": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "recipient": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "text": "Welcome to LingoLizard! Let's start improving your language skills.",
+    "inputHint": "acceptingInput",
+    "id": "22833ca0-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "localTimestamp": "2025-01-17T23:59:49+00:00",
+    "timestamp": "2025-01-17T23:59:49.098Z"
+  },
+  {
+    "type": "message",
+    "serviceUrl": "http://localhost:55775",
+    "channelId": "emulator",
+    "from": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "recipient": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "text": "Which language would you like to improve?",
+    "inputHint": "acceptingInput",
+    "id": "22838ac0-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "localTimestamp": "2025-01-17T23:59:49+00:00",
+    "timestamp": "2025-01-17T23:59:49.100Z"
+  },
+  {
+    "channelData": {
+      "clientActivityID": "1737158392513xr940mu2dn"
+    },
+    "text": "french",
+    "textFormat": "plain",
+    "type": "message",
+    "channelId": "emulator",
+    "from": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "name": "User",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "localTimestamp": "2025-01-17T23:59:52+00:00",
+    "localTimezone": "Europe/Dublin",
+    "attachments": [],
+    "entities": [
+      {
+        "requiresBotState": true,
+        "supportsListening": true,
+        "supportsTts": true,
+        "type": "ClientCapabilities"
+      }
+    ],
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "id": "248e00c0-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "recipient": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "timestamp": "2025-01-17T23:59:52.524Z",
+    "serviceUrl": "http://localhost:55775"
+  },
+  {
+    "type": "message",
+    "serviceUrl": "http://localhost:55775",
+    "channelId": "emulator",
+    "from": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "recipient": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "text": "What is your proficiency level? (Beginner, Intermediate, Advanced)",
+    "inputHint": "acceptingInput",
+    "replyToId": "248e00c0-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "id": "248e9d00-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "localTimestamp": "2025-01-17T23:59:52+00:00",
+    "timestamp": "2025-01-17T23:59:52.528Z"
+  },
+  {
+    "channelData": {
+      "clientActivityID": "1737158395052bl6rb2tx2z7"
+    },
+    "text": "beginner",
+    "textFormat": "plain",
+    "type": "message",
+    "channelId": "emulator",
+    "from": {
+      "id": "2d8818c1-5bf8-4cbe-8a9b-ede51a338318",
+      "name": "User",
+      "role": "user"
+    },
+    "locale": "en-US",
+    "localTimestamp": "2025-01-17T23:59:55+00:00",
+    "localTimezone": "Europe/Dublin",
+    "attachments": [],
+    "conversation": {
+      "id": "227cd401-d52f-11ef-bd02-8bb599602a4d|livechat"
+    },
+    "id": "26116c70-d52f-11ef-9fe7-e96bc6e1a2ec",
+    "recipient": {
+      "id": "56795210-d50c-11ef-bd02-8bb599602a4d",
+      "name": "Bot",
+      "role": "bot"
+    },
+    "timestamp": "2025-01-17T23:59:55.063Z",
+    "serviceUrl": "http://localhost:55775"
+  }
+]
