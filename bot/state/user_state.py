@@ -49,13 +49,11 @@ class UserState:
     def set_language(self, language):
         """Set the current language the user is learning."""
         self.language = language
-        print(f"Debug: UserState - Language updated to {self.language}")
 
     def set_proficiency_level(self, level):
         """Set the user's proficiency level."""
         valid_levels = ["beginner", "intermediate", "advanced"]
         if level.lower() in valid_levels:
             self.proficiency_level = level.capitalize()
-            print(f"Debug: UserState - Proficiency Level updated to {self.proficiency_level}")
         else:
             raise ValueError("Invalid proficiency level. Choose Beginner, Intermediate, or Advanced.")

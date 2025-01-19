@@ -6,13 +6,12 @@ from botbuilder.dialogs import (
     DialogTurnResult,
     TextPrompt,
     PromptOptions,
-    DialogSet,
-    DialogTurnStatus,
 )
 from botbuilder.schema import HeroCard, CardAction, ActionTypes
 from state.user_state import UserState
+from .base_dialog import BaseDialog  
 
-class MainDialog(ComponentDialog):
+class MainDialog(BaseDialog):
     def __init__(self, user_state: UserState):
         super(MainDialog, self).__init__("MainDialog")
         self.user_state = user_state
@@ -26,20 +25,6 @@ class MainDialog(ComponentDialog):
         self.add_dialog(TextPrompt(TextPrompt.__name__))
 
         self.initial_dialog_id = "main_dialog"
-
-    async def run(self, turn_context: TurnContext, accessor):
-        """
-        Runs the dialog by creating a DialogSet and continuing or starting the dialog.
-        """
-        dialog_set = DialogSet(accessor)
-        dialog_set.add(self)
-
-        dialog_context = await dialog_set.create_context(turn_context)
-
-        # Continue an active dialog or start a new one
-        results = await dialog_context.continue_dialog()
-        if results.status == DialogTurnStatus.Empty:
-            await dialog_context.begin_dialog(self.id)
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity("Welcome to LingoLizard! Let's start improving your language skills.")
@@ -95,7 +80,7 @@ class MainDialog(ComponentDialog):
         # Send a confirmation message to the user
         await step_context.context.send_activity(
             MessageFactory.text(
-                f"Language set to {self.user_state.language} and proficiency level set to {self.user_state.proficiency_level}."
+                f"Lesson is set to {self.user_state.proficiency_level} level {self.user_state.language}."
             )
         )
         return await step_context.end_dialog()
