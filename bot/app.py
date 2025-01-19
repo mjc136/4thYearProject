@@ -5,6 +5,7 @@ from botbuilder.core import (
     TurnContext,
     MemoryStorage,
     ConversationState,
+    UserState as BotUserState,
 )
 from botbuilder.schema import Activity, ActivityTypes
 from dialogs.main_dialog import MainDialog
@@ -18,28 +19,24 @@ ADAPTER = BotFrameworkAdapter(SETTINGS)
 # State setup
 memory = MemoryStorage()
 conversation_state = ConversationState(memory)
-dialog_state = conversation_state.create_property("DialogState")
-user_state = UserState()
+user_state_property = BotUserState(memory)
+user_state_accessor = user_state_property.create_property("UserState")
+user_state = UserState("default_user")
 main_dialog = MainDialog(user_state)
 
 # Bot message handler
 async def messages(req: web.Request) -> web.Response:
-    """
-    Handles incoming messages from the bot framework.
-    """
     body = await req.json()
     activity = Activity().deserialize(body)
     auth_header = req.headers.get("Authorization", "")
 
     async def turn_logic(turn_context: TurnContext):
-        """
-        Processes the logic for each turn of the conversation.
-        """
-        # Start the main dialogue on every user message
-        await main_dialog.run(turn_context, dialog_state)
+        # Run the main dialogue
+        await main_dialog.run(turn_context, conversation_state.create_property("DialogState"))
 
         # Save any state changes to memory
         await conversation_state.save_changes(turn_context)
+        await user_state_property.save_changes(turn_context)
 
     # Process the incoming activity using the adapter
     await ADAPTER.process_activity(activity, auth_header, turn_logic)
