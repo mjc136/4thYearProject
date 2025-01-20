@@ -1,5 +1,6 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, PromptOptions
 from botbuilder.dialogs.prompts import TextPrompt
+from .base_dialog import BaseDialog  
 
 class HotelScenarioDialog(WaterfallDialog):
     def __init__(self):
