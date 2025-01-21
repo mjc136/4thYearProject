@@ -50,6 +50,10 @@ class UserState:
         """Set the current language the user is learning."""
         self.language = language
 
+    def get_language(self):
+        """Get the current language the user is learning."""
+        return self.language
+
     def set_proficiency_level(self, level):
         """Set the user's proficiency level."""
         valid_levels = ["beginner", "intermediate", "advanced"]
