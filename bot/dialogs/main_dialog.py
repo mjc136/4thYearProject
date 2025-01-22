@@ -8,15 +8,20 @@ from botbuilder.dialogs import (
 )
 from state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
-from .base_dialog import BaseDialog  
+from .base_dialog import BaseDialog
 
 class MainDialog(BaseDialog):
-    def __init__(self, user_state: UserState):
-        super(MainDialog, self).__init__("MainDialog")
+    def __init__(self, user_state: UserState, config):
+        dialog_id = "MainDialog"
+        super(MainDialog, self).__init__(dialog_id, user_state, config)
         self.user_state = user_state
+        self.config = config
 
-        self.add_dialog(TaxiScenarioDialog())
-        self.add_dialog(WaterfallDialog("main_dialog", [
+        # Add dialogs to set
+        taxi_dialog = TaxiScenarioDialog(user_state, config)
+        self.add_dialog(taxi_dialog)
+        self.add_dialog(TextPrompt(TextPrompt.__name__))
+        self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
             self.language_step,
             self.proficiency_step,
@@ -24,9 +29,8 @@ class MainDialog(BaseDialog):
             self.handle_scenario_step,
             self.final_step
         ]))
-        self.add_dialog(TextPrompt(TextPrompt.__name__))
 
-        self.initial_dialog_id = "main_dialog"
+        self.initial_dialog_id = f"{dialog_id}.waterfall"
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity("Welcome to LingoLizard! Let's start improving your language skills.")
@@ -42,9 +46,9 @@ class MainDialog(BaseDialog):
 
         # Display the hero card with language options
         card_actions = [
-            {"type": "imBack", "title": "Spanish", "value": "Spanish"},
-            {"type": "imBack", "title": "French", "value": "French"},
-            {"type": "imBack", "title": "Portuguese", "value": "Portuguese"},
+            {"type": "imBack", "title": "Spanish", "value": "Es"},
+            {"type": "imBack", "title": "French", "value": "Fr"},
+            {"type": "imBack", "title": "Portuguese", "value": "Pt"},
         ]
         prompt_message = MessageFactory.suggested_actions(card_actions, "Please select the language you would like to practise:")
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
@@ -70,24 +74,22 @@ class MainDialog(BaseDialog):
         print(f"Debug: Proficiency Level = {self.user_state.proficiency_level}")
         if self.user_state.proficiency_level == "Beginner":
             print("Debug: Starting TaxiScenarioDialog")
-            await step_context.begin_dialog("taxi_dialog")
-            return await step_context.replace_dialog("main_dialog")
-        else:
-            print("Debug: No scenario matched.")
-            await step_context.context.send_activity("No scenario available for this proficiency level.")
-            return await step_context.next(None)
+            return await step_context.begin_dialog("TaxiScenarioDialog")
+        return await step_context.next(None)
 
     async def confirm_selection(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Save proficiency and proceed to scenario handling."""
-        proficiency_level = step_context.result.strip().capitalize()
-        try:
-            # Validate and save the proficiency level
-            self.user_state.set_proficiency_level(proficiency_level)
-        except ValueError as e:
-            await step_context.context.send_activity(str(e))
-            return await step_context.replace_dialog(self.id)
-
-        # Proceed to handle the scenario
+        if step_context.result:
+            proficiency_level = step_context.result.strip().capitalize()
+            try:
+                self.user_state.set_proficiency_level(proficiency_level)
+                await step_context.context.send_activity(
+                    f"Language set to {self.user_state.language} and proficiency level set to {proficiency_level}."
+                )
+                return await step_context.next(None)
+            except ValueError as e:
+                await step_context.context.send_activity(str(e))
+                return await step_context.replace_dialog(self.id)
         return await step_context.next(None)
     
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
