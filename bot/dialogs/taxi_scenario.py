@@ -21,7 +21,7 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         print("Debug: Starting intro_step in TaxiScenarioDialog")
-        welcome_text = "Welcome to the Taxi Scenario! We'll practice common phrases used when taking a taxi."
+        welcome_text = "Welcome to the Taxi Scenario! We'll practice phrases used when taking a taxi."
         translated_text = self.translate_text(welcome_text, self.user_state.language)
         
         await step_context.context.send_activity(welcome_text)

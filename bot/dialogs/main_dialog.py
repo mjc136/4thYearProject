@@ -24,7 +24,9 @@ class MainDialog(BaseDialog):
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
             self.language_step,
+            self.verify_language,
             self.proficiency_step,
+            self.verify_proficiency,
             self.confirm_selection,
             self.handle_scenario_step,
             self.final_step
@@ -38,28 +40,28 @@ class MainDialog(BaseDialog):
 
     async def language_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompt the user for the language they want to improve."""
-        if step_context.result:
-            # Save the language to UserState
-            language = step_context.result.strip().capitalize()
-            self.user_state.set_language(language)
-            return await step_context.next(None)
-
         # Display the hero card with language options
         card_actions = [
             {"type": "imBack", "title": "Spanish", "value": "Es"},
             {"type": "imBack", "title": "French", "value": "Fr"},
             {"type": "imBack", "title": "Portuguese", "value": "Pt"},
         ]
+        if step_context.result:
+            step_context.context.send_activity(f"BRUHHHH")
         prompt_message = MessageFactory.suggested_actions(card_actions, "Please select the language you would like to practise:")
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
+    
+    async def verify_language(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Confirm the selected language and prompt for proficiency level."""
+        if step_context.result:
+            language = step_context.result.strip().capitalize()
+            self.user_state.set_language(language)
+            await step_context.context.send_activity(f"Selected language: {language}.")
+            return await step_context.next(None)
+        return await step_context.replace_dialog(self.id)
 
     async def proficiency_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompt the user for proficiency level."""
-        if step_context.result:
-            # Save the language to UserState
-            language = step_context.result.strip().capitalize()
-            self.user_state.set_language(language)
-
         # Prompt the user for proficiency level
         card_actions = [
             {"type": "imBack", "title": "Beginner", "value": "Beginner"},
@@ -69,9 +71,17 @@ class MainDialog(BaseDialog):
         prompt_message = MessageFactory.suggested_actions(card_actions, "What is your proficiency level?")
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
     
+    async def verify_proficiency(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Confirm the selected proficiency level and proceed to scenario handling."""
+        if step_context.result:
+            proficiency_level = step_context.result.strip().capitalize()
+            self.user_state.set_proficiency_level(proficiency_level)
+            await step_context.context.send_activity(f"Proficiency level set to {proficiency_level}.")
+            return await step_context.next(None)
+        return await step_context.replace_dialog(self.id)
+    
     async def handle_scenario_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Trigger the appropriate scenario based on proficiency."""
-        print(f"Debug: Proficiency Level = {self.user_state.proficiency_level}")
         if self.user_state.proficiency_level == "Beginner":
             print("Debug: Starting TaxiScenarioDialog")
             return await step_context.begin_dialog("TaxiScenarioDialog")
