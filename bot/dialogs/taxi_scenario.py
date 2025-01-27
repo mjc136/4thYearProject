@@ -1,5 +1,4 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult
-from botbuilder.core import MessageFactory
 from .base_dialog import BaseDialog
 from state.user_state import UserState
 
@@ -21,18 +20,18 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         print("Debug: Starting intro_step in TaxiScenarioDialog")
-        welcome_text = "Welcome to the Taxi Scenario! We'll practice phrases used when taking a taxi."
-        translated_text = self.translate_text(welcome_text, self.user_state.language)
+        text = "Welcome to the Taxi Scenario! We'll practice phrases used when taking a taxi."
+        translated_text = self.translate_text(text, self.user_state.language)
         
-        await step_context.context.send_activity(welcome_text)
+        await step_context.context.send_activity(text)
         await step_context.context.send_activity(translated_text)
         return await step_context.next(None)
 
     async def scenario_setup(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        setup_text = "Imagine you need to take a taxi to the train station."
-        translated_text = self.translate_text(setup_text, self.user_state.language)
+        text = "Imagine you need to take a taxi to the train station."
+        translated_text = self.translate_text(text, self.user_state.language)
         
-        await step_context.context.send_activity(setup_text)
+        await step_context.context.send_activity(text)
         await step_context.context.send_activity(translated_text)
         return await step_context.next(None)
 
@@ -46,9 +45,9 @@ class TaxiScenarioDialog(BaseDialog):
         return await step_context.next(None)
 
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        completion_text = "You've completed the taxi scenario!"
-        translated_text = self.translate_text(completion_text, self.user_state.language)
+        text = "You've completed the taxi scenario!"
+        translated_text = self.translate_text(text, self.user_state.language)
         
-        await step_context.context.send_activity(completion_text)
+        await step_context.context.send_activity(text)
         await step_context.context.send_activity(translated_text)
         return await step_context.end_dialog()
