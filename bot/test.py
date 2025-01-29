@@ -1,37 +1,48 @@
 import os
-import uuid
-import requests
-import json
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
+from azure.ai.textanalytics import TextAnalyticsClient
+from azure.core.credentials import AzureKeyCredential
 
-# Load environment variables from the .env file
-load_dotenv()
+def test_text_analytics():
+    # Load environment variables
+    load_dotenv()
+    
+    # Get credentials
+    key = os.getenv("TEXT_ANALYTICS_KEY")
+    endpoint = os.getenv("TEXT_ANALYTICS_ENDPOINT")
+    
+    if not all([key, endpoint]):
+        print("Environment variables not found. Please check your .env file")
+        print(f"KEY: {'Found' if key else 'Missing'}")
+        print(f"ENDPOINT: {'Found' if endpoint else 'Missing'}")
+        return
+    
+    try:
+        # Initialize client
+        credential = AzureKeyCredential(key)
+        client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
         
-# Get the Translator Text API key and endpoint from the .env file
-config = dotenv_values(".env")
-print(config)
-TRANSLATOR_KEY = config["TRANSLATOR_KEY"]
-TRANSLATOR_ENDPOINT = config["TRANSLATOR_ENDPOINT"]
-TRANSLATOR_LOCATION = config["TRANSLATOR_LOCATION"]
+        # Test documents
+        documents = [
+            "my name is bob and I am a software engineer at Microsoft.",
+            "I am learning how to speak French.",
+            "i wanna go home.",
+            "minha casa é muito bonita.",
+        ]
+        
+        # Analyze entities
+        print("Analyzing text...")
+        response = client.recognize_entities(documents)
+        
+        # Process results
+        for idx, doc in enumerate(response):
+            print(f"\nDocument {idx + 1} entities:")
+            for entity in doc.entities:
+                print(f"- {entity.text} ({entity.category}): {entity.confidence_score:.2f}")
+                
+    except Exception as e:
+        print(f"Error occurred: {str(e)}")
+        print("Check your Azure credentials and network connection")
 
-path = '/translate?api-version=3.0'
-params = '&to=de&to=it&to=ja'
-constructed_url = TRANSLATOR_ENDPOINT + path
-
-headers = {
-    'Ocp-Apim-Subscription-Key': TRANSLATOR_KEY,
-    # location required if you're using a multi-service or regional (not global) resource.
-    'Ocp-Apim-Subscription-Region': TRANSLATOR_LOCATION,
-    'Content-type': 'application/json',
-    'X-ClientTraceId': str(uuid.uuid4())
-}
-
-# You can pass more than one object in body.
-body = [{
-    'text': 'I would really like to drive your car around the block a few times!'
-}]
-
-request = requests.post(constructed_url, params=params, headers=headers, json=body)
-response = request.json()
-
-print(json.dumps(response, sort_keys=True, ensure_ascii=False, indent=4, separators=(',', ': ')))
+if __name__ == "__main__":
+    test_text_analytics()

@@ -5,6 +5,10 @@ import uuid
 import requests
 import json
 from urllib.parse import urlencode
+from azure.ai.textanalytics import TextAnalyticsClient
+from azure.core.credentials import AzureKeyCredential
+import os
+from dotenv import load_dotenv
 
 class BaseDialog(ComponentDialog):
     def __init__(self, dialog_id: str, user_state=None, config=None):
@@ -93,3 +97,24 @@ class BaseDialog(ComponentDialog):
             raise ValueError(f"Translation request failed: {str(e)}")
         except (KeyError, IndexError, json.JSONDecodeError) as e:
             raise ValueError(f"Failed to process translation response: {str(e)}")
+
+    async def analyze_text_in_bot(turn_context):
+        user_input = turn_context.activity.text
+        
+        try:
+            # Azure credentials
+            key = os.getenv("TEXT_ANALYTICS_KEY")
+            endpoint = os.getenv("TEXT_ANALYTICS_ENDPOINT")
+            client = TextAnalyticsClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+            
+            # Analyze entities
+            response = client.recognize_entities([user_input])
+            entities = [f"{entity.text} ({entity.category})" for entity in response[0].entities]
+            
+            if entities:
+                await turn_context.send_activity(f"Identified entities: {', '.join(entities)}")
+            else:
+                await turn_context.send_activity("No entities were detected.")
+                
+        except Exception as e:
+            await turn_context.send_activity(f"Error analyzing text: {str(e)}")
