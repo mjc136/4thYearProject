@@ -66,9 +66,10 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0F016CD8753B4B4FA72E0776C8572D33 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_55E43D1E0A7E4C12B1609E557B118DA7 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_91B980FF1D1648D3A2B9A216B88CD77A }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-OIDC: true
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
