@@ -34,7 +34,6 @@ class MainDialog(BaseDialog):
             self.proficiency_step,
             self.verify_proficiency,
             self.handle_scenario_step,
-            self.final_step
         ]))
 
         self.initial_dialog_id = f"{dialog_id}.waterfall"
@@ -94,8 +93,4 @@ class MainDialog(BaseDialog):
         else:
             print("Debug: job_interview_scenario")
             return await step_context.begin_dialog("JobInterviewScenarioDialog")        
-    
-    async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """End the dialog."""
-        await step_context.context.send_activity("You have completed the scenario.")
-        return await step_context.end_dialog()
+
