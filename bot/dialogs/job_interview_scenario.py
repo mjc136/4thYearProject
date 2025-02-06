@@ -1,6 +1,6 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult
 from .base_dialog import BaseDialog
-from state.user_state import UserState
+from bot.state.user_state import UserState
 
 class JobInterviewScenarioDialog(BaseDialog):
     def __init__(self, user_state):

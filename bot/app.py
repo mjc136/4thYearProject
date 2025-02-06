@@ -9,8 +9,8 @@ from botbuilder.core import (
     UserState as BotUserState,
 )
 from botbuilder.schema import Activity
-from dialogs.main_dialog import MainDialog
-from state.user_state import UserState
+from bot.dialogs.main_dialog import MainDialog
+from bot.state.user_state import UserState
 import os
 import logging
 import sys

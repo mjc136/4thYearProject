@@ -2,7 +2,7 @@ from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurn
 from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
 from .base_dialog import BaseDialog
-from state.user_state import UserState
+from bot.state.user_state import UserState
 
 class HotelScenarioDialog(BaseDialog):
     def __init__(self, user_state: UserState):
