@@ -11,8 +11,6 @@ import os
 import sys
 import logging
 
-from bot.app import LOGGER
-
 class BaseDialog(ComponentDialog):
     def __init__(self, dialog_id: str, user_state=None):
         super(BaseDialog, self).__init__(dialog_id)
@@ -23,15 +21,21 @@ class BaseDialog(ComponentDialog):
         # Fetch configuration from Azure App Configuration
         connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING", "")
         if not connection_string:
-            LOGGER.error("Azure App Configuration connection string is not set.")
+            print("Error: AZURE_APP_CONFIG_CONNECTION_STRING is not set.")
             sys.exit(1)
         else:
-            app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
-            self.TRANSLATOR_KEY = app_config_client.get_configuration_setting(key="TRANSLATOR_KEY").value
-            self.TRANSLATOR_ENDPOINT = app_config_client.get_configuration_setting(key="TRANSLATOR_ENDPOINT").value
-            self.TRANSLATOR_LOCATION = app_config_client.get_configuration_setting(key="TRANSLATOR_LOCATION").value
-            self.TEXT_ANALYTICS_KEY = app_config_client.get_configuration_setting(key="TEXT_ANALYTICS_KEY").value
-            self.TEXT_ANALYTICS_ENDPOINT = app_config_client.get_configuration_setting(key="TEXT_ANALYTICS_ENDPOINT").value
+            try:
+                app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+                self.TRANSLATOR_KEY = app_config_client.get_configuration_setting(key="TRANSLATOR_KEY").value
+                self.TRANSLATOR_ENDPOINT = app_config_client.get_configuration_setting(key="TRANSLATOR_ENDPOINT").value
+                self.TRANSLATOR_LOCATION = app_config_client.get_configuration_setting(key="TRANSLATOR_LOCATION").value
+                self.TEXT_ANALYTICS_KEY = app_config_client.get_configuration_setting(key="TEXT_ANALYTICS_KEY").value
+                self.TEXT_ANALYTICS_ENDPOINT = app_config_client.get_configuration_setting(key="TEXT_ANALYTICS_ENDPOINT").value
+                            
+                print("Successfully retrieved keys from Azure App Configuration.")
+            except Exception as e:
+                print(f"Error fetching configuration from Azure App Configuration: {e}")
+                sys.exit(1)
 
 
     async def run(self, turn_context: TurnContext, accessor):
