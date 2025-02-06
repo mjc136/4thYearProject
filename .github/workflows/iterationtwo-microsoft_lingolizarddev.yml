@@ -78,4 +78,3 @@ jobs:
         with:
           app-name: 'LingoLizardDev'
           slot-name: 'Production'
-          
