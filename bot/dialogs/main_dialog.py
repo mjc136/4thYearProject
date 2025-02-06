@@ -11,18 +11,19 @@ from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
 from .base_dialog import BaseDialog
+from dotenv import load_dotenv
+import os
 
 class MainDialog(BaseDialog):
-    def __init__(self, user_state: UserState, config):
+    def __init__(self, user_state: UserState):
         dialog_id = "MainDialog"
-        super(MainDialog, self).__init__(dialog_id, user_state, config)
+        super(MainDialog, self).__init__(dialog_id, user_state)
         self.user_state = user_state
-        self.config = config
 
         # Add dialogs to set
-        taxi_dialog = TaxiScenarioDialog(user_state, config)
-        hotel_dialog = HotelScenarioDialog(user_state, config)
-        job_interview_dialog = JobInterviewScenarioDialog(user_state, config)
+        taxi_dialog = TaxiScenarioDialog(user_state)
+        hotel_dialog = HotelScenarioDialog(user_state)
+        job_interview_dialog = JobInterviewScenarioDialog(user_state)
         self.add_dialog(taxi_dialog)
         self.add_dialog(hotel_dialog)
         self.add_dialog(job_interview_dialog)

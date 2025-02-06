@@ -6,11 +6,10 @@ from state.user_state import UserState
 from difflib import SequenceMatcher
 
 class TaxiScenarioDialog(BaseDialog):
-    def __init__(self, user_state: UserState, config=None):
+    def __init__(self, user_state: UserState):
         dialog_id = "TaxiScenarioDialog"
-        super(TaxiScenarioDialog, self).__init__(dialog_id, user_state, config)
+        super(TaxiScenarioDialog, self).__init__(dialog_id, user_state)
         self.user_state = user_state
-        self.config = config
 
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [

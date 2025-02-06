@@ -5,11 +5,10 @@ from .base_dialog import BaseDialog
 from state.user_state import UserState
 
 class HotelScenarioDialog(BaseDialog):
-    def __init__(self, user_state: UserState, config=None):
+    def __init__(self, user_state: UserState):
         dialog_id = "HotelScenarioDialog"
-        super(HotelScenarioDialog, self).__init__(dialog_id, user_state, config)
+        super(HotelScenarioDialog, self).__init__(dialog_id, user_state)
         self.user_state = user_state
-        self.config = config
 
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [

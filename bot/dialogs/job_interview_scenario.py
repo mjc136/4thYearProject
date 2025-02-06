@@ -3,11 +3,10 @@ from .base_dialog import BaseDialog
 from state.user_state import UserState
 
 class JobInterviewScenarioDialog(BaseDialog):
-    def __init__(self, user_state, config=None):
+    def __init__(self, user_state):
         dialog_id = "JobInterviewScenarioDialog"
-        super(JobInterviewScenarioDialog, self).__init__(dialog_id, user_state, config)
+        super(JobInterviewScenarioDialog, self).__init__(dialog_id, user_state)
         self.user_state = user_state
-        self.config = config
 
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
