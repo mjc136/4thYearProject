@@ -82,11 +82,6 @@ async def messages(req: web.Request) -> web.Response:
     LOGGER.info(f"Request Headers: {req.headers}")
     LOGGER.info(f"Request Body: {await req.text()}")
 
-    # # Check Content-Type header
-    # if req.headers.get("Content-Type") != "application/json":
-    #     LOGGER.warning("Invalid Content-Type header.")
-    #     return web.Response(status=415, text="Unsupported Media Type")
-
     try:
         body = await req.json()
         LOGGER.info(f"Received request body: {body}")
@@ -105,6 +100,13 @@ async def messages(req: web.Request) -> web.Response:
     except Exception as e:
         LOGGER.error(f"Error processing message: {str(e)}", exc_info=True)
         return web.Response(status=500, text="Internal Server Error")
+    
+# Path to the current directory
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+    
+# Serve the index.html file at the root URL
+async def serve_index(req: web.Request) -> web.Response:
+    return web.FileResponse(os.path.join(CURRENT_DIR, 'index.html'))
 
 # Create and configure web app
 APP = web.Application()
