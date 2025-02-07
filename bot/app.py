@@ -73,6 +73,11 @@ async def health_check(req: web.Request) -> web.Response:
 # Bot message handler
 async def messages(req: web.Request) -> web.Response:
     LOGGER.info("Processing /api/messages endpoint.")
+
+    # Log incoming request headers and body
+    LOGGER.info(f"Request Headers: {req.headers}")
+    LOGGER.info(f"Request Body: {await req.text()}")
+
     if req.headers.get("Content-Type") != "application/json":
         LOGGER.warning("Invalid Content-Type header.")
         return web.Response(status=415, text="Unsupported Media Type")
