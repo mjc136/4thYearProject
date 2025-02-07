@@ -27,7 +27,8 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-if os.path.exists('bot\.env'):
+# Load environment variables from .env if present
+if os.path.exists('bot/.env'):
     load_dotenv()  # Load local .env if it exists
     LOGGER.info("Loaded local .env file")
 else:
@@ -74,6 +75,16 @@ async def health_check(req: web.Request) -> web.Response:
     LOGGER.info("Health check endpoint called.")
     return web.Response(text="Healthy")
 
+# Serve index.html at the root URL
+async def serve_index(req: web.Request) -> web.Response:
+    index_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+    LOGGER.info(f"Serving index.html from: {index_path}")
+    if os.path.exists(index_path):
+        return web.FileResponse(index_path)
+    else:
+        LOGGER.error(f"index.html not found at {index_path}")
+        return web.Response(status=404, text="index.html not found")
+
 # Bot message handler
 async def messages(req: web.Request) -> web.Response:
     LOGGER.info("Processing /api/messages endpoint.")
@@ -100,18 +111,12 @@ async def messages(req: web.Request) -> web.Response:
     except Exception as e:
         LOGGER.error(f"Error processing message: {str(e)}", exc_info=True)
         return web.Response(status=500, text="Internal Server Error")
-    
-# Path to the current directory
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-    
-# Serve the index.html file at the root URL
-async def serve_index(req: web.Request) -> web.Response:
-    return web.FileResponse(os.path.join(CURRENT_DIR, 'index.html'))
 
 # Create and configure web app
 APP = web.Application()
-APP.router.add_get("/health", health_check)
-APP.router.add_post("/api/messages", messages)
+APP.router.add_get("/", serve_index)  # Serve index.html
+APP.router.add_get("/health", health_check)  # Health check endpoint
+APP.router.add_post("/api/messages", messages)  # API messages endpoint
 
 if __name__ == "__main__":
     try:
