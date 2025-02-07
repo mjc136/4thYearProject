@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dummy
 
 jobs:
   build-and-deploy:
