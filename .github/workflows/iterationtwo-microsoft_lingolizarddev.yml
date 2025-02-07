@@ -34,9 +34,10 @@ jobs:
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
-      - name: Zip artifact for deployment
+      - name: Zip application files
         run: |
-          zip release.zip ./bot/** ./requirements.txt
+          zip -r release.zip . -x "*.git*" "venv/*" "*.github/*"
+
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
