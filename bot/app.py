@@ -17,6 +17,8 @@ import sys
 from azure.appconfiguration import AzureAppConfigurationClient
 from dotenv import load_dotenv
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 load_dotenv()  # Load .env file
 
 # Configure logging
