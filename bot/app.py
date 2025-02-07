@@ -77,7 +77,7 @@ async def health_check(req: web.Request) -> web.Response:
 
 # Serve index.html at the root URL
 async def serve_index(req: web.Request) -> web.Response:
-    index_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+    index_path = "index.html"
     LOGGER.info(f"Serving index.html from: {index_path}")
     if os.path.exists(index_path):
         return web.FileResponse(index_path)
