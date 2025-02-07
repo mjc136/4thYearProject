@@ -19,8 +19,6 @@ from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-load_dotenv()  # Load .env file
-
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
@@ -28,6 +26,12 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 LOGGER = logging.getLogger(__name__)
+
+if os.path.exists('.env'):
+    load_dotenv()  # Load local .env if it exists
+    LOGGER.info("Loaded local .env file")
+else:
+    LOGGER.info("No .env file found, using environment variables")
 
 # Fetch configuration from Azure App Configuration
 connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
