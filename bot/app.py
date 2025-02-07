@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
-if os.path.exists('.env'):
+if os.path.exists('bot\.env'):
     load_dotenv()  # Load local .env if it exists
     LOGGER.info("Loaded local .env file")
 else:
@@ -78,27 +78,25 @@ async def health_check(req: web.Request) -> web.Response:
 async def messages(req: web.Request) -> web.Response:
     LOGGER.info("Processing /api/messages endpoint.")
 
-    # Log incoming request headers and body
+    # Log request headers and body for debugging
     LOGGER.info(f"Request Headers: {req.headers}")
     LOGGER.info(f"Request Body: {await req.text()}")
 
-    if req.headers.get("Content-Type") != "application/json":
-        LOGGER.warning("Invalid Content-Type header.")
-        return web.Response(status=415, text="Unsupported Media Type")
+    # # Check Content-Type header
+    # if req.headers.get("Content-Type") != "application/json":
+    #     LOGGER.warning("Invalid Content-Type header.")
+    #     return web.Response(status=415, text="Unsupported Media Type")
 
     try:
         body = await req.json()
         LOGGER.info(f"Received request body: {body}")
         activity = Activity().deserialize(body)
         auth_header = req.headers.get("Authorization", "")
-        LOGGER.info(f"Authorization header: {auth_header}")
 
         async def turn_logic(turn_context: TurnContext):
             LOGGER.info("Running main dialog.")
             await main_dialog.run(turn_context, conversation_state.create_property("DialogState"))
-            LOGGER.info("Saving conversation state.")
             await conversation_state.save_changes(turn_context)
-            LOGGER.info("Saving user state.")
             await user_state_property.save_changes(turn_context)
 
         await ADAPTER.process_activity(activity, auth_header, turn_logic)
