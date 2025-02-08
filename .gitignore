@@ -1,5 +1,7 @@
 /venv
 bot/transcripts.transcript
 bot/.env
-LingoLizard Dev.bot
+LingoLizardDev.bot
 LingoLizardLocal.bot
+*.pyc
+*/__pycache__

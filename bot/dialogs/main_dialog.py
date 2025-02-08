@@ -11,8 +11,6 @@ from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
 from .base_dialog import BaseDialog
-from dotenv import load_dotenv
-import os
 
 class MainDialog(BaseDialog):
     def __init__(self, user_state: UserState):
@@ -94,4 +92,3 @@ class MainDialog(BaseDialog):
         else:
             print("Debug: job_interview_scenario")
             return await step_context.begin_dialog("JobInterviewScenarioDialog")        
-

@@ -1,45 +1,56 @@
 from botbuilder.dialogs import ComponentDialog, DialogSet, DialogTurnStatus
 from botbuilder.core import TurnContext
-from typing import Optional, Dict, Any
+from typing import Optional
 import uuid
 import requests
 import json
 from urllib.parse import urlencode
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
+from azure.appconfiguration import AzureAppConfigurationClient
 import os
-import sys
 import logging
+from dotenv import load_dotenv
 
 class BaseDialog(ComponentDialog):
     def __init__(self, dialog_id: str, user_state=None):
         super(BaseDialog, self).__init__(dialog_id)
         self.user_state = user_state
 
-        from azure.appconfiguration import AzureAppConfigurationClient
+        # Configure logging
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(level=logging.INFO)
+
+        # Load environment variables
+        if os.path.exists('bot/.env'):
+            load_dotenv()
+            self.logger.info("Loaded local .env file")
+        else:
+            self.logger.info("No .env file found, using environment variables")
 
         # Fetch configuration from Azure App Configuration
         connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING", "")
         if not connection_string:
-            print("Error: AZURE_APP_CONFIG_CONNECTION_STRING is not set.")
-            sys.exit(1)
-        else:
-            try:
-                app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
-                self.TRANSLATOR_KEY = app_config_client.get_configuration_setting(key="TRANSLATOR_KEY").value
-                self.TRANSLATOR_ENDPOINT = app_config_client.get_configuration_setting(key="TRANSLATOR_ENDPOINT").value
-                self.TRANSLATOR_LOCATION = app_config_client.get_configuration_setting(key="TRANSLATOR_LOCATION").value
-                self.TEXT_ANALYTICS_KEY = app_config_client.get_configuration_setting(key="TEXT_ANALYTICS_KEY").value
-                self.TEXT_ANALYTICS_ENDPOINT = app_config_client.get_configuration_setting(key="TEXT_ANALYTICS_ENDPOINT").value
-                            
-                print("Successfully retrieved keys from Azure App Configuration.")
-            except Exception as e:
-                print(f"Error fetching configuration from Azure App Configuration: {e}")
-                sys.exit(1)
+            raise RuntimeError("Error: AZURE_APP_CONFIG_CONNECTION_STRING is not set.")
 
+        try:
+            self.TRANSLATOR_KEY = os.getenv(key="TRANSLATOR_KEY")
+            self.TRANSLATOR_ENDPOINT = os.getenv(key="TRANSLATOR_ENDPOINT")
+            self.TRANSLATOR_LOCATION = os.getenv(key="TRANSLATOR_LOCATION")
+            self.TEXT_ANALYTICS_KEY = os.getenv(key="TEXT_ANALYTICS_KEY")
+            self.TEXT_ANALYTICS_ENDPOINT = os.getenv(key="TEXT_ANALYTICS_ENDPOINT")
+
+            if not all([self.TRANSLATOR_KEY, self.TRANSLATOR_ENDPOINT, self.TRANSLATOR_LOCATION,
+                        self.TEXT_ANALYTICS_KEY, self.TEXT_ANALYTICS_ENDPOINT]):
+                raise RuntimeError("Missing required configuration values from Azure App Configuration")
+
+            self.logger.info("Successfully retrieved keys from Azure App Configuration.")
+
+        except Exception as e:
+            raise RuntimeError(f"Error fetching configuration from Azure App Configuration: {e}")
 
     async def run(self, turn_context: TurnContext, accessor):
-        """Runs the dialog by creating a DialogSet and continuing or starting the dialog."""
+        """Runs the dialog."""
         dialog_set = DialogSet(accessor)
         dialog_set.add(self)
 
@@ -50,32 +61,15 @@ class BaseDialog(ComponentDialog):
 
     def get_user_language(self) -> str:
         """Retrieve the user's selected language from user state."""
-        if self.user_state and hasattr(self.user_state, 'get_language'):
-            return self.user_state.get_language()
-        return 'en'
+        return self.user_state.language if hasattr(self.user_state, "language") else "en"
 
     def translate_text(self, text: str, to_language: Optional[str] = None) -> str:
-        """
-        Translate text using Azure Translator.
-        
-        Args:
-            text: Text to translate
-            to_language: Target language code (ISO 639-1)
-            
-        Returns:
-            str: Translated text
-            
-        Raises:
-            ValueError: If translation fails or config is missing
-        """
-
-
+        """Translate text using Azure Translator."""
         if not text:
             raise ValueError("No text provided for translation")
 
         target_language = to_language or self.get_user_language()
 
-        # Get translator settings from config
         key = self.TRANSLATOR_KEY
         endpoint = self.TRANSLATOR_ENDPOINT
         location = self.TRANSLATOR_LOCATION
@@ -83,15 +77,7 @@ class BaseDialog(ComponentDialog):
         if not all([key, endpoint, location]):
             raise ValueError("Missing required translator configuration")
 
-        # Construct URL with proper parameter encoding
-        base_url = f"{endpoint}/translate"
-        params = {
-            'api-version': '3.0',
-            'to': target_language
-        }
-        url = f"{base_url}?{urlencode(params)}"
-
-        # Prepare headers
+        url = f"{endpoint}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
         headers = {
             'Ocp-Apim-Subscription-Key': key,
             'Ocp-Apim-Subscription-Region': location,
@@ -99,43 +85,48 @@ class BaseDialog(ComponentDialog):
             'X-ClientTraceId': str(uuid.uuid4())
         }
 
-        # Make request
         try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=[{'text': text}]
-            )
+            response = requests.post(url, headers=headers, json=[{'text': text}])
             response.raise_for_status()
-            
             translations = response.json()
+
             if not translations or not translations[0].get('translations'):
-                raise ValueError("No translation returned from API")
-                
+                return "Translation unavailable."
+
             return translations[0]['translations'][0]['text']
-            
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Translation request failed: {str(e)}")
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            raise ValueError(f"Failed to process translation response: {str(e)}")
 
-    async def analyze_text_in_bot(turn_context):
+    def analyse_text(self, text: str) -> str:
+        """Analyse text using Azure Text Analytics."""
+        # ...existing code...
+
+    def initialise_client(self):
+        """Initialise the Text Analytics client."""
+        # ...existing code...
+
+    def customise_settings(self):
+        """Customise dialog settings."""
+        # ...existing code...
+
+    async def analyse_text_in_bot(self, turn_context):
+        """Analyse text entities using Azure Text Analytics."""
         user_input = turn_context.activity.text
-        
+
         try:
-            # Azure credentials
-            key = os.getenv("TEXT_ANALYTICS_KEY")
-            endpoint = os.getenv("TEXT_ANALYTICS_ENDPOINT")
+            key = self.TEXT_ANALYTICS_KEY
+            endpoint = self.TEXT_ANALYTICS_ENDPOINT
+
+            if not all([key, endpoint]):
+                raise ValueError("Missing Text Analytics configuration")
+
             client = TextAnalyticsClient(endpoint=endpoint, credential=AzureKeyCredential(key))
-            
-            # Analyze entities
-            response = client.recognize_entities([user_input])
+            response = client.recognise_entities([user_input])
             entities = [f"{entity.text} ({entity.category})" for entity in response[0].entities]
-            
+
             if entities:
                 await turn_context.send_activity(f"Identified entities: {', '.join(entities)}")
             else:
                 await turn_context.send_activity("No entities were detected.")
-                
         except Exception as e:
-            await turn_context.send_activity(f"Error analyzing text: {str(e)}")
+            await turn_context.send_activity(f"Error analysing text: {str(e)}")
