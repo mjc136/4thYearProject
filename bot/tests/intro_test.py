@@ -67,5 +67,3 @@ async def test_conversation_flow(monkeypatch):
     await dialog_context.continue_dialog()
     user_state.load_state()  # Load state after setting proficiency
     assert user_state.proficiency_level == "Beginner", f"Expected 'Beginner', but got {user_state.proficiency_level}"
-
-    assert 1 == 2, "Deliberate failure to test pipeline"

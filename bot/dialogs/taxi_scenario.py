@@ -3,7 +3,6 @@ from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
 from .base_dialog import BaseDialog
 from bot.state.user_state import UserState
-from difflib import SequenceMatcher
 
 class TaxiScenarioDialog(BaseDialog):
     def __init__(self, user_state: UserState):
@@ -14,7 +13,7 @@ class TaxiScenarioDialog(BaseDialog):
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
-            self.present_scenario,
+            self.train_station_step,
             self.validate_translation,
             self.final_step
         ]))
@@ -30,7 +29,7 @@ class TaxiScenarioDialog(BaseDialog):
         await step_context.context.send_activity(translated_text)
         return await step_context.next(None)
 
-    async def present_scenario(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+    async def train_station_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Present the translation task."""
         text_to_translate = "Take me to the train station, please"
         correct_translation = self.translate_text(text_to_translate, self.user_state.language)
@@ -45,22 +44,15 @@ class TaxiScenarioDialog(BaseDialog):
         )
 
     async def validate_translation(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Check the user's translation."""
+        """Use the reusable translation validation method."""
         user_translation = step_context.result
         correct_translation = step_context.values["correct_translation"]
-        
-        # Compare translations
-        similarity = SequenceMatcher(None, user_translation.lower(), correct_translation.lower()).ratio()
-        
-        if similarity > 0.8:
-            await step_context.context.send_activity("Excellent! That's correct! ⭐")
-        elif similarity > 0.5:
-            await step_context.context.send_activity(f"Good try! The correct phrase is: {correct_translation}")
-        else:
-            await step_context.context.send_activity(f"Keep practicing! The correct phrase is: {correct_translation}")
+
+        feedback = self.evaluate_response(user_translation, correct_translation)
+        await step_context.context.send_activity(feedback)
         
         return await step_context.next(None)
-
+    
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Complete the scenario."""
         text = "You've completed the taxi scenario!"

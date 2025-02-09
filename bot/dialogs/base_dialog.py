@@ -5,9 +5,9 @@ import uuid
 import requests
 import json
 from urllib.parse import urlencode
+from difflib import SequenceMatcher
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
-from azure.appconfiguration import AzureAppConfigurationClient
 import os
 import logging
 from dotenv import load_dotenv
@@ -16,38 +16,44 @@ class BaseDialog(ComponentDialog):
     def __init__(self, dialog_id: str, user_state=None):
         super(BaseDialog, self).__init__(dialog_id)
         self.user_state = user_state
-
-        # Configure logging
         self.logger = logging.getLogger(__name__)
-        logging.basicConfig(level=logging.INFO)
+        self._initialise_configuration()
+        self._initialise_clients()
 
-        # Load environment variables
-        if os.path.exists('bot/.env'):
-            load_dotenv()
-            self.logger.info("Loaded local .env file")
-        else:
-            self.logger.info("No .env file found, using environment variables")
+    def _initialise_configuration(self):
+        """Initialise configuration from environment variables."""
+        # Load environment variables from project root
+        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+        if os.path.exists(env_path):
+            load_dotenv(dotenv_path=env_path)
+            self.logger.info(f"Loaded .env file from {env_path}")
 
-        # Fetch configuration from Azure App Configuration
-        connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING", "")
-        if not connection_string:
-            raise RuntimeError("Error: AZURE_APP_CONFIG_CONNECTION_STRING is not set.")
+        # Required configuration
+        required_vars = {
+            "TRANSLATOR_KEY": None,
+            "TRANSLATOR_ENDPOINT": None,
+            "TRANSLATOR_LOCATION": None,
+            "TEXT_ANALYTICS_KEY": None,
+            "TEXT_ANALYTICS_ENDPOINT": None
+        }
 
+        # Load and validate all required variables
+        for var_name in required_vars:
+            value = os.getenv(var_name)
+            if not value:
+                raise ValueError(f"Missing required environment variable: {var_name}")
+            setattr(self, var_name, value)
+
+    def _initialise_clients(self):
+        """Initialise Azure service clients."""
         try:
-            self.TRANSLATOR_KEY = os.getenv(key="TRANSLATOR_KEY")
-            self.TRANSLATOR_ENDPOINT = os.getenv(key="TRANSLATOR_ENDPOINT")
-            self.TRANSLATOR_LOCATION = os.getenv(key="TRANSLATOR_LOCATION")
-            self.TEXT_ANALYTICS_KEY = os.getenv(key="TEXT_ANALYTICS_KEY")
-            self.TEXT_ANALYTICS_ENDPOINT = os.getenv(key="TEXT_ANALYTICS_ENDPOINT")
-
-            if not all([self.TRANSLATOR_KEY, self.TRANSLATOR_ENDPOINT, self.TRANSLATOR_LOCATION,
-                        self.TEXT_ANALYTICS_KEY, self.TEXT_ANALYTICS_ENDPOINT]):
-                raise RuntimeError("Missing required configuration values from Azure App Configuration")
-
-            self.logger.info("Successfully retrieved keys from Azure App Configuration.")
-
+            self.text_analytics_client = TextAnalyticsClient(
+                endpoint=self.TEXT_ANALYTICS_ENDPOINT,
+                credential=AzureKeyCredential(self.TEXT_ANALYTICS_KEY)
+            )
+            self.logger.info("Successfully initialised Azure clients")
         except Exception as e:
-            raise RuntimeError(f"Error fetching configuration from Azure App Configuration: {e}")
+            raise RuntimeError(f"Failed to initialise Azure clients: {e}")
 
     async def run(self, turn_context: TurnContext, accessor):
         """Runs the dialog."""
@@ -70,17 +76,10 @@ class BaseDialog(ComponentDialog):
 
         target_language = to_language or self.get_user_language()
 
-        key = self.TRANSLATOR_KEY
-        endpoint = self.TRANSLATOR_ENDPOINT
-        location = self.TRANSLATOR_LOCATION
-
-        if not all([key, endpoint, location]):
-            raise ValueError("Missing required translator configuration")
-
-        url = f"{endpoint}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
+        url = f"{self.TRANSLATOR_ENDPOINT}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
         headers = {
-            'Ocp-Apim-Subscription-Key': key,
-            'Ocp-Apim-Subscription-Region': location,
+            'Ocp-Apim-Subscription-Key': self.TRANSLATOR_KEY,
+            'Ocp-Apim-Subscription-Region': self.TRANSLATOR_LOCATION,
             'Content-type': 'application/json',
             'X-ClientTraceId': str(uuid.uuid4())
         }
@@ -97,36 +96,48 @@ class BaseDialog(ComponentDialog):
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Translation request failed: {str(e)}")
 
-    def analyse_text(self, text: str) -> str:
-        """Analyse text using Azure Text Analytics."""
-        # ...existing code...
+    def analyse_sentiment(self, text: str) -> str:
+        """Analyse sentiment of the given text."""
+        response = self.text_analytics_client.analyze_sentiment(documents=[{"id": "1", "text": text}])[0]
+        return f"Sentiment: {response.sentiment}, Positive: {response.confidence_scores.positive:.2f}, Negative: {response.confidence_scores.negative:.2f}, Neutral: {response.confidence_scores.neutral:.2f}"
 
-    def initialise_client(self):
-        """Initialise the Text Analytics client."""
-        # ...existing code...
+    def detect_language(self, text: str) -> str:
+        """Detect the language of the given text."""
+        if not text.strip():
+            return "No text provided for language detection."
 
-    def customise_settings(self):
-        """Customise dialog settings."""
-        # ...existing code...
+        response = self.text_analytics_client.detect_language(documents=[{"id": "1", "text": text}])[0]
+        return response.primary_language.iso6391_name
 
-    async def analyse_text_in_bot(self, turn_context):
-        """Analyse text entities using Azure Text Analytics."""
-        user_input = turn_context.activity.text
+    def extract_entities(self, text: str) -> str:
+        """Extract named entities from the given text."""
+        if not text.strip():
+            return "No text provided for entity recognition."
 
-        try:
-            key = self.TEXT_ANALYTICS_KEY
-            endpoint = self.TEXT_ANALYTICS_ENDPOINT
+        response = self.text_analytics_client.recognize_entities(documents=[{"id": "1", "text": text}])[0]
+        entities = [f"{entity.text} ({entity.category})" for entity in response.entities]
+        return "Entities: " + ", ".join(entities) if entities else "No entities found."
+    
+    def evaluate_response(self, response: str, correct_text: str) -> str:
+        """Evaluate the user's response and return feedback."""
 
-            if not all([key, endpoint]):
-                raise ValueError("Missing Text Analytics configuration")
+        # Detect languages once and compare
+        response_language = self.detect_language(response)
+        correct_text_language = self.detect_language(correct_text)
 
-            client = TextAnalyticsClient(endpoint=endpoint, credential=AzureKeyCredential(key))
-            response = client.recognise_entities([user_input])
-            entities = [f"{entity.text} ({entity.category})" for entity in response[0].entities]
+        if response_language != correct_text_language:
+            return "The response is in a different language. Please provide a translation."
 
-            if entities:
-                await turn_context.send_activity(f"Identified entities: {', '.join(entities)}")
-            else:
-                await turn_context.send_activity("No entities were detected.")
-        except Exception as e:
-            await turn_context.send_activity(f"Error analysing text: {str(e)}")
+        # Extract entities (optional, can be used later)
+        extracted_entities = self.extract_entities(response)
+
+        # Compute similarity score
+        similarity = SequenceMatcher(None, response.lower().strip(), correct_text.lower().strip()).ratio()
+
+        # Provide feedback based on similarity
+        if similarity > 0.8:
+            return "Excellent! That's correct! ⭐"
+        elif similarity > 0.5:
+            return f"Good try! The correct phrase is: {correct_text}"
+        else:
+            return f"Keep practicing! The correct phrase is: {correct_text}"
