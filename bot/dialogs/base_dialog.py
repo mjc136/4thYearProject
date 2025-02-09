@@ -125,8 +125,8 @@ class BaseDialog(ComponentDialog):
         response_language = self.detect_language(response)
         correct_text_language = self.detect_language(correct_text)
 
-        if response_language != correct_text_language:
-            return "The response is in a different language. Please provide a translation."
+        # if response_language != correct_text_language:
+        #     return "The response is in a different language. Please provide a translation."
 
         # Extract entities (optional, can be used later)
         extracted_entities = self.extract_entities(response)
