@@ -2,8 +2,6 @@ class UserState:
     """
     A class to manage user state in-memory using a shared dictionary.
     """
-    # Shared dictionary to store all user data in memory
-    user_data = {}
 
     def __init__(self, user_id):
         """
