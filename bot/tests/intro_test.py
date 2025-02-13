@@ -33,7 +33,6 @@ async def test_conversation_flow(monkeypatch):
 
     # Create UserState instance for testing
     user_state = UserState(user_id="test_user")
-    user_state.clear_state()  # Ensure clean state
 
     # Create the DialogSet and add dialogs
     dialogs = DialogSet(dialog_state)
@@ -58,12 +57,10 @@ async def test_conversation_flow(monkeypatch):
     turn_context.activity.text = "Es"  # User inputs "Es"
     turn_context.activity.get_property = MagicMock(return_value="Es")  # Ensure user input is read
     await dialog_context.continue_dialog()
-    user_state.load_state()  # Load state after setting language
     assert user_state.language == "Es", f"Expected 'Es', but got {user_state.language}"
 
     # Step 3: User selects proficiency level
     turn_context.activity.text = "Beginner"  # User inputs "Beginner"
     turn_context.activity.get_property = MagicMock(return_value="Beginner")
     await dialog_context.continue_dialog()
-    user_state.load_state()  # Load state after setting proficiency
     assert user_state.proficiency_level == "Beginner", f"Expected 'Beginner', but got {user_state.proficiency_level}"
