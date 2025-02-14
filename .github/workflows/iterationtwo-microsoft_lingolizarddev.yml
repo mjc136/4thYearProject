@@ -1,0 +1,104 @@
+name: Build and Deploy Python App to Azure Web App - LingoLizardDev
+
+on:
+  push:
+    branches:
+      - IterationTwo-Microsoft
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # This is required for actions/checkout
+
+    steps:
+      # Step 1: Checkout Code
+      - uses: actions/checkout@v4
+
+      # Step 2: Set up Python Environment
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Create and activate virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+
+      # Step 3: Install Dependencies
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # Step 4: Run Only `intro_test.py`
+      - name: Run intro test
+        run: |
+          pip install pytest pytest-asyncio
+          pytest bot/tests/intro_test.py --junitxml=test-results.xml
+
+      # Step 5: Upload Test Results (Optional)
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+
+      # Step 6: Zip Application Files
+      - name: Zip application files
+        run: |
+          zip -r release.zip . -x "*.git*" "venv/*" "*.github/*"
+
+      # Step 7: Upload Build Artifact
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: release.zip
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      # Step 1: Download Build Artifact
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+
+      # Step 2: Unzip Build Artifact
+      - name: Unzip artifact for deployment
+        run: unzip -o release.zip -d .
+
+      # Step 3: Login to Azure
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      # Step 4: Deploy to Azure Web App
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
+        with:
+          app-name: 'LingoLizardDev'
+          slot-name: 'Production'
+
+      # Step 5: Health Check
+      - name: Health Check
+        run: |
+          echo "Performing health check..."
+          status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
+          if [ "$status_code" -ne 200 ]; then
+            echo "Health check failed with status code $status_code"
+            exit 1
+          fi
+          echo "Health check passed with status code $status_code"

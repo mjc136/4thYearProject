@@ -1,4 +1,7 @@
-rasa/.rasa/
-rasa/models/
 /venv
+bot/transcripts.transcript
+bot/.env
+LingoLizardDev.bot
+LingoLizardLocal.bot
 *.pyc
+*/__pycache__
