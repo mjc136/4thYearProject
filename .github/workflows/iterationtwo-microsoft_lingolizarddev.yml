@@ -48,7 +48,7 @@ jobs:
       # Step 6: Zip Application Files
       - name: Zip application files
         run: |
-          zip -r release.zip . -x "*.git*" "venv/*" "*.github/*"
+          zip -r release.zip . -x "*.git*" "venv/*" "*.github/*" "__pycache__/*"
 
       # Step 7: Upload Build Artifact
       - name: Upload artifact for deployment jobs
@@ -83,6 +83,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # Step 3.5: Ensure dependencies are installed
+      - name: Set Azure App Settings
+        run: |
+          az webapp config appsettings set --name LingoLizardDev --resource-group LingoLizard-Dev --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+
       # Step 4: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -90,14 +95,20 @@ jobs:
         with:
           app-name: 'LingoLizardDev'
           slot-name: 'Production'
+          package: release.zip 
 
-      # Step 5: Health Check
+      # Step 5: Health Check with Retry
       - name: Health Check
         run: |
           echo "Performing health check..."
-          status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
-          if [ "$status_code" -ne 200 ]; then
-            echo "Health check failed with status code $status_code"
-            exit 1
-          fi
-          echo "Health check passed with status code $status_code"
+          for i in {1..5}; do
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
+            if [ "$status_code" -eq 200 ]; then
+              echo "Health check passed with status code $status_code"
+              exit 0
+            fi
+            echo "Retrying health check ($i/5)..."
+            sleep 10
+          done
+          echo "Health check failed with status code $status_code"
+          exit 1
