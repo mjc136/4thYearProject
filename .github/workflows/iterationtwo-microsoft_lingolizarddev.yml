@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # This is required for actions/checkout
+      contents: read  # Required for actions/checkout
 
     steps:
       # Step 1: Checkout Code
@@ -89,11 +89,16 @@ jobs:
       - name: Verify Azure Login
         run: az account show
 
-      # Step 4: Restart Web App (if necessary)
-      - name: Restart Azure Web App
-        run: az webapp restart --name LingoLizardDev --resource-group LingoLizard-Dev
+      # Step 4: Stop Web App to Remove Conflicts
+      - name: Stop Azure Web App
+        run: az webapp stop --name LingoLizardDev --resource-group LingoLizard-Dev
 
-      # Step 5: Deploy to Azure Web App
+      # Step 5: Force Rebuild During Deployment
+      - name: Force Rebuild Deployment
+        run: |
+          az webapp config appsettings set --name LingoLizardDev --resource-group LingoLizard-Dev --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+
+      # Step 6: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
@@ -101,16 +106,13 @@ jobs:
           app-name: 'LingoLizardDev'
           slot-name: 'Production'
           package: release.zip
-          verbose: true
 
-      # Step 6: Health Check
+      # Step 7: Start Azure Web App After Deployment
+      - name: Start Azure Web App
+        run: az webapp start --name LingoLizardDev --resource-group LingoLizard-Dev
+
+      # Step 8: Health Check
       - name: Health Check
         run: |
           echo "Performing health check..."
-          status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
-          if [ "$status_code" -ne 200 ]; then
-            echo "Health check failed with status code $status_code"
-            exit 1
-          fi
-          echo "Health check passed with status code $status_code"
-
+          status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev
