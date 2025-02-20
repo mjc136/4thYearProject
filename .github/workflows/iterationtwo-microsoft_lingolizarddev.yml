@@ -82,7 +82,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       # Step 4: Deploy to Azure Web App
       - name: Deploy to Azure Web App
@@ -91,6 +90,7 @@ jobs:
         with:
           app-name: 'LingoLizardDev'
           slot-name: 'Production'
+          package: release.zip
 
       # Step 5: Health Check
       - name: Health Check
