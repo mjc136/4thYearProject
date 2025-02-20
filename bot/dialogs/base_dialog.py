@@ -3,11 +3,11 @@ from botbuilder.core import TurnContext
 from typing import Optional
 import uuid
 import requests
-import json
 from urllib.parse import urlencode
-from difflib import SequenceMatcher
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
+from sentence_transformers import SentenceTransformer
+from scipy.spatial.distance import cosine
 import os
 import logging
 from dotenv import load_dotenv
@@ -112,15 +112,37 @@ class BaseDialog(ComponentDialog):
         response = self.text_analytics_client.recognize_entities(documents=[{"id": "1", "text": text}])[0]
         entities = [f"{entity.text} ({entity.category})" for entity in response.entities]
         return "Entities: " + ", ".join(entities) if entities else "No entities found."
-    
+
+
+    # Is this code i strip the text and convert it to lowercase to clean it. Then i convert the text to a vector representation using the model.encode() method.
+    # I then calculate the cosine similarity between the two vectors using the scipy.spatial.distance.cosine() method.
+    # I then provide feedback based on the similarity score. If the similarity score is greater than 0.85, i provide positive feedback.
+    # If the similarity score is greater than 0.6, i provide a hint to the user. Otherwise, i provide the correct phrase to the user.
+
+
+    # Load the model once (lightweight and fast)
+    model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+
     def evaluate_response(self, response: str, correct_text: str) -> str:
-        """Evaluate the user's response compared to the expected correct text."""
-        response_language = self.detect_language(response)
-        correct_text_language = self.detect_language(correct_text)
-        similarity = SequenceMatcher(None, response.lower().strip(), correct_text.lower().strip()).ratio()
-        if similarity > 0.8:
+        """Evaluate user response based on meaning, not exact wording."""
+
+        # Clean and Encode both sentences into vector representations
+        response_embedding = self.model.encode(response.lower().strip())
+        correct_embedding = self.model.encode(correct_text.lower().strip())
+
+        # ensure data is 1d
+        response_embedding = response_embedding.flatten()
+        correct_embedding = correct_embedding.flatten()
+
+        # Compute cosine similarity (higher = more similar)
+        # read about it here https://www.geeksforgeeks.org/cosine-similarity/
+        similarity = 1 - cosine(response_embedding, correct_embedding)
+        print(f"Similarity: {similarity:.2f}")
+
+        # Provide feedback based on similarity
+        if similarity > 0.85:
             return "Excellent! That's correct!"
-        elif similarity > 0.5:
-            return f"Good try! The correct phrase is: {correct_text}"
+        elif similarity > 0.6:
+            return f"Good try! Your response is close in meaning but should be: '{correct_text}'"
         else:
-            return f"Keep practicing! The correct phrase is: {correct_text}"
+            return f"Keep practicing! The correct phrase is: '{correct_text}'"
