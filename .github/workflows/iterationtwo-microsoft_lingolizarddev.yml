@@ -70,10 +70,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: python-app
+          path: .
 
-      # Step 2: Unzip Build Artifact
-      - name: Unzip artifact for deployment
-        run: unzip -o release.zip -d .
+      # Step 2: Ensure ZIP is in the right place
+      - name: Move ZIP to Root (if needed)
+        run: |
+          mv python-app/release.zip . || true
+          ls -lh  # Debug: Check if the ZIP file exists
 
       # Step 3: Login to Azure
       - name: Login to Azure
@@ -83,7 +86,14 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Step 4: Deploy to Azure Web App
+      - name: Verify Azure Login
+        run: az account show
+
+      # Step 4: Restart Web App (if necessary)
+      - name: Restart Azure Web App
+        run: az webapp restart --name LingoLizardDev --resource-group LingoLizard-Dev
+
+      # Step 5: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
@@ -91,8 +101,9 @@ jobs:
           app-name: 'LingoLizardDev'
           slot-name: 'Production'
           package: release.zip
+          verbose: true
 
-      # Step 5: Health Check
+      # Step 6: Health Check
       - name: Health Check
         run: |
           echo "Performing health check..."
@@ -102,3 +113,4 @@ jobs:
             exit 1
           fi
           echo "Health check passed with status code $status_code"
+
