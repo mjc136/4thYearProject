@@ -32,11 +32,11 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # Step 4: Run Only `intro_test.py`
-      - name: Run intro test
+      # Step 4: Run tests
+      - name: Run tests
         run: |
-          pip install pytest pytest-asyncio
-          pytest bot/tests/intro_test.py --junitxml=test-results.xml
+            pip install pytest
+            pytest --junitxml=test-results.xml
 
       # Step 5: Upload Test Results (Optional)
       - name: Upload test results

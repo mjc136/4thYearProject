@@ -4,11 +4,11 @@ import requests
 from botbuilder.core import MemoryStorage, ConversationState, TurnContext
 from botbuilder.dialogs import DialogSet, DialogTurnStatus
 from botbuilder.dialogs.prompts import TextPrompt
-from bot.dialogs.taxi_scenario import TaxiScenarioDialog
+from bot.dialogs.hotel_scenario import HotelScenarioDialog
 from bot.state.user_state import UserState
 
 @pytest.mark.asyncio
-async def test_taxi_scenario_flow(monkeypatch):
+async def test_hotel_scenario_flow(monkeypatch):
     # Mock environment variables
     monkeypatch.setenv("AZURE_APP_CONFIG_CONNECTION_STRING", "mock_connection_string")
     monkeypatch.setenv("TRANSLATOR_KEY", "mock_translator_key")
@@ -21,7 +21,7 @@ async def test_taxi_scenario_flow(monkeypatch):
     def mock_translate_request(url, headers, json):
         return MagicMock(
             status_code=200,
-            json=lambda: [{"translations": [{"text": "Bienvenido al escenario de Taxi!"}]}]  # Mock translated text
+            json=lambda: [{"translations": [{"text": "Bienvenido al escenario de Reservación de Hotel!"}]}]  # Mock translated text
         )
 
     monkeypatch.setattr(requests, "post", mock_translate_request)
@@ -37,7 +37,7 @@ async def test_taxi_scenario_flow(monkeypatch):
     # Create the DialogSet and add dialogs
     dialogs = DialogSet(dialog_state)
     dialogs.add(TextPrompt("text_prompt"))
-    dialogs.add(TaxiScenarioDialog(user_state))  # Pass UserState to TaxiScenarioDialog
+    dialogs.add(HotelScenarioDialog(user_state))  # Pass UserState to HotelScenarioDialog
 
     # Mock TurnContext
     turn_context = MagicMock(spec=TurnContext)
@@ -49,29 +49,39 @@ async def test_taxi_scenario_flow(monkeypatch):
     # Create DialogContext
     dialog_context = await dialogs.create_context(turn_context)
 
-    # Step 1: Bot sends welcome message and prompts for taxi order
-    await dialog_context.begin_dialog("TaxiScenarioDialog")
+    # Step 1: Bot sends welcome message and prompts for hotel booking
+    await dialog_context.begin_dialog("HotelScenarioDialog")
     assert dialog_context.active_dialog is not None
 
-    # Step 2: User orders a taxi
-    turn_context.activity.text = "I would like to order a taxi"
-    turn_context.activity.get_property = MagicMock(return_value="I would like to order a taxi")
+    # Step 2: User books a room
+    turn_context.activity.text = "I would like to book a room"
+    turn_context.activity.get_property = MagicMock(return_value="I would like to book a room")
     await dialog_context.continue_dialog()
 
-    # Step 3: User asks to go to train station
-    turn_context.activity.text = "Take me to the train station, please"
-    turn_context.activity.get_property = MagicMock(return_value="Take me to the train station, please")
+    # Step 3: User provides check-in date
+    turn_context.activity.text = "I would like to check in on [date]"
+    turn_context.activity.get_property = MagicMock(return_value="I would like to check in on [date]")
     await dialog_context.continue_dialog()
 
-    # Step 4: User asks for price
-    turn_context.activity.text = "How much does the ride cost?"
-    turn_context.activity.get_property = MagicMock(return_value="How much does the ride cost?")
+    # Step 4: User provides check-out date
+    turn_context.activity.text = "I would like to check out on [date]"
+    turn_context.activity.get_property = MagicMock(return_value="I would like to check out on [date]")
     await dialog_context.continue_dialog()
 
-    # Step 5: Scenario completion
+    # Step 5: User selects room type
+    turn_context.activity.text = "I would like a single/double room"
+    turn_context.activity.get_property = MagicMock(return_value="I would like a single/double room")
+    await dialog_context.continue_dialog()
+
+    # Step 6: User asks about amenities
+    turn_context.activity.text = "Do you have free Wi-Fi and breakfast included?"
+    turn_context.activity.get_property = MagicMock(return_value="Do you have free Wi-Fi and breakfast included?")
+    await dialog_context.continue_dialog()
+
+    # Step 7: Scenario completion
     assert dialog_context.active_dialog is None
 
-    # Step 6 Verify final score retrieval
+    # Step 8: Verify final score retrieval
     final_score = user_state.get_final_score()
     assert isinstance(final_score, int), "Final score should be an integer"
     assert final_score >= 0, "Final score should be non-negative"

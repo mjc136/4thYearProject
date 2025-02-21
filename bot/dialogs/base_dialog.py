@@ -141,8 +141,10 @@ class BaseDialog(ComponentDialog):
 
         # Provide feedback based on similarity
         if similarity > 0.85:
+            self.score += 10
             return "Excellent! That's correct!"
         elif similarity > 0.6:
+            self.score += 5
             return f"Good try! Your response is close in meaning but should be: '{correct_text}'"
         else:
             return f"Keep practicing! The correct phrase is: '{correct_text}'"

@@ -53,6 +53,7 @@ class HotelScenarioDialog(BaseDialog):
 
         await step_context.context.send_activity(text)
         await step_context.context.send_activity(translated_text)
+        await step_context.context.send_activity(f"Your final score is: {self.user_state.get_final_score()}")  # Display final score
         return await step_context.end_dialog()
 
     async def prompt_and_validate(self, step_context: WaterfallStepContext, text_to_translate: str) -> DialogTurnResult:
