@@ -6,7 +6,6 @@ from scipy.spatial.distance import cosine
 # I then provide feedback based on the similarity score. If the similarity score is greater than 0.85, i provide positive feedback.
 # If the similarity score is greater than 0.6, i provide a hint to the user. Otherwise, i provide the correct phrase to the user.
 
-
 # Load the model once (lightweight and fast)
 model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
