@@ -39,8 +39,7 @@ jobs:
       # Step 4: Run tests
       - name: Run tests
         run: |
-            pip install pytest
-            pytest --junitxml=test-results.xml
+            pytest bot/tests --junitxml=test-results.xml
 
       # Step 5: Upload Test Results (Optional)
       - name: Upload test results
