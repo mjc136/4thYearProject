@@ -88,10 +88,10 @@ jobs:
         run: |
           az webapp config appsettings set --resource-group LingoLizard-Dev --name LingoLizardDev --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 
-      # Step 5: Deploy to Azure Web App Using OneDeploy
+      # Step 5: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         run: |
-          az webapp deployment source config-zip --resource-group LingoLizard-Dev --name LingoLizardDev --src release.zip --deployer OneDeploy
+          az webapp deployment source config-zip --resource-group LingoLizard-Dev --name LingoLizardDev --src release.zip
 
       # Step 6: Wait for App to Start
       - name: Wait for app startup
