@@ -30,6 +30,7 @@ jobs:
       # Step 3: Install Dependencies
       - name: Install dependencies
         run: |
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       # Step 4: Run Tests
@@ -81,26 +82,22 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      # Step 3.5: Delay before deployment to prevent SCM container restart conflicts
-      - name: Wait before deployment
-        run: sleep 30
+      # Step 4: Ensure Azure Builds Dependencies
+      - name: Enable Build During Deployment
+        run: |
+          az webapp config appsettings set --resource-group LingoLizard-Dev --name LingoLizardDev --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 
-      # Step 4: Deploy to Azure Web App
+      # Step 5: Deploy to Azure Web App Using OneDeploy
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'LingoLizardDev'
-          slot-name: 'Production'
-          package: release.zip 
+        run: |
+          az webapp deployment source config-zip --resource-group LingoLizard-Dev --name LingoLizardDev --src release.zip --deployer OneDeploy
 
-      # Step 4.5: Wait for App to Start
-      - name: Wait before deployment
-        run: sleep 30
+      # Step 6: Wait for App to Start
+      - name: Wait for app startup
+        run: sleep 60
 
-      # Step 5: Health Check with Retry
+      # Step 7: Health Check with Retry
       - name: Health Check
         run: |
           echo "Performing health check..."
@@ -110,8 +107,8 @@ jobs:
               echo "Health check passed with status code $status_code"
               exit 0
             fi
-            echo "Health check failed with status code $status_code (Attempt $i/5). Retrying in 10 seconds..."
+            echo "Health check failed with status code $status_code (Attempt $i/10). Retrying in 10 seconds..."
             sleep 10
           done
-          echo "Health check failed after 5 attempts."
+          echo "Health check failed after 10 attempts."
           exit 1
