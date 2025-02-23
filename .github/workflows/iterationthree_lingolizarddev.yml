@@ -96,11 +96,15 @@ jobs:
           slot-name: 'Production'
           package: release.zip 
 
+      # Step 4.5: Wait for App to Start
+      - name: Wait before deployment
+        run: sleep 30
+
       # Step 5: Health Check with Retry
       - name: Health Check
         run: |
           echo "Performing health check..."
-          for i in {1..5}; do
+          for i in {1..10}; do
             status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
             if [ "$status_code" -eq 200 ]; then
               echo "Health check passed with status code $status_code"
