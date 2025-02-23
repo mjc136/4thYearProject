@@ -83,10 +83,9 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      # Step 3.5: Ensure "Run from Package" mode for faster deployments
-      - name: Set Azure App Settings
-        run: |
-          az webapp config appsettings set --name LingoLizardDev --resource-group LingoLizard-Dev --settings WEBSITE_RUN_FROM_PACKAGE=1
+      # Step 3.5: Delay before deployment to prevent SCM container restart conflicts
+      - name: Wait before deployment
+        run: sleep 30
 
       # Step 4: Deploy to Azure Web App
       - name: Deploy to Azure Web App
