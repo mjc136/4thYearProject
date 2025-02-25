@@ -97,7 +97,7 @@ jobs:
       - name: Enable Build During Deployment
         run: |
           az webapp config appsettings set \
-            --resource-group <YourResourceGroupName> \
+            --resource-group LingoLizard-Dev \
             --name LingoLizardDev \
             --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
         shell: bash
