@@ -1,53 +1,44 @@
 name: Build and deploy Python app to Azure Web App - LingoLizardDev
-
 on:
   push:
     branches:
       - IterationThree
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       # Step 1: Checkout Code
       - uses: actions/checkout@v4
-
       # Step 2: Set up Python Environment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
       - name: Create and activate virtual environment
         run: |
           python -m venv venv
           source venv/bin/activate
         shell: bash
-
       # Step 3: Install Dependencies
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
         shell: bash
-
       # Step 4: Run Tests
       - name: Run tests
         run: |
           pytest bot/tests --junitxml=test-results.xml
         shell: bash
-
       # Step 5: Upload Test Results
       - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: test-results.xml
-
       # Step 6: Zip Application Files
       - name: Zip application files
         run: |
@@ -57,33 +48,28 @@ jobs:
             -x ".github/*" \
             -x "__pycache__/*"
         shell: bash
-
       # Step 7: Upload Build Artifact
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: release.zip
-
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
       id-token: write
       contents: read
-
     steps:
       # Step 1: Download Build Artifact
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
-
       # Step 2: Unzip Build Artifact
       - name: Unzip artifact for deployment
         run: unzip -o release.zip -d .
         shell: bash
-
       # Step 3: Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
@@ -91,31 +77,19 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      # Step 4: Ensure Azure Builds Dependencies
-      - name: Enable Build During Deployment
-        run: |
-          az webapp config appsettings set \
-            --resource-group LingoLizard-Dev \
-            --name LingoLizardDev \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
-        shell: bash
-
-      # Step 5: Deploy to Azure Web App
+      # Step 4: Deploy to Azure Web App
       - name: Deploy to Azure Web App
-        run: |
-          az webapp deployment source config-zip \
-            --resource-group LingoLizard-Dev \
-            --name LingoLizardDev \
-            --src release.zip
-        shell: bash
-
-      # Step 6: Wait for App to Start
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
+        with:
+          app-name: 'LingoLizardDev'
+          slot-name: 'Production'
+          package: release.zip 
+      # Step 5: Wait for App to Start
       - name: Wait for app startup
         run: sleep 60
         shell: bash
-
-      # Step 7: Health Check with Retry
+      # Step 6: Health Check with Retry
       - name: Health Check
         run: |
           echo "Performing health check..."
