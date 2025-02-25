@@ -26,17 +26,20 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
+        shell: bash
 
       # Step 3: Install Dependencies
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+        shell: bash
 
       # Step 4: Run Tests
       - name: Run tests
         run: |
           pytest bot/tests --junitxml=test-results.xml
+        shell: bash
 
       # Step 5: Upload Test Results
       - name: Upload test results
@@ -48,7 +51,12 @@ jobs:
       # Step 6: Zip Application Files
       - name: Zip application files
         run: |
-          zip -r release.zip . -x "*.git*" "venv/*" "*.github/*" "__pycache__/*"
+          zip -r release.zip . \
+            -x "*.git*" \
+            -x "venv/*" \
+            -x ".github/*" \
+            -x "__pycache__/*"
+        shell: bash
 
       # Step 7: Upload Build Artifact
       - name: Upload artifact for deployment jobs
@@ -74,6 +82,7 @@ jobs:
       # Step 2: Unzip Build Artifact
       - name: Unzip artifact for deployment
         run: unzip -o release.zip -d .
+        shell: bash
 
       # Step 3: Login to Azure
       - name: Login to Azure
@@ -86,22 +95,31 @@ jobs:
       # Step 4: Ensure Azure Builds Dependencies
       - name: Enable Build During Deployment
         run: |
-          az webapp config appsettings set --resource-group LingoLizard-Dev --name LingoLizardDev --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+          az webapp config appsettings set \
+            --resource-group LingoLizard-Dev \
+            --name LingoLizardDev \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+        shell: bash
 
       # Step 5: Deploy to Azure Web App
       - name: Deploy to Azure Web App
         run: |
-          az webapp deployment source config-zip --resource-group LingoLizard-Dev --name LingoLizardDev --src release.zip
+          az webapp deployment source config-zip \
+            --resource-group LingoLizard-Dev \
+            --name LingoLizardDev \
+            --src release.zip
+        shell: bash
 
       # Step 6: Wait for App to Start
       - name: Wait for app startup
         run: sleep 60
+        shell: bash
 
       # Step 7: Health Check with Retry
       - name: Health Check
         run: |
           echo "Performing health check..."
-          for i in {1..10}; do
+          for i in $(seq 1 10); do
             status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
             if [ "$status_code" -eq 200 ]; then
               echo "Health check passed with status code $status_code"
@@ -112,3 +130,4 @@ jobs:
           done
           echo "Health check failed after 10 attempts."
           exit 1
+        shell: bash
