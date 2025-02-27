@@ -11,6 +11,7 @@ from scipy.spatial.distance import cosine
 import os
 import logging
 from dotenv import load_dotenv
+import language_tool_python
 
 class BaseDialog(ComponentDialog):
     """
@@ -25,7 +26,7 @@ class BaseDialog(ComponentDialog):
         self.logger = logging.getLogger(__name__)
         self._initialise_configuration()
         self._initialise_clients()
-        self.score = 0  # Initialize the score
+        self.score = 0  # initialise the score
 
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints."""
@@ -49,15 +50,34 @@ class BaseDialog(ComponentDialog):
             setattr(self, var_name, value)
 
     def _initialise_clients(self):
-        """Initialize Azure service clients for text analytics."""
+        """initialise Azure service clients for text analytics."""
         try:
             self.text_analytics_client = TextAnalyticsClient(
                 endpoint=self.TEXT_ANALYTICS_ENDPOINT,
                 credential=AzureKeyCredential(self.TEXT_ANALYTICS_KEY)
             )
-            self.logger.info("Successfully initialized Azure clients")
+            self.logger.info("Successfully initialised Azure clients")
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize Azure clients: {e}")
+            raise RuntimeError(f"Failed to initialise Azure clients: {e}")
+
+    def _initialise_language_tool(self, language: str):
+        """Initialize the LanguageTool instance."""
+        supported_languages = {
+            "es": "es",
+            "fr": "fr",
+            "pt": "pt"
+            # Add other supported languages here
+        }
+        if language.lower() not in supported_languages:
+            raise ValueError(f"Unsupported language: {language}")
+        
+        language_code = supported_languages[language.lower()]
+        try:
+            self.tool = language_tool_python.LanguageTool(language_code)
+            self.logger.info("LanguageTool initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize LanguageTool: {e}")
+            raise
 
     async def run(self, turn_context: TurnContext, accessor):
         """Runs the dialog with the given context and state accessor."""
@@ -114,38 +134,36 @@ class BaseDialog(ComponentDialog):
         entities = [f"{entity.text} ({entity.category})" for entity in response.entities]
         return "Entities: " + ", ".join(entities) if entities else "No entities found."
 
+    def check_grammar_and_spelling(self, text: str) -> tuple:
+        """
+        Check grammar and spelling using LanguageTool and return corrections.
 
-    # Is this code below I strip the text and convert it to lowercase to clean it. Then i convert the text to a vector representation using the model.encode() method.
-    # I then calculate the cosine similarity between the two vectors using the scipy.spatial.distance.cosine() method.
-    # I then provide feedback based on the similarity score. If the similarity score is greater than 0.85, i provide positive feedback.
-    # If the similarity score is greater than 0.6, i provide a hint to the user. Otherwise, i provide the correct phrase to the user.
+        Args:
+            text: The text to check.
 
+        Returns:
+            tuple: (Corrected text, List of corrections)
+        """
+        if not text or not text.strip():
+            return text, []  # Return original text and empty list (no corrections)
 
-    # Load the model once (lightweight and fast)
-    model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+        try:
+            matches = self.tool.check(text)
+            if not matches:
+                return text, []  # No mistakes found
 
-    def evaluate_response(self, response: str, correct_text: str) -> str:
-        """Evaluate user response based on meaning, not exact wording."""
+            # Corrected text after applying all fixes
+            corrected_text = language_tool_python.utils.correct(text, matches)
 
-        # Clean and Encode both sentences into vector representations
-        response_embedding = self.model.encode(response.lower().strip())
-        correct_embedding = self.model.encode(correct_text.lower().strip())
+            # List of individual corrections
+            corrections = [
+                f"🔹 **'{text[m.offset:m.offset + m.errorLength]}' → '{m.replacements[0]}'**"
+                if m.replacements else f"⚠ **'{text[m.offset:m.offset + m.errorLength]}' → No suggestion available**"
+                for m in matches
+            ]
 
-        # ensure data is 1d
-        response_embedding = response_embedding.flatten()
-        correct_embedding = correct_embedding.flatten()
+            return corrected_text, corrections
 
-        # Compute cosine similarity (higher = more similar)
-        # read about it here https://www.geeksforgeeks.org/cosine-similarity/
-        similarity = 1 - cosine(response_embedding, correct_embedding)
-        print(f"Similarity: {similarity:.2f}")
-
-        # Provide feedback based on similarity
-        if similarity > 0.85:
-            self.score += 10
-            return "Excellent! That's correct!"
-        elif similarity > 0.6:
-            self.score += 5
-            return f"Good try! Your response is close in meaning but should be: '{correct_text}'"
-        else:
-            return f"Keep practicing! The correct phrase is: '{correct_text}'"
+        except Exception as e:
+            self.logger.error(f"Error checking text: {e}")
+            return text, [f"Error checking text: {str(e)}"]
