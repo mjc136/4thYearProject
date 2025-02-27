@@ -25,6 +25,7 @@ class BaseDialog(ComponentDialog):
         self.logger = logging.getLogger(__name__)
         self._initialise_configuration()
         self._initialise_clients()
+        self.score = 0  # Initialize the score
 
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints."""

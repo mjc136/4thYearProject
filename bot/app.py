@@ -1,5 +1,4 @@
 from aiohttp import web
-from aiohttp.web import middleware
 from botbuilder.core import (
     BotFrameworkAdapter,
     BotFrameworkAdapterSettings,
