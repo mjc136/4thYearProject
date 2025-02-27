@@ -115,7 +115,7 @@ class BaseDialog(ComponentDialog):
         return "Entities: " + ", ".join(entities) if entities else "No entities found."
 
 
-    # Is this code i strip the text and convert it to lowercase to clean it. Then i convert the text to a vector representation using the model.encode() method.
+    # Is this code below I strip the text and convert it to lowercase to clean it. Then i convert the text to a vector representation using the model.encode() method.
     # I then calculate the cosine similarity between the two vectors using the scipy.spatial.distance.cosine() method.
     # I then provide feedback based on the similarity score. If the similarity score is greater than 0.85, i provide positive feedback.
     # If the similarity score is greater than 0.6, i provide a hint to the user. Otherwise, i provide the correct phrase to the user.
