@@ -1,13 +1,11 @@
 from botbuilder.dialogs import ComponentDialog, DialogSet, DialogTurnStatus
 from botbuilder.core import TurnContext
-from typing import Optional
+from typing import Optional, Tuple, Dict
 import uuid
 import requests
 from urllib.parse import urlencode
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
-from sentence_transformers import SentenceTransformer
-from scipy.spatial.distance import cosine
 import os
 import logging
 from dotenv import load_dotenv
@@ -15,18 +13,19 @@ import language_tool_python
 
 class BaseDialog(ComponentDialog):
     """
-    Base class for bot dialogs. This class handles:
+    Base class for bot dialogues. This class handles:
     - Configuration loading from environment variables.
-    - Initialization of Azure services for translation and text analytics.
-    - Running and managing bot dialogs.
+    - Initialisation of Azure services for translation and text analytics.
+    - Running and managing bot dialogues.
     """
+    
     def __init__(self, dialog_id: str, user_state=None):
         super(BaseDialog, self).__init__(dialog_id)
         self.user_state = user_state
         self.logger = logging.getLogger(__name__)
         self._initialise_configuration()
         self._initialise_clients()
-        self.score = 0  # initialise the score
+        self.score = 0  # Initialise the score
 
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints."""
@@ -50,7 +49,7 @@ class BaseDialog(ComponentDialog):
             setattr(self, var_name, value)
 
     def _initialise_clients(self):
-        """initialise Azure service clients for text analytics."""
+        """Initialise Azure service clients for text analytics."""
         try:
             self.text_analytics_client = TextAnalyticsClient(
                 endpoint=self.TEXT_ANALYTICS_ENDPOINT,
@@ -59,14 +58,13 @@ class BaseDialog(ComponentDialog):
             self.logger.info("Successfully initialised Azure clients")
         except Exception as e:
             raise RuntimeError(f"Failed to initialise Azure clients: {e}")
-
+        
     def _initialise_language_tool(self, language: str):
-        """Initialize the LanguageTool instance."""
+        """Initialise the LanguageTool instance."""
         supported_languages = {
             "es": "es",
             "fr": "fr",
             "pt": "pt"
-            # Add other supported languages here
         }
         if language.lower() not in supported_languages:
             raise ValueError(f"Unsupported language: {language}")
@@ -74,19 +72,10 @@ class BaseDialog(ComponentDialog):
         language_code = supported_languages[language.lower()]
         try:
             self.tool = language_tool_python.LanguageTool(language_code)
-            self.logger.info("LanguageTool initialized successfully")
+            self.logger.info("LanguageTool initialised successfully")
         except Exception as e:
-            self.logger.error(f"Failed to initialize LanguageTool: {e}")
+            self.logger.error(f"Failed to initialise LanguageTool: {e}")
             raise
-
-    async def run(self, turn_context: TurnContext, accessor):
-        """Runs the dialog with the given context and state accessor."""
-        dialog_set = DialogSet(accessor)
-        dialog_set.add(self)
-        dialog_context = await dialog_set.create_context(turn_context)
-        results = await dialog_context.continue_dialog()
-        if results.status == DialogTurnStatus.Empty:
-            await dialog_context.begin_dialog(self.id)
 
     def get_user_language(self) -> str:
         """Retrieve the user's selected language from user state."""
@@ -113,11 +102,20 @@ class BaseDialog(ComponentDialog):
             return translations[0]['translations'][0]['text']
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Translation request failed: {str(e)}")
+        
+    def analyse_sentiment(self, text: str) -> Dict[str, float]:
+        """Analyse sentiment of the given text using Azure Text Analytics."""
+        if not text.strip():
+            return {"sentiment": "neutral", "positive": 0.5, "negative": 0.5, "neutral": 1.0}
 
-    def analyse_sentiment(self, text: str) -> str:
-        """Analyze sentiment of the given text using Azure Text Analytics."""
         response = self.text_analytics_client.analyze_sentiment(documents=[{"id": "1", "text": text}])[0]
-        return f"Sentiment: {response.sentiment}, Positive: {response.confidence_scores.positive:.2f}, Negative: {response.confidence_scores.negative:.2f}, Neutral: {response.confidence_scores.neutral:.2f}"
+
+        return {
+            "sentiment": response.sentiment,
+            "positive": response.confidence_scores.positive,
+            "negative": response.confidence_scores.negative,
+            "neutral": response.confidence_scores.neutral
+        }
 
     def detect_language(self, text: str) -> str:
         """Detect the language of the given text using Azure Text Analytics."""
@@ -126,44 +124,64 @@ class BaseDialog(ComponentDialog):
         response = self.text_analytics_client.detect_language(documents=[{"id": "1", "text": text}])[0]
         return response.primary_language.iso6391_name
 
-    def extract_entities(self, text: str) -> str:
+    def extract_entities(self, text: str) -> Dict[str, str]:
         """Extract named entities from the given text using Azure Text Analytics."""
         if not text.strip():
-            return "No text provided for entity recognition."
+            return {}
+
         response = self.text_analytics_client.recognize_entities(documents=[{"id": "1", "text": text}])[0]
-        entities = [f"{entity.text} ({entity.category})" for entity in response.entities]
-        return "Entities: " + ", ".join(entities) if entities else "No entities found."
+        entities = {entity.text: entity.category for entity in response.entities}
 
-    def check_grammar_and_spelling(self, text: str) -> tuple:
+        return entities if entities else {}
+
+
+    def process_text_analysis(self, text: str) -> Dict[str, any]:
         """
-        Check grammar and spelling using LanguageTool and return corrections.
-
-        Args:
-            text: The text to check.
-
-        Returns:
-            tuple: (Corrected text, List of corrections)
+        Perform multiple text processing operations in a single method call.
+        This includes:
+        - Sentiment analysis
+        - Language detection
+        - Named entity recognition
+        
+        Returns a dictionary containing results for all operations.
         """
-        if not text or not text.strip():
-            return text, []  # Return original text and empty list (no corrections)
+        if not text.strip():
+            return {
+                "sentiment": "neutral",
+                "positive": 0.5,
+                "negative": 0.5,
+                "neutral": 1.0,
+                "language": "",
+                "entities": {}
+            }
+        
+        
+        # Perform sentiment analysis to determine emotional tone
+        sentiment_result = self.analyse_sentiment(text)
+        
+        # Detect the language of the input text
+        detected_language = self.detect_language(text)
+        
+        # Extract named entities from the text
+        entities = self.extract_entities(text)
+        
+        return {
+            "sentiment": sentiment_result["sentiment"],
+            "positive": sentiment_result["positive"],
+            "negative": sentiment_result["negative"],
+            "neutral": sentiment_result["neutral"],
+            "language": detected_language,
+            "entities": entities
+        }
 
-        try:
-            matches = self.tool.check(text)
-            if not matches:
-                return text, []  # No mistakes found
-
-            # Corrected text after applying all fixes
-            corrected_text = language_tool_python.utils.correct(text, matches)
-
-            # List of individual corrections
-            corrections = [
-                f"🔹 **'{text[m.offset:m.offset + m.errorLength]}' → '{m.replacements[0]}'**"
-                if m.replacements else f"⚠ **'{text[m.offset:m.offset + m.errorLength]}' → No suggestion available**"
-                for m in matches
-            ]
-
-            return corrected_text, corrections
-
-        except Exception as e:
-            self.logger.error(f"Error checking text: {e}")
-            return text, [f"Error checking text: {str(e)}"]
+    async def run(self, turn_context: TurnContext, accessor):
+        """
+        Runs the dialogue with the given context and state accessor.
+        Handles the conversation flow using the DialogSet and DialogContext classes.
+        """
+        dialog_set = DialogSet(accessor)
+        dialog_set.add(self)
+        dialog_context = await dialog_set.create_context(turn_context)
+        results = await dialog_context.continue_dialog()
+        if results.status == DialogTurnStatus.Empty:
+            await dialog_context.begin_dialog(self.id)
