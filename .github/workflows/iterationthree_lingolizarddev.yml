@@ -32,10 +32,10 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # Step 4: Run Tests
+      # Step 4: Run Tests 
       - name: Run tests
         run: |
-          pytest bot/tests --junitxml=test-results.xml
+          pytest .\bot\tests\intro_test.py --junitxml=test-results.xml
         shell: bash
 
       # Step 5: Upload Test Results (Optional)

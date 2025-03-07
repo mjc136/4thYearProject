@@ -31,6 +31,13 @@ class BaseDialog(ComponentDialog):
 
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints from Azure App Configuration."""
+        
+        # Load environment variables from .env if present
+        if os.path.exists('bot/.env'):
+            load_dotenv()  # Load local .env if it exists
+        else:
+            self.logger.info("No .env file found, using environment variables")
+        
         connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
         if not connection_string:
             raise ValueError("Azure App Configuration connection string is not set.")
