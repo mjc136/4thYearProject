@@ -10,6 +10,8 @@ import os
 import logging
 from dotenv import load_dotenv
 import language_tool_python
+from azure.appconfiguration import AzureAppConfigurationClient
+from azure.core.credentials import AzureKeyCredential
 
 class BaseDialog(ComponentDialog):
     """
@@ -28,25 +30,31 @@ class BaseDialog(ComponentDialog):
         self.score = 0  # Initialise the score
 
     def _initialise_configuration(self):
-        """Load required environment variables for API keys and endpoints."""
-        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-        if os.path.exists(env_path):
-            load_dotenv(dotenv_path=env_path)
-            self.logger.info(f"Loaded .env file from {env_path}")
+        """Load required environment variables for API keys and endpoints from Azure App Configuration."""
+        connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
+        if not connection_string:
+            raise ValueError("Azure App Configuration connection string is not set.")
 
-        required_vars = {
-            "TRANSLATOR_KEY": None,
-            "TRANSLATOR_ENDPOINT": None,
-            "TRANSLATOR_LOCATION": None,
-            "TEXT_ANALYTICS_KEY": None,
-            "TEXT_ANALYTICS_ENDPOINT": None
-        }
+        # Connect to Azure App Configuration
+        app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
 
+        required_vars = [
+            "TRANSLATOR_KEY",
+            "TRANSLATOR_ENDPOINT",
+            "TRANSLATOR_LOCATION",
+            "TEXT_ANALYTICS_KEY",
+            "TEXT_ANALYTICS_ENDPOINT"
+        ]
+
+        # Fetch each variable from Azure App Configuration
         for var_name in required_vars:
-            value = os.getenv(var_name)
-            if not value:
-                raise ValueError(f"Missing required environment variable: {var_name}")
-            setattr(self, var_name, value)
+            try:
+                setting = app_config_client.get_configuration_setting(key=var_name)
+                value = setting.value
+                setattr(self, var_name, value)  # Set the variable as an attribute of the object
+                self.logger.info(f"Loaded {var_name} from Azure App Configuration.")
+            except Exception as e:
+                raise ValueError(f"Failed to fetch {var_name} from Azure App Configuration: {e}")
 
     def _initialise_clients(self):
         """Initialise Azure service clients for text analytics."""

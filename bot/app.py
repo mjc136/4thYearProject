@@ -8,8 +8,8 @@ from botbuilder.core import (
     UserState as BotUserState,
 )
 from botbuilder.schema import Activity
-from bot.dialogs.main_dialog import MainDialog
-from bot.state.user_state import UserState
+from .dialogs.main_dialog import MainDialog
+from .state.user_state import UserState
 import os
 import logging
 import sys
@@ -50,8 +50,6 @@ except Exception as e:
     LOGGER.error(f"Error fetching configuration from Azure App Configuration: {e}")
     sys.exit(1)  # Terminate if fetching credentials fails
 
-# Define the default port the bot will listen on
-PORT = int(os.getenv("PORT", 3978))  # Use 3978 as the default if PORT is not set
 
 # Create adapter settings for the bot framework
 SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
@@ -143,8 +141,8 @@ APP.router.add_post("/api/messages", messages)  # Bot message processing endpoin
 # Start the web application
 if __name__ == "__main__":
     try:
-        LOGGER.info(f"Starting bot on port {PORT}")
-        web.run_app(APP, host='0.0.0.0', port=PORT)  # Start the web server
+        LOGGER.info(f"Starting bot on port {3978}")
+        web.run_app(APP, host='0.0.0.0', port=3978)  # Start the web server
     except Exception as e:
         LOGGER.error(f"Error starting bot: {str(e)}", exc_info=True)
         sys.exit(1)  # Terminate if bot fails to start
