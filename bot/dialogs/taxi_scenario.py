@@ -10,73 +10,81 @@ from bot.state.user_state import UserState
 from .base_dialog import BaseDialog
 
 class TaxiScenarioDialog(BaseDialog):
-    # This dialog simulates a real-life taxi ordering conversation.
-    # The user practices ordering a taxi, giving a destination, and asking for the fare.
+    """Dialog for practising taxi-related conversations."""
+    
     def __init__(self, user_state: UserState):
+        """Initialise the taxi scenario dialog."""
         dialog_id = "TaxiScenarioDialog"
         super(TaxiScenarioDialog, self).__init__(dialog_id, user_state)
         self.user_state = user_state
-
-        # Define and add the necessary dialog steps.
+        
+        # Initialise dialogues
         self.add_dialog(TextPrompt(TextPrompt.__name__))
-        self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
-            self.intro_step,  # Introduction step
-            self.order_taxi_step,  # Step for ordering a taxi
-            self.train_station_step,  # Step for asking to go to train station
-            self.ask_for_price_step,  # Step for asking taxi fare
-            self.final_step  # Completion step
-        ]))
-
+        waterfall_dialog = WaterfallDialog(
+            f"{dialog_id}.waterfall",
+            [
+                self.intro_step,
+                self.ask_direction_step,
+                self.analysis_ask_direction_step,
+                self.confirmation_step,
+                self.final_step
+            ]
+        )
+        self.add_dialog(waterfall_dialog)
         self.initial_dialog_id = f"{dialog_id}.waterfall"
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Welcome message for the taxi scenario.
+        """Initialise dialog state and display welcome message."""
+        # Welcome message
         welcome_text = "Welcome to the Taxi Scenario! Let's practice ordering a taxi."
-        translated_text = self.translate_text(welcome_text, self.user_state.language)  # Translate message
-
-        # Send both original and translated messages
+        translated_text = self.translate_text(welcome_text, self.user_state.language)
         await step_context.context.send_activity(welcome_text)
         await step_context.context.send_activity(translated_text)
-        return await step_context.next(None)  # Move to next step
+        return await step_context.next(None)
 
-    async def order_taxi_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Step where the user must translate "I would like to order a taxi."
-        return await self.prompt_and_validate(step_context, "I would like to order a taxi")
+    async def ask_direction_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Step where user provides their destination."""
+        prompt_text = "Where would you like to go?"
+        translated_prompt = self.translate_text(prompt_text, self.user_state.language)
+        await step_context.context.send_activity(prompt_text)
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(translated_prompt))
+        )
 
-    async def train_station_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Step where the user must translate "Take me to the train station, please."
-        return await self.prompt_and_validate(step_context, "Take me to the train station, please")
+    async def analysis_ask_direction_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Extract relevant entities from user input for further processing."""
+        user_input = step_context.result
+        step_context.active_dialog.state["values"]["user_input"] = user_input
+        analysis_results = self.process_text_analysis(user_input)
+        
+        # Extract relevant entities
+        location_entity = next((key for key, value in analysis_results['entities'].items() if "Location" in value), None)
+        
+        if location_entity:
+            step_context.active_dialog.state["values"]["location"] = location_entity
+        else:
+            step_context.active_dialog.state["values"]["location"] = user_input  # Fallback to raw input
+    
+        return await step_context.next(None)
 
-    async def ask_for_price_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Step where the user must translate "How much does the ride cost?"
-        return await self.prompt_and_validate(step_context, "How much does the ride cost?")
+    async def confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Confirm the detected location with the user before finalising."""
+        detected_location = step_context.active_dialog.state["values"].get("location", "")
+        confirmation_text = f"Just to confirm, you want to go to: {detected_location}?"
+        translated_confirmation = self.translate_text(confirmation_text, self.user_state.language)
+        await step_context.context.send_activity(confirmation_text)
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(translated_confirmation))
+        )
 
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Final message upon completion of the scenario.
-        text = "You've completed the taxi scenario!"  # Final message
-        translated_text = self.translate_text(text, self.user_state.language)  # Translate the final message
-
-        # Send final message in both languages
-        await step_context.context.send_activity(text)
-        await step_context.context.send_activity(translated_text)
-        await step_context.context.send_activity(f"Your final score is: {self.user_state.get_final_score()}")  # Display final score
-        return await step_context.end_dialog()  # End the dialog
-
-    async def prompt_and_validate(self, step_context: WaterfallStepContext, text_to_translate: str) -> DialogTurnResult:
-        # Helper function to handle translation and validation in one step.
-        if step_context.result:  # If there was a previous response, validate it
-            user_translation = step_context.result  # Get user translation
-            correct_translation = step_context.values["correct_translation"]  # Get correct translation
-            feedback = self.evaluate_response(user_translation, correct_translation)  # Evaluate response
-            await step_context.context.send_activity(feedback)  # Provide feedback
-
-        # Set the correct translation for this step
-        correct_translation = self.translate_text(text_to_translate, self.user_state.language)  # Correct translation
-        step_context.values["correct_translation"] = correct_translation  # Save for validation
-
-        # Ask user for the translation of the phrase
-        await step_context.context.send_activity(f"How would you say: '{text_to_translate}'")
+        """Final step where the completion message is sent."""
+        final_text = "Great! Your taxi is on its way."
+        translated_final_text = self.translate_text(final_text, self.user_state.language)
+        await step_context.context.send_activity(final_text)
         return await step_context.prompt(
-            TextPrompt.__name__,  # Prompt for user input
-            PromptOptions(prompt=MessageFactory.text("Type your translation:"))  # Prompt text
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(translated_final_text))
         )
