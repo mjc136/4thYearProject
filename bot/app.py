@@ -141,8 +141,10 @@ APP.router.add_post("/api/messages", messages)  # Bot message processing endpoin
 # Start the web application
 if __name__ == "__main__":
     try:
-        LOGGER.info(f"Starting bot on port {3978}")
-        web.run_app(APP, host='0.0.0.0', port=3978)  # Start the web server
+        PORT = int(os.getenv("PORT", 3978))  # Use Azure's PORT variable if available
+
+        LOGGER.info(f"Starting bot on port {PORT}")
+        web.run_app(APP, host="0.0.0.0", port=PORT)  # Ensure bot listens on correct port
     except Exception as e:
         LOGGER.error(f"Error starting bot: {str(e)}", exc_info=True)
         sys.exit(1)  # Terminate if bot fails to start
