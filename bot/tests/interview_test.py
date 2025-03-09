@@ -4,8 +4,8 @@ import requests
 from botbuilder.core import MemoryStorage, ConversationState, TurnContext
 from botbuilder.dialogs import DialogSet, DialogTurnStatus
 from botbuilder.dialogs.prompts import TextPrompt
-from bot.dialogs.job_interview_scenario import JobInterviewScenarioDialog
-from bot.state.user_state import UserState
+from dialogs.job_interview_scenario import JobInterviewScenarioDialog
+from state.user_state import UserState
 
 @pytest.mark.asyncio
 async def test_job_interview_scenario_flow(monkeypatch):

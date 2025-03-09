@@ -4,8 +4,8 @@ import requests
 from botbuilder.core import MemoryStorage, ConversationState, TurnContext
 from botbuilder.dialogs import DialogSet, DialogTurnStatus
 from botbuilder.dialogs.prompts import TextPrompt
-from bot.dialogs.taxi_scenario import TaxiScenarioDialog
-from bot.state.user_state import UserState
+from dialogs.taxi_scenario import TaxiScenarioDialog
+from state.user_state import UserState
 
 @pytest.mark.asyncio
 async def test_taxi_scenario_flow(monkeypatch):
