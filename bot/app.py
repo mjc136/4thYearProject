@@ -16,8 +16,8 @@ import sys
 from azure.appconfiguration import AzureAppConfigurationClient
 from dotenv import load_dotenv
 
-# Add the current directory to the system path to ensure relative imports work
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), "bot"))
 
 # Configure logging to track events and errors
 logging.basicConfig(

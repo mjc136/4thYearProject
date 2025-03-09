@@ -3,8 +3,8 @@ import pytest
 from botbuilder.core import MemoryStorage, ConversationState, TurnContext
 from botbuilder.dialogs import DialogSet
 from botbuilder.dialogs.prompts import TextPrompt
-from dialogs.main_dialog import MainDialog
-from state.user_state import UserState
+from bot.dialogs.main_dialog import MainDialog
+from bot.state.user_state import UserState
 from azure.appconfiguration import AzureAppConfigurationClient
 import requests
 
@@ -46,13 +46,6 @@ async def test_conversation_flow(monkeypatch):
             )
 
         mock_requests_post.side_effect = mock_translate_request
-
-        # Import application code after setting environment variables
-        from dialogs.main_dialog import MainDialog
-        from state.user_state import UserState
-        from botbuilder.core import MemoryStorage, ConversationState, TurnContext
-        from botbuilder.dialogs import DialogSet
-        from botbuilder.dialogs.prompts import TextPrompt
 
         # Setup memory and conversation state
         memory = MemoryStorage()

@@ -1,4 +1,4 @@
-name: Build and deploy Python app to Azure Web App - LingoLizardDev
+name: Build and Deploy LingoLizard to Azure
 
 on:
   push:
@@ -10,54 +10,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # This is required for actions/checkout
+      contents: read  # Required for actions/checkout
 
     steps:
       # Step 1: Checkout Code
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Python Environment
-      - name: Set up Python version
-        uses: actions/setup-python@v5
+      # Step 2: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          python-version: '3.10'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Create and activate virtual environment
+      # Step 3: Build Docker Image
+      - name: Build Docker Image
         run: |
-          python -m venv venv
-          source venv/bin/activate
+          docker build -t mjc136/lingolizard:latest .
 
-      # Step 3: Install Dependencies
-      - name: Install dependencies
+      # Step 4: Push Docker Image to Docker Hub
+      - name: Push Docker Image
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      # Step 4: Run Tests
-      - name: Run tests
-        run: |
-          pytest bot/tests/intro_test.py --junitxml=test-results.xml
-          
-        shell: bash
-
-      # Step 5: Upload Test Results (Optional)
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results.xml
-
-      # Step 6: Zip Application Files
-      - name: Zip application files
-        run: |
-          zip -r release.zip . -x "*.git*" "venv/*" "*.github/*" "__pycache__/*"
-
-      # Step 7: Upload Build Artifact
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: release.zip
+          docker push mjc136/lingolizard:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -67,37 +42,31 @@ jobs:
       contents: read
 
     steps:
-      # Step 1: Download Build Artifact
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      # Step 2: Unzip Build Artifact
-      - name: Unzip artifact for deployment
-        run: unzip -o release.zip -d .
-
-      # Step 3: Login to Azure
-      - name: Login to Azure
+      # Step 1: Login to Azure
+      - name: Log in to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Step 3.5: Ensure dependencies are installed
-      - name: Set Azure App Settings
-        run: |
-          az webapp config appsettings set --name LingoLizardDev --resource-group LingoLizard-Dev --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
-
-      # Step 4: Deploy to Azure Web App
+      # Step 2: Deploy Container to Azure Web App
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'LingoLizardDev'
-          slot-name: 'Production'
-          package: release.zip 
+        run: |
+          az webapp config container set \
+            --name LingoLizardDev \
+            --resource-group LingoLizard-Dev \
+            --container-image-name mjc136/lingolizard:latest \
+            --container-registry-url https://index.docker.io/v1/
+
+      # Step 3: Restart Azure Web App (Ensure changes take effect)
+      - name: Restart Azure Web App
+        run: |
+          az webapp restart --name LingoLizardDev --resource-group LingoLizard-Dev
+
+      # Step 4: Wait for Azure Deployment to Complete
+      - name: Wait for deployment to settle
+        run: sleep 30  # Prevents SCM restart issue
 
       # Step 5: Health Check with Retry
       - name: Health Check
@@ -106,11 +75,11 @@ jobs:
           for i in {1..5}; do
             status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net)
             if [ "$status_code" -eq 200 ]; then
-              echo "Health check passed with status code $status_code"
+              echo "Health check passed!"
               exit 0
             fi
             echo "Retrying health check ($i/5)..."
             sleep 10
           done
-          echo "Health check failed with status code $status_code"
+          echo "Health check failed!"
           exit 1
