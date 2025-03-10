@@ -51,3 +51,6 @@ LingoLizardDev.bot
 LingoLizardLocal.bot
 
 .vscode/
+
+/results
+/trained_model
