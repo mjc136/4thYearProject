@@ -1,45 +1,28 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from openai import OpenAI
+from dotenv import load_dotenv
 import os
 
-class Chatbot:
-    def __init__(self, model_dir="trained_model"):
-        """Initialise the chatbot with the trained model."""
-        # Ensure absolute path resolution
-        model_path = os.path.abspath(model_dir)
+# Load environment variables from a specific path
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bot', '.env')
+load_dotenv(dotenv_path=env_path)
 
-        # Load model and tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.model = AutoModelForCausalLM.from_pretrained(model_path)
+KEY = os.getenv("AI_API_KEY")
+ENDPOINT = os.getenv("AI_ENDPOINT")
 
-        # Initialise the text-generation pipeline
-        self.chatbot = pipeline(
-            "text-generation", 
-            model=self.model, 
-            tokenizer=self.tokenizer
-        )
+client = OpenAI(api_key=KEY, base_url=ENDPOINT)
 
-    def get_response(self, prompt: str) -> str:
-        """Generate a response for the given prompt."""
-        response = self.chatbot(
-            prompt,
-            max_length=100,
-            num_return_sequences=1,
-            do_sample=True,
-            temperature=0.7,
-            top_k=50,
-            top_p=0.95
-        )
-        
-        # Extract generated text while avoiding slicing issues
-        generated_text = response[0]['generated_text']
-        
-        # Ensure we remove the prompt from the response if it is included
-        if generated_text.startswith(prompt):
-            generated_text = generated_text[len(prompt):].strip()
+# Function to test the API
+def test_deepseek():
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "You are LingoLizard, a language-learning assistant that helps users practice languages through interactive role-playing. You correct mistakes, provide feedback, and make learning fun."},
+            {"role": "user", "content": "I want to practice ordering food in Portuguese. Can you simulate a restaurant conversation?"}
+        ]
+    )
 
-        return generated_text
+    print(response.choices[0].message.content)
 
-# For testing
-if __name__ == '__main__':
-    bot = Chatbot()
-    print(bot.get_response("Hello, how are you?"))
+
+if __name__ == "__main__":
+    test_deepseek()

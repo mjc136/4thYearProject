@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 import language_tool_python
 from azure.appconfiguration import AzureAppConfigurationClient
 from azure.core.credentials import AzureKeyCredential
+from transformers import pipeline
+from openai import OpenAI
 
 class BaseDialog(ComponentDialog):
     """
@@ -70,6 +72,11 @@ class BaseDialog(ComponentDialog):
                 endpoint=self.TEXT_ANALYTICS_ENDPOINT,
                 credential=AzureKeyCredential(self.TEXT_ANALYTICS_KEY)
             )
+            self.client = OpenAI(
+                api_key=os.getenv("AI_API_KEY"),
+                base_url=os.getenv("AI_ENDPOINT")
+            )
+
             self.logger.info("Successfully initialised Azure clients")
         except Exception as e:
             raise RuntimeError(f"Failed to initialise Azure clients: {e}")
@@ -91,6 +98,18 @@ class BaseDialog(ComponentDialog):
         except Exception as e:
             self.logger.error(f"Failed to initialise LanguageTool: {e}")
             raise
+        
+
+    def chatbot_respond(self, user_input):
+        response = self.client.chat.completions.create(
+            model="deepseek-reasoner",
+            messages=[
+                {"role": "system", "content": f"You are LingoLizard, a language-learning assistant that helps users practice languages through interactive role-playing in {self.get_user_language()}."},
+                {"role": "user", "content": user_input}
+            ]
+        )
+
+        print(response.choices[0].message.content)
 
     def get_user_language(self) -> str:
         """Retrieve the user's selected language from user state."""
