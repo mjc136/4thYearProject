@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 import language_tool_python
 from azure.appconfiguration import AzureAppConfigurationClient
 from azure.core.credentials import AzureKeyCredential
-from transformers import pipeline
 from openai import OpenAI
+from bot.state.user_state import UserState
 
 class BaseDialog(ComponentDialog):
     """
@@ -101,26 +101,28 @@ class BaseDialog(ComponentDialog):
         
 
     def chatbot_respond(self, user_input):
+        proficiency_level = self.user_state.get_proficiency_level()
+        language = self.user_state.get_language()
+
         response = self.client.chat.completions.create(
             model="deepseek-reasoner",
             messages=[
-                {"role": "system", "content": f"You are LingoLizard, a language-learning assistant that helps users practice languages through interactive role-playing in {self.get_user_language()}."},
+                {"role": "system", "content": f"""You are LingoLizard, a language-learning assistant that helps users practice 
+                                                languages through interactive role-playing in {proficiency_level} level {language}.
+                                                You will only reply in {language}."""},
                 {"role": "user", "content": user_input}
             ]
         )
 
-        print(response.choices[0].message.content)
+        return response.choices[0].message.content
 
-    def get_user_language(self) -> str:
-        """Retrieve the user's selected language from user state."""
-        return self.user_state.language if hasattr(self.user_state, "language") else "en"
-
-    def translate_text(self, text: str, to_language: Optional[str] = None) -> str:
+    def translate_text(self, text: str, target_language: Optional[str] = None) -> str:
         """Translate text using Azure Translator service."""
+        
+        target_language = UserState.get_language(self.user_state)
         if not text:
             raise ValueError("No text provided for translation")
-        target_language = to_language or self.get_user_language()
-        url = f"{self.TRANSLATOR_ENDPOINT}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
+        url = f"{self.TRANSLATOR_ENDPOINT.rstrip('/')}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
         headers = {
             'Ocp-Apim-Subscription-Key': self.TRANSLATOR_KEY,
             'Ocp-Apim-Subscription-Region': self.TRANSLATOR_LOCATION,
@@ -167,46 +169,6 @@ class BaseDialog(ComponentDialog):
         entities = {entity.text: entity.category for entity in response.entities}
 
         return entities if entities else {}
-
-
-    def process_text_analysis(self, text: str) -> Dict[str, any]:
-        """
-        Perform multiple text processing operations in a single method call.
-        This includes:
-        - Sentiment analysis
-        - Language detection
-        - Named entity recognition
-        
-        Returns a dictionary containing results for all operations.
-        """
-        if not text.strip():
-            return {
-                "sentiment": "neutral",
-                "positive": 0.5,
-                "negative": 0.5,
-                "neutral": 1.0,
-                "language": "",
-                "entities": {}
-            }
-        
-        
-        # Perform sentiment analysis to determine emotional tone
-        sentiment_result = self.analyse_sentiment(text)
-        
-        # Detect the language of the input text
-        detected_language = self.detect_language(text)
-        
-        # Extract named entities from the text
-        entities = self.extract_entities(text)
-        
-        return {
-            "sentiment": sentiment_result["sentiment"],
-            "positive": sentiment_result["positive"],
-            "negative": sentiment_result["negative"],
-            "neutral": sentiment_result["neutral"],
-            "language": detected_language,
-            "entities": entities
-        }
 
     async def run(self, turn_context: TurnContext, accessor):
         """

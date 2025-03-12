@@ -28,31 +28,25 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 # Load environment variables from .env if present
-if os.path.exists('bot/.env'):
+if os.path.exists('.env'):
     load_dotenv()  # Load local .env if it exists
     LOGGER.info("Loaded local .env file")
 else:
     LOGGER.info("No .env file found, using environment variables")
 
-# Fetch configuration from Azure App Configuration
 connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
-if not connection_string:
-    LOGGER.error("Azure App Configuration connection string is not set.")
-    sys.exit(1)  # Terminate execution if configuration is missing
-
-# Attempt to retrieve app credentials from Azure App Configuration
-try:
-    app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
-    APP_ID = app_config_client.get_configuration_setting(key="MicrosoftAppId").value  # Fetch bot app ID
-    APP_PASSWORD = app_config_client.get_configuration_setting(key="MicrosoftAppPassword").value  # Fetch bot app password
-    LOGGER.info("Fetched App ID and App Password from Azure App Configuration.")
-except Exception as e:
-    LOGGER.error(f"Error fetching configuration from Azure App Configuration: {e}")
-    sys.exit(1)  # Terminate if fetching credentials fails
-
+if connection_string:
+    try:
+        app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+        APP_ID = app_config_client.get_configuration_setting(key="MicrosoftAppId").value
+        APP_PASSWORD = app_config_client.get_configuration_setting(key="MicrosoftAppPassword").value
+        LOGGER.info("Fetched App ID and App Password from Azure App Configuration.")
+    except Exception as e:
+        LOGGER.warning(f"Could not fetch from Azure App Configuration: {e}")
 
 # Create adapter settings for the bot framework
-SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
+#SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
+SETTINGS = BotFrameworkAdapterSettings(None,None)
 ADAPTER = BotFrameworkAdapter(SETTINGS)  # Initialize the bot adapter
 
 # Define the bot's error handler
@@ -120,6 +114,8 @@ async def messages(req: web.Request) -> web.Response:
         async def turn_logic(turn_context: TurnContext):
             """Handles user interactions by running the main dialog."""
             LOGGER.info("Running main dialog.")
+            turn_context.turn_state["conversation_state"] = conversation_state
+            turn_context.turn_state["user_state_property"] = user_state_property
             await main_dialog.run(turn_context, conversation_state.create_property("DialogState"))
             await conversation_state.save_changes(turn_context)  # Save conversation state
             await user_state_property.save_changes(turn_context)  # Save user state

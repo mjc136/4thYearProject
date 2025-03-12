@@ -6,10 +6,10 @@ import os
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bot', '.env')
 load_dotenv(dotenv_path=env_path)
 
-KEY = os.getenv("AI_API_KEY")
-ENDPOINT = os.getenv("AI_ENDPOINT")
+AI_KEY = os.getenv("AI_API_KEY")
+AI_ENDPOINT = os.getenv("AI_ENDPOINT")
 
-client = OpenAI(api_key=KEY, base_url=ENDPOINT)
+client = OpenAI(api_key=AI_KEY, base_url=AI_ENDPOINT)
 
 # Function to test the API
 def test_deepseek():

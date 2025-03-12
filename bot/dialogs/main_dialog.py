@@ -52,9 +52,9 @@ class MainDialog(BaseDialog):
     async def language_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompts the user to select a language to practice."""
         card_actions = [
-            {"type": "imBack", "title": "Spanish", "value": "Es"},
-            {"type": "imBack", "title": "French", "value": "Fr"},
-            {"type": "imBack", "title": "Portuguese", "value": "Pt"},
+            {"type": "imBack", "title": "Spanish", "value": "es"},
+            {"type": "imBack", "title": "French", "value": "fr"},
+            {"type": "imBack", "title": "Portuguese", "value": "pt"},
         ]
         prompt_message = MessageFactory.suggested_actions(card_actions, "Please select the language you would like to practise:")
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
@@ -62,18 +62,23 @@ class MainDialog(BaseDialog):
     async def verify_language(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Stores the selected language and moves to proficiency selection."""
         if step_context.result:
-            language = step_context.result.strip().capitalize()
+            language = step_context.result.strip().lower()
             self.user_state.set_language(language)
-            await step_context.context.send_activity(f"Selected language: {language}.")
-            return await step_context.next(None)
+            await step_context.context.send_activity(f"Selected language: {language.capitalize()}.")
+
+            user_state_accessor = step_context.context.turn_state.get("user_state_property")
+            if user_state_accessor:
+                await user_state_accessor.save_changes(step_context.context)
+            if self.user_state.get_language() != "English":
+                return await step_context.next(None)
         return await step_context.replace_dialog(self.id)  # Restart dialog if input is invalid
 
     async def proficiency_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompts the user to select their proficiency level."""
         card_actions = [
-            {"type": "imBack", "title": "Beginner", "value": "Beginner"},
-            {"type": "imBack", "title": "Intermediate", "value": "Intermediate"},
-            {"type": "imBack", "title": "Advanced", "value": "Advanced"},
+            {"type": "imBack", "title": "Beginner", "value": "beginner"},
+            {"type": "imBack", "title": "Intermediate", "value": "intermediate"},
+            {"type": "imBack", "title": "Advanced", "value": "advanced"},
         ]
         prompt_message = MessageFactory.suggested_actions(card_actions, "What is your proficiency level?")
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
@@ -81,7 +86,7 @@ class MainDialog(BaseDialog):
     async def verify_proficiency(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Stores the user's proficiency level and proceeds to scenario selection."""
         if step_context.result:
-            proficiency_level = step_context.result.strip().capitalize()
+            proficiency_level = step_context.result.strip().lower()
             self.user_state.set_proficiency_level(proficiency_level)
             await step_context.context.send_activity(f"Proficiency level set to {proficiency_level}.")
             return await step_context.next(None)
@@ -89,9 +94,15 @@ class MainDialog(BaseDialog):
     
     async def handle_scenario_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Triggers the appropriate scenario based on the selected proficiency level."""
-        if self.user_state.proficiency_level == "Beginner":
+        language = self.user_state.get_language()
+        proficiency = self.user_state.get_proficiency_level()
+
+        # Debugging log
+        await step_context.context.send_activity(f"Proceeding with language: {language}, proficiency: {proficiency}")
+
+        if proficiency == "beginner":
             return await step_context.begin_dialog("TaxiScenarioDialog")
-        elif self.user_state.proficiency_level == "Intermediate":
+        elif proficiency == "intermediate":
             return await step_context.begin_dialog("HotelScenarioDialog")
         else:
             return await step_context.begin_dialog("JobInterviewScenarioDialog")
