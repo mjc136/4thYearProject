@@ -29,6 +29,7 @@ class BaseDialog(ComponentDialog):
         self.logger = logging.getLogger(__name__)
         self._initialise_configuration()
         self._initialise_clients()
+        self._initialise_ai()
         self.score = 0  # Initialise the score
 
     def _initialise_configuration(self):
@@ -72,15 +73,24 @@ class BaseDialog(ComponentDialog):
                 endpoint=self.TEXT_ANALYTICS_ENDPOINT,
                 credential=AzureKeyCredential(self.TEXT_ANALYTICS_KEY)
             )
-            self.client = OpenAI(
-                api_key=os.getenv("AI_API_KEY"),
-                base_url=os.getenv("AI_ENDPOINT")
-            )
 
             self.logger.info("Successfully initialised Azure clients")
         except Exception as e:
             raise RuntimeError(f"Failed to initialise Azure clients: {e}")
         
+    def _initialise_ai(self):
+        """Initialise the OpenAI instance."""
+        try:
+            self.client = OpenAI(
+                api_key=os.getenv("AI_API_KEY"),
+                base_url=os.getenv("AI_ENDPOINT")
+            )
+            self.logger.info("OpenAI initialised successfully")
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialise OpenAI: {e}")
+            raise
+    
     def _initialise_language_tool(self, language: str):
         """Initialise the LanguageTool instance."""
         supported_languages = {
@@ -100,16 +110,20 @@ class BaseDialog(ComponentDialog):
             raise
         
 
-    def chatbot_respond(self, user_input):
+    def chatbot_respond(self, user_input, system_message):
+        """Generate an AI response to the user input.""" 
         proficiency_level = self.user_state.get_proficiency_level()
         language = self.user_state.get_language()
+        
+        # initialise memory for the conversation
+        default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 
+                        languages through interactive role-playing in {proficiency_level} level {language}.
+                        You will only reply in {language}."""      
 
         response = self.client.chat.completions.create(
-            model="deepseek-reasoner",
+            model="deepseek-chat",
             messages=[
-                {"role": "system", "content": f"""You are LingoLizard, a language-learning assistant that helps users practice 
-                                                languages through interactive role-playing in {proficiency_level} level {language}.
-                                                You will only reply in {language}."""},
+                {"role": "system", "content": default_system_message + " " + system_message},
                 {"role": "user", "content": user_input}
             ]
         )

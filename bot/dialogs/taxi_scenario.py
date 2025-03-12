@@ -45,7 +45,7 @@ class TaxiScenarioDialog(BaseDialog):
     async def greeting_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """AI-generated taxi greeting"""        
         # Generate AI greeting
-        repsonse = self.chatbot_respond("Hello")
+        repsonse = self.chatbot_respond("hello", "Greet the user as a taxi driver. Ask for the user's desired destination.")
         
         return await step_context.prompt(
             TextPrompt.__name__,
@@ -58,7 +58,8 @@ class TaxiScenarioDialog(BaseDialog):
 
         if user_input:
             # AI response
-            repsonse = self.chatbot_respond(user_input)
+            repsonse = self.chatbot_respond(user_input, """If the entered location is a valid location, 
+                                            respond asking for confirmation otherwise ask for clarification.""")
             
         
         return await step_context.prompt(
