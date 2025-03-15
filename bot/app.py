@@ -45,8 +45,8 @@ if connection_string:
         LOGGER.warning(f"Could not fetch from Azure App Configuration: {e}")
 
 # Create adapter settings for the bot framework
-#SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
-SETTINGS = BotFrameworkAdapterSettings(None,None)
+SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
+#SETTINGS = BotFrameworkAdapterSettings(None,None)
 ADAPTER = BotFrameworkAdapter(SETTINGS)  # Initialize the bot adapter
 
 # Define the bot's error handler

@@ -118,7 +118,8 @@ class BaseDialog(ComponentDialog):
         # initialise memory for the conversation
         default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 
                         languages through interactive role-playing in {proficiency_level} level {language}.
-                        You will only reply in {language}."""      
+                        You will only reply in {language}. Do not use any emojis or special characters. if using numbers,
+                        write them out in words. For example, write "five" instead of "5". """      
 
         response = self.client.chat.completions.create(
             model="deepseek-chat",
