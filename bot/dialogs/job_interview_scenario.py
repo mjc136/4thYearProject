@@ -7,90 +7,171 @@ from bot.state.user_state import UserState
 class JobInterviewScenarioDialog(BaseDialog):
     def __init__(self, user_state: UserState):
         dialog_id = "JobInterviewScenarioDialog"
-        super(JobInterviewScenarioDialog, self).__init__(dialog_id, user_state)
+        super().__init__(dialog_id, user_state)
         self.user_state = user_state
+        self.language = self.user_state.get_language()
+        
+        # Add conversation state
+        self.experience = None
+        self.skills = None
+        self.strengths = None
+        self.weaknesses = None
+        self.salary_expectation = None
+        self.score = 0
 
-        # Define and add dialogs
+        # Initialize dialogues
         self.add_dialog(TextPrompt(TextPrompt.__name__))
-        self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
-            self.intro_step,                # Introduction
-            self.ask_about_experience_step, # Discuss past experience
-            self.ask_about_skills_step,     # Discuss key skills
-            self.ask_why_this_job_step,     # "Why do you want this job?"
-            self.ask_strengths_step,        # Strengths & weaknesses
-            self.ask_salary_expectation,    # Salary discussion
-            self.final_step                 # Completion step
-        ]))
-
+        waterfall_dialog = WaterfallDialog(
+            f"{dialog_id}.waterfall",
+            [
+                self.intro_step,
+                self.initial_greeting_step,
+                self.experience_step,
+                self.skills_step,
+                self.motivation_step,
+                self.strengths_weaknesses_step,
+                self.salary_step,
+                self.questions_for_interviewer_step,
+                self.closing_remarks_step,
+                self.final_confirmation_step,
+                self.feedback_step
+            ]
+        )
+        self.add_dialog(waterfall_dialog)
         self.initial_dialog_id = f"{dialog_id}.waterfall"
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Introduction to the job interview scenario."""
-        text = "Welcome to the Job Interview Scenario! Let's practice answering common job interview questions."
-        translated_text = self.translate_text(text, self.user_state.language)  # Translate message
+        message = "Welcome to the Job Interview Scenario! Let's practice for a customer service position interview."
+        translated_message = self.translate_text(message, self.language)
+        
+        await step_context.context.send_activity(message)
+        await step_context.context.send_activity(translated_message)
+        return await step_context.next(None)
 
-        # Send both original and translated messages
-        await step_context.context.send_activity(text)
-        await step_context.context.send_activity(translated_text)
-        return await step_context.next(None)  # Move to the next step
-
-    async def ask_about_experience_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Discuss past work experience in customer service."""
-        await step_context.context.send_activity("The interviewer asked: 'Tell me about your past work experience in customer service.'")
-        return await self.prompt_and_validate(step_context, 
-            "I have four years of experience as a customer service representative, handling inquiries, resolving complaints, and ensuring customer satisfaction.")
-
-    async def ask_about_skills_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Discuss key skills relevant to customer service."""
-        await step_context.context.send_activity("The interviewer asked: 'What are your key skills that make you a good fit for this role?'")
-        return await self.prompt_and_validate(step_context, 
-            "I am skilled in active listening, conflict resolution, and multitasking in fast-paced environments.")
-
-    async def ask_why_this_job_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Why do you want to work in customer service?"""
-        await step_context.context.send_activity("The interviewer asked: 'Why do you want to work in customer service?'")
-        return await self.prompt_and_validate(step_context, 
-            "I enjoy helping people and ensuring they have a positive experience. I believe my ability to communicate effectively and remain patient makes me a great fit for this role.")
-
-    async def ask_strengths_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Strengths & Weaknesses discussion in customer service."""
-        await step_context.context.send_activity("The interviewer asked: 'What are your biggest strengths and weaknesses in customer service?'")
-        return await self.prompt_and_validate(step_context, 
-            "My biggest strength is my ability to stay calm and professional in high-pressure situations. A weakness I am working on is improving my ability to handle multiple customers simultaneously without feeling overwhelmed.")
-
-    async def ask_salary_expectation(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Salary expectation discussion in customer service."""
-        await step_context.context.send_activity("The interviewer asked: 'What are your salary expectations for this role?'")
-        return await self.prompt_and_validate(step_context, 
-            "Based on my experience in customer service and industry standards, I am looking for a salary range of $40,000 - $50,000 per year.")
-
-
-    async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Step: Completion of the interview scenario."""
-        text = "You've completed the job interview scenario! Well done."
-        translated_text = self.translate_text(text, self.user_state.language)  # Translate the final message
-
-        # Send final message in both languages
-        await step_context.context.send_activity(text)
-        await step_context.context.send_activity(translated_text)
-        await step_context.context.send_activity(f"Your final score is: {self.user_state.get_final_score()}")  # Display final score
-        return await step_context.end_dialog()  # End the dialog
-
-    async def prompt_and_validate(self, step_context: WaterfallStepContext, text_to_translate: str) -> DialogTurnResult:
-        """Helper function to handle translation and validation in one step."""
-        if step_context.result:  # If there was a previous response, validate it
-            user_translation = step_context.result  # Get user translation
-            correct_translation = step_context.values["correct_translation"]  # Get correct translation
-            feedback = self.evaluate_response(user_translation, correct_translation)  # Evaluate response
-            await step_context.context.send_activity(feedback)  # Provide feedback
-
-        # Set the correct translation for this step
-        correct_translation = self.translate_text(text_to_translate, self.user_state.language)  # Correct translation
-        step_context.values["correct_translation"] = correct_translation  # Save for validation
-
-        # Ask user for the translation of the phrase
-        await step_context.context.send_activity(f"How would you say: '{text_to_translate}'")
-        return await step_context.prompt(
-            TextPrompt.__name__,  # Prompt for user input
-            PromptOptions(prompt=MessageFactory.text("Type your translation:"))  # Prompt text
+    async def initial_greeting_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        prompt = self.chatbot_respond(
+            "interview start",
+            "As an interviewer, greet the candidate warmly and ask them to introduce themselves briefly."
         )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def experience_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.initial_impression = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "Ask about their relevant experience in customer service roles."
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def skills_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.experience = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "What are your key skills that make you a good fit for this role?"
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def motivation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.skills = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "Why do you want to work in customer service?"
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def strengths_weaknesses_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.motivation = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "What are your biggest strengths and weaknesses in customer service?"
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def salary_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.strengths_weaknesses = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "What are your salary expectations for this role?"
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def questions_for_interviewer_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.salary_expectation = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "Do you have any questions for the interviewer?"
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def closing_remarks_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.questions_for_interviewer = step_context.result
+        prompt = self.chatbot_respond(
+            step_context.result,
+            "Thank the candidate for their time and provide any closing remarks."
+        )
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+    async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.score = self.calculate_score(step_context.result)
+        self.user_state.update_score(self.score)
+        
+        feedback = self.generate_feedback()
+        await step_context.context.send_activity(feedback)
+        return await step_context.next(None)
+
+    async def feedback_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        text = "You've completed the job interview scenario! Well done."
+        translated_text = self.translate_text(text, self.language)
+        
+        await step_context.context.send_activity(text)
+        await step_context.context.send_activity(translated_text)
+        await step_context.context.send_activity(f"Your final score is: {self.user_state.get_final_score()}")
+        return await step_context.end_dialog()
+
+    def calculate_score(self, final_response: str) -> int:
+        score = 60  # Base score
+        if self.experience:
+            score += 10
+        if self.skills:
+            score += 10
+        if self.strengths and self.weaknesses:
+            score += 10
+        if "thank" in final_response.lower():
+            score += 5
+        if any(word in final_response.lower() for word in ["question", "ask"]):
+            score += 5
+        return min(score, 100)
+
+    def generate_feedback(self) -> str:
+        feedback = "Here's your interview feedback:\n"
+        if self.score >= 90:
+            feedback += "Excellent interview! You demonstrated strong communication skills and provided comprehensive responses."
+        elif self.score >= 70:
+            feedback += "Good interview! You covered most key points but could add more detail to some responses."
+        else:
+            feedback += "Keep practicing! Focus on expanding your answers and using professional language."
+        return feedback
