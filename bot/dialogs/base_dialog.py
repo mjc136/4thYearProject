@@ -53,7 +53,9 @@ class BaseDialog(ComponentDialog):
             "TRANSLATOR_ENDPOINT",
             "TRANSLATOR_LOCATION",
             "TEXT_ANALYTICS_KEY",
-            "TEXT_ANALYTICS_ENDPOINT"
+            "TEXT_ANALYTICS_ENDPOINT",
+            "AI_API_KEY",
+            "AI_ENDPOINT"
         ]
 
         # Fetch each variable from Azure App Configuration
@@ -82,8 +84,8 @@ class BaseDialog(ComponentDialog):
         """Initialise the OpenAI instance."""
         try:
             self.client = OpenAI(
-                api_key=os.getenv("AI_API_KEY"),
-                base_url=os.getenv("AI_ENDPOINT")
+                api_key=AzureKeyCredential(self.AI_API_KEY),
+                base_url=self.AI_ENDPOINT
             )
             self.logger.info("OpenAI initialised successfully")
 
