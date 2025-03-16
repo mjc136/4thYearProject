@@ -67,7 +67,6 @@ class HotelScenarioDialog(BaseDialog):
         )
 
     async def provide_dates_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        self.check_in_date, self.check_out_date = self.extract_dates(step_context.result)
         prompt = self.chatbot_respond(
             step_context.result,
             "Ask the guest about their preferred room type."

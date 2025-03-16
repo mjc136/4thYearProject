@@ -1,18 +1,31 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 import requests
 from botbuilder.core import MemoryStorage, ConversationState, TurnContext
 from botbuilder.dialogs import DialogSet
 from botbuilder.dialogs.prompts import TextPrompt
-from bot.dialogs.taxi_scenario import TaxiScenarioDialog
+from bot.dialogs.taxi_scenario import TaxiScenarioDialog  # Ensure correct import
 from bot.state.user_state import UserState
 
 @pytest.mark.asyncio
 @patch("bot.dialogs.base_dialog.AzureAppConfigurationClient.from_connection_string")
-async def test_taxi_scenario_flow(mock_config_client, monkeypatch):
-    
+@patch("bot.dialogs.base_dialog.OpenAI")  # Mock OpenAI
+async def test_taxi_scenario_flow(mock_openai, mock_config_client, monkeypatch):
+    """
+    Test flow for the TaxiScenarioDialog.
+    """
+
+    # Mock OpenAI API response
+    mock_openai_instance = MagicMock()
+    mock_openai_instance.chat.completions.create.return_value.choices = [
+        MagicMock(message=MagicMock(content="Mock AI Response"))
+    ]
+    mock_openai.return_value = mock_openai_instance
+
     # Mock Azure App Configuration Client
-    mock_config_client.return_value.get_configuration_setting = MagicMock(side_effect=lambda key: MagicMock(value="mock_value"))
+    mock_config_client.return_value.get_configuration_setting = MagicMock(
+        side_effect=lambda key: MagicMock(value="mock_value")
+    )
 
     # Mock environment variables
     monkeypatch.setenv("AZURE_APP_CONFIG_CONNECTION_STRING", "mock_connection_string")
@@ -21,13 +34,25 @@ async def test_taxi_scenario_flow(mock_config_client, monkeypatch):
     monkeypatch.setenv("TRANSLATOR_LOCATION", "mock_location")
     monkeypatch.setenv("TEXT_ANALYTICS_KEY", "mock_text_analytics_key")
     monkeypatch.setenv("TEXT_ANALYTICS_ENDPOINT", "https://mock_text_analytics_endpoint")
+    monkeypatch.setenv("AI_API_KEY", "mock_ai_key")
+    monkeypatch.setenv("AI_ENDPOINT", "https://mock_ai_endpoint")
 
     # Mock translation request (Spanish response)
+    class MockResponse:
+        def __init__(self, json_data, status_code):
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            return self.json_data
+        
+        def raise_for_status(self):
+            """Simulate requests behavior: raise an error for non-200 responses"""
+            if self.status_code >= 400:
+                raise requests.exceptions.HTTPError(f"HTTP {self.status_code} Error")
+
     def mock_translate_request(url, headers, json):
-        return MagicMock(
-            status_code=200,
-            json=lambda: [{"translations": [{"text": "Bienvenido al escenario de Taxi!"}]}]
-        )
+        return MockResponse([{"translations": [{"text": "Bienvenido al escenario de Taxi!"}]}], 200)
 
     monkeypatch.setattr(requests, "post", mock_translate_request)
 
@@ -56,38 +81,29 @@ async def test_taxi_scenario_flow(mock_config_client, monkeypatch):
 
     # Step 1: Bot sends welcome message
     await dialog_context.begin_dialog("TaxiScenarioDialog")
-    assert dialog_context.active_dialog is not None
+    assert dialog_context.active_dialog is not None, "Dialog did not start properly"
 
-    # Step 2: User provides pickup location
-    turn_context.activity.text = "Estoy en el centro comercial"
-    turn_context.activity.get_property = MagicMock(return_value="Estoy en el centro comercial")
-    await dialog_context.continue_dialog()
+    # Define test conversation steps
+    test_steps = [
+        "Estoy en el centro comercial",  # Pickup location
+        "Sí, quiero ir a la estación de tren",  # Confirm pickup and provide destination
+        "¿Cuánto costará?",  # Ask price
+        "Sí, está bien",  # Accept price
+        "Gracias, me funciona",  # Acknowledge ETA
+    ]
 
-    # Step 3: User confirms pickup location and provides destination
-    turn_context.activity.text = "Sí, quiero ir a la estación de tren"
-    turn_context.activity.get_property = MagicMock(return_value="Sí, quiero ir a la estación de tren")
-    await dialog_context.continue_dialog()
-
-    # Step 4: User responds to price suggestion
-    turn_context.activity.text = "¿Cuánto costará?"
-    turn_context.activity.get_property = MagicMock(return_value="¿Cuánto costará?")
-    await dialog_context.continue_dialog()
-
-    # Step 5: User accepts price
-    turn_context.activity.text = "Sí, está bien"
-    turn_context.activity.get_property = MagicMock(return_value="Sí, está bien")
-    await dialog_context.continue_dialog()
-
-    # Step 6: User acknowledges ETA
-    turn_context.activity.text = "Gracias, me funciona"
-    turn_context.activity.get_property = MagicMock(return_value="Gracias, me funciona")
-    await dialog_context.continue_dialog()
-
-    # Step 7: Ensure all dialog steps are completed
-    while dialog_context.active_dialog is not None:
+    # Simulate user responses in a loop
+    for step in test_steps:
+        turn_context.activity.text = step
+        turn_context.activity.get_property = MagicMock(return_value=step)
         await dialog_context.continue_dialog()
 
-    # Verify scenario completion
+    # Ensure all dialog steps are completed
+    max_turns = 10  # Prevent infinite loop
+    while dialog_context.active_dialog is not None and max_turns > 0:
+        await dialog_context.continue_dialog()
+        max_turns -= 1
+
     assert dialog_context.active_dialog is None, "Dialog did not complete as expected"
 
     # Verify final score retrieval

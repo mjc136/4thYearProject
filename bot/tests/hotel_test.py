@@ -1,103 +1,115 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 import requests
 from botbuilder.core import MemoryStorage, ConversationState, TurnContext
 from botbuilder.dialogs import DialogSet
 from botbuilder.dialogs.prompts import TextPrompt
-from dialogs.hotel_scenario import HotelScenarioDialog
-from state.user_state import UserState
-from azure.appconfiguration import AzureAppConfigurationClient
+from bot.dialogs.hotel_scenario import HotelScenarioDialog  # Ensure correct import
+from bot.state.user_state import UserState
 
 @pytest.mark.asyncio
-async def test_hotel_scenario_flow(monkeypatch):
-    # 🛠️ Set up mocked environment variables
-    monkeypatch.setenv("AZURE_APP_CONFIG_CONNECTION_STRING", "Endpoint=https://mock-config.azconfig.io;Id=mockId;Secret=mockSecret")
+@patch("bot.dialogs.base_dialog.AzureAppConfigurationClient.from_connection_string")
+@patch("bot.dialogs.base_dialog.OpenAI")  # Mock OpenAI
+async def test_hotel_scenario_flow(mock_openai, mock_config_client, monkeypatch):
+    """
+    Test flow for the HotelScenarioDialog.
+    """
+
+    # Mock OpenAI API response
+    mock_openai_instance = MagicMock()
+    mock_openai_instance.chat.completions.create.return_value.choices = [
+        MagicMock(message=MagicMock(content="Réponse IA simulée"))
+    ]
+    mock_openai.return_value = mock_openai_instance
+
+    # Mock Azure App Configuration Client
+    mock_config_client.return_value.get_configuration_setting = MagicMock(
+        side_effect=lambda key: MagicMock(value="mock_value")
+    )
+
+    # Mock environment variables
+    monkeypatch.setenv("AZURE_APP_CONFIG_CONNECTION_STRING", "mock_connection_string")
     monkeypatch.setenv("TRANSLATOR_KEY", "mock_translator_key")
     monkeypatch.setenv("TRANSLATOR_ENDPOINT", "https://mock_translator_endpoint")
     monkeypatch.setenv("TRANSLATOR_LOCATION", "mock_location")
     monkeypatch.setenv("TEXT_ANALYTICS_KEY", "mock_text_analytics_key")
     monkeypatch.setenv("TEXT_ANALYTICS_ENDPOINT", "https://mock_text_analytics_endpoint")
+    monkeypatch.setenv("AI_API_KEY", "mock_ai_key")
+    monkeypatch.setenv("AI_ENDPOINT", "https://mock_ai_endpoint")
 
-    # 🛠️ Mock Azure App Configuration and Translation API
-    with patch.object(AzureAppConfigurationClient, "from_connection_string") as mock_config_client, \
-         patch.object(requests, "post") as mock_requests_post:
+    # Mock translation request (French response)
+    class MockResponse:
+        def __init__(self, json_data, status_code):
+            self.json_data = json_data
+            self.status_code = status_code
 
-        mock_config_instance = MagicMock()
+        def json(self):
+            return self.json_data
+        
+        def raise_for_status(self):
+            """Simulate requests behavior: raise an error for non-200 responses"""
+            if self.status_code >= 400:
+                raise requests.exceptions.HTTPError(f"HTTP {self.status_code} Error")
 
-        # Mock `get_configuration_setting()` to return fake values
-        def mock_get_config(key):
-            fake_config = {
-                "TRANSLATOR_KEY": MagicMock(value="mock_translator_key"),
-                "TRANSLATOR_ENDPOINT": MagicMock(value="https://mock_translator_endpoint"),
-                "TRANSLATOR_LOCATION": MagicMock(value="mock_location"),
-                "TEXT_ANALYTICS_KEY": MagicMock(value="mock_text_analytics_key"),
-                "TEXT_ANALYTICS_ENDPOINT": MagicMock(value="https://mock_text_analytics_endpoint"),
-            }
-            return fake_config.get(key, MagicMock(value=""))
+    def mock_translate_request(url, headers, json):
+        return MockResponse([{"translations": [{"text": "Bienvenue dans le scénario de réservation d'hôtel!"}]}], 200)
 
-        mock_config_instance.get_configuration_setting.side_effect = mock_get_config
-        mock_config_client.return_value = mock_config_instance
+    monkeypatch.setattr(requests, "post", mock_translate_request)
 
-        # ✅ Mock translation API request
-        def mock_translate_request(url, headers, json):
-            return MagicMock(
-                status_code=200,
-                json=lambda: [{"translations": [{"text": "Bienvenido al escenario de Reservación de Hotel!"}]}]
-            )
+    # Setup memory and conversation state
+    memory = MemoryStorage()
+    conversation_state = ConversationState(memory)
+    dialog_state = conversation_state.create_property("DialogState")
 
-        mock_requests_post.side_effect = mock_translate_request
+    # Create UserState instance for testing (French language)
+    user_state = UserState(user_id="test_user", language="fr")
 
-        # ✅ Set up memory and conversation state
-        memory = MemoryStorage()
-        conversation_state = ConversationState(memory)
-        dialog_state = conversation_state.create_property("DialogState")
+    # Create the DialogSet and add dialogs
+    dialogs = DialogSet(dialog_state)
+    dialogs.add(TextPrompt("text_prompt"))
+    dialogs.add(HotelScenarioDialog(user_state))
 
-        # ✅ Create UserState instance for testing
-        user_state = UserState(user_id="test_user")
+    # Mock TurnContext
+    turn_context = MagicMock(spec=TurnContext)
+    turn_context.activity = MagicMock()
+    turn_context.activity.type = "message"
+    turn_context.activity.locale = "fr"
+    turn_context.turn_state = {"DialogState": dialog_state}
 
-        # ✅ Create the DialogSet and add dialogs
-        dialogs = DialogSet(dialog_state)
-        dialogs.add(TextPrompt("text_prompt"))
-        dialogs.add(HotelScenarioDialog(user_state))  # Pass UserState to HotelScenarioDialog
+    # Create DialogContext
+    dialog_context = await dialogs.create_context(turn_context)
 
-        # ✅ Mock TurnContext
-        turn_context = AsyncMock(spec=TurnContext)
-        turn_context.activity = MagicMock()
-        turn_context.activity.type = "message"
-        turn_context.activity.locale = "en-us"
-        turn_context.turn_state = {"DialogState": dialog_state}  # Ensure consistent dialog state
+    # Step 1: Bot sends welcome message
+    await dialog_context.begin_dialog("HotelScenarioDialog")
+    assert dialog_context.active_dialog is not None, "Le dialogue n'a pas démarré correctement"
 
-        # ✅ Create DialogContext
-        dialog_context = await dialogs.create_context(turn_context)
+    # Define test conversation steps in French
+    test_steps = [
+        "Bonjour, je voudrais réserver une chambre s'il vous plaît",  # Booking request
+        "J'ai besoin d'une chambre du 15 mars au 17 mars",  # Provide dates
+        "Je voudrais une chambre double",  # Select room type
+        "Nous serons deux personnes",  # Provide guest count
+        "Nous aimerions une chambre avec vue si possible",  # Special requests
+        "Oui, tout cela me convient",  # Confirm booking details
+        "Je vais payer avec une carte de crédit",  # Payment method
+        "Merci pour votre aide"  # Thank the receptionist
+    ]
 
-        # Step 1: Bot sends welcome message and prompts for hotel booking
-        await dialog_context.begin_dialog("HotelScenarioDialog")
-        assert dialog_context.active_dialog is not None
-
-        # Step 2: User books a room
-        turn_context.activity.text = "I would like to book a room"
+    # Simulate user responses in a loop
+    for step in test_steps:
+        turn_context.activity.text = step
+        turn_context.activity.get_property = MagicMock(return_value=step)
         await dialog_context.continue_dialog()
 
-        # Step 3: User provides check-in date
-        turn_context.activity.text = "I would like to check in on [date]"
+    # Ensure all dialog steps are completed
+    max_turns = 10  # Prevent infinite loop
+    while dialog_context.active_dialog is not None and max_turns > 0:
         await dialog_context.continue_dialog()
+        max_turns -= 1
 
-        # Step 4: User provides check-out date
-        turn_context.activity.text = "I would like to check out on [date]"
-        await dialog_context.continue_dialog()
+    assert dialog_context.active_dialog is None, "Le dialogue ne s'est pas terminé comme prévu"
 
-        # Step 5: User selects room type
-        turn_context.activity.text = "I would like a single/double room"
-        await dialog_context.continue_dialog()
-
-        # Step 6: User asks about amenities
-        turn_context.activity.text = "Do you have free Wi-Fi and breakfast included?"
-        await dialog_context.continue_dialog()
-
-        # Step 7: Scenario completion
-        assert dialog_context.active_dialog is None, "Expected the dialog to complete, but it's still active"
-
-        # Step 8: Verify final score retrieval
-        final_score = user_state.get_final_score()
-        assert isinstance(final_score, int), "Final score should be an integer"
-        assert final_score >= 0, "Final score should be non-negative"
+    # Verify final score retrieval
+    final_score = user_state.get_final_score()
+    assert isinstance(final_score, int), "Le score final doit être un entier"
+    assert final_score >= 0, "Le score final doit être non négatif"

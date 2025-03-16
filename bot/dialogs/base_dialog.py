@@ -84,7 +84,7 @@ class BaseDialog(ComponentDialog):
         """Initialise the OpenAI instance."""
         try:
             self.client = OpenAI(
-                api_key=AzureKeyCredential(self.AI_API_KEY),
+                api_key=self.AI_API_KEY,
                 base_url=self.AI_ENDPOINT
             )
             self.logger.info("OpenAI initialised successfully")

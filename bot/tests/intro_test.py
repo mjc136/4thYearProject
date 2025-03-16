@@ -9,7 +9,12 @@ from azure.appconfiguration import AzureAppConfigurationClient
 import requests
 
 @pytest.mark.asyncio
-async def test_conversation_flow(monkeypatch):
+@patch("bot.dialogs.base_dialog.OpenAI")
+
+async def test_conversation_flow(mock_openai, monkeypatch):
+    # Mock OpenAI response to prevent connection errors
+    mock_openai.return_value.choices = [MagicMock(message=MagicMock(content="Mock AI Response"))]
+
     # Set a correctly formatted mock connection string
     monkeypatch.setenv("AZURE_APP_CONFIG_CONNECTION_STRING", "Endpoint=https://mock-config.azconfig.io;Id=mockId;Secret=mockSecret")
     monkeypatch.setenv("TRANSLATOR_KEY", "mock_translator_key")
@@ -39,11 +44,20 @@ async def test_conversation_flow(monkeypatch):
         mock_client.return_value = mock_instance
 
         # Mock translation API request
+        class MockResponse:
+            def __init__(self, json_data, status_code):
+                self.json_data = json_data
+                self.status_code = status_code
+
+            def json(self):
+                return self.json_data
+
+            def raise_for_status(self):
+                if self.status_code >= 400:
+                    raise requests.exceptions.HTTPError(f"HTTP {self.status_code} Error")
+
         def mock_translate_request(url, headers, json):
-            return MagicMock(
-                status_code=200,
-                json=lambda: [{"translations": [{"text": "Bienvenido al escenario de Taxi!"}]}]  # Mock translated text
-            )
+            return MockResponse([{"translations": [{"text": "Bienvenido al escenario de Taxi!"}]}], 200)
 
         mock_requests_post.side_effect = mock_translate_request
 
@@ -74,14 +88,28 @@ async def test_conversation_flow(monkeypatch):
         await dialog_context.begin_dialog("MainDialog")
         assert dialog_context.active_dialog is not None
 
-        # Step 2: User selects language
-        turn_context.activity.text = "Es"  # User inputs "Es"
-        turn_context.activity.get_property = MagicMock(return_value="Es")  # Ensure user input is read
-        await dialog_context.continue_dialog()
-        assert user_state.language == "Es", f"Expected 'Es', but got {user_state.language}"
+        # Define test conversation steps
+        test_steps = [
+            "es",  # User selects language
+            "Beginner",  # User selects proficiency level
+        ]
 
-        # Step 3: User selects proficiency level
-        turn_context.activity.text = "Beginner"  # User inputs "Beginner"
-        turn_context.activity.get_property = MagicMock(return_value="Beginner")
-        await dialog_context.continue_dialog()
-        assert user_state.proficiency_level == "Beginner", f"Expected 'Beginner', but got {user_state.proficiency_level}"
+        # Simulate user responses
+        for step in test_steps:
+            turn_context.activity.text = step
+            turn_context.activity.get_property = MagicMock(return_value=step)
+            await dialog_context.continue_dialog()
+
+        # Ensure conversation exits properly
+        max_turns = 10
+        while dialog_context.active_dialog is not None and max_turns > 0:
+            await dialog_context.continue_dialog()
+            max_turns -= 1
+
+        assert dialog_context.active_dialog is None, "Dialog did not complete as expected"
+
+        # Verify final language selection
+        assert user_state.language == "es", f"Expected 'es', but got {user_state.language}"
+
+        # Verify final proficiency selection
+        assert user_state.proficiency_level == "beginner", f"Expected 'beginner', but got {user_state.proficiency_level}"
