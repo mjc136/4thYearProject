@@ -6,6 +6,7 @@ from botbuilder.dialogs import (
     TextPrompt,
     PromptOptions,
 )
+from botbuilder.schema import Activity
 from bot.state.user_state import UserState
 from .base_dialog import BaseDialog
 
@@ -47,16 +48,23 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Initialise dialog state and display welcome message."""
-        repsonse = "Welcome to the Taxi Scenario! Let's practise ordering a taxi."
-        translated_repsonse = self.translate_text(repsonse, self.language)
+        response = "Welcome to the Taxi Scenario! Let's practise ordering a taxi."
+        translated_response = self.translate_text(response, self.language)
 
-        await step_context.context.send_activity(repsonse)
-        await step_context.context.send_activity(translated_repsonse)
+        await step_context.context.send_activity(response)
+        await step_context.context.send_activity(translated_response)
         return await step_context.next(None)
     
     async def get_pickup_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Ask for pickup location"""
-        prompt = self.chatbot_respond("pickup", "As a taxi dispatcher, ask for the pickup location in a friendly way.")
+
+        # Show typing effect
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
+        prompt = await self.chatbot_respond(
+            step_context.context, "pickup", "As a taxi dispatcher, ask for the pickup location in a friendly way."
+        )
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(prompt=MessageFactory.text(prompt))
@@ -65,7 +73,12 @@ class TaxiScenarioDialog(BaseDialog):
     async def confirm_pickup_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Confirm pickup location"""
         self.pickup_location = step_context.result
-        prompt = self.chatbot_respond(
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             f"confirm pickup at {self.pickup_location}", 
             "Confirm the pickup location and ask for the destination."
         )
@@ -77,7 +90,12 @@ class TaxiScenarioDialog(BaseDialog):
     async def get_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Process destination and ask for confirmation"""
         self.destination = step_context.result
-        prompt = self.chatbot_respond(
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             f"going to {self.destination}", 
             "Confirm the destination and mention an estimated price range."
         )
@@ -89,13 +107,19 @@ class TaxiScenarioDialog(BaseDialog):
     async def confirm_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handle destination confirmation"""
         response = step_context.result.lower()
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
         if "yes" in response or "okay" in response:
-            prompt = self.chatbot_respond(
+            prompt = await self.chatbot_respond(
+                step_context.context,
                 "price negotiation",
                 "Suggest a price of roughly 20-30 euro for the journey and ask if it's acceptable."
             )
         else:
-            prompt = self.chatbot_respond(
+            prompt = await self.chatbot_respond(
+                step_context.context,
                 "request new destination",
                 "Politely ask for a new destination."
             )
@@ -108,7 +132,12 @@ class TaxiScenarioDialog(BaseDialog):
         """Handle price negotiation"""
         response = step_context.result.lower()
         self.price = "25"  # Example price
-        prompt = self.chatbot_respond(
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             f"negotiate price {self.price}",
             "Respond to the price negotiation and ask for final confirmation."
         )
@@ -119,7 +148,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def confirm_price_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Final price confirmation"""
-        prompt = self.chatbot_respond(
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             "confirm booking",
             "Confirm the booking and provide an estimated arrival time for the taxi."
         )
@@ -130,7 +164,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def eta_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Provide ETA information"""
-        prompt = self.chatbot_respond(
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             "eta confirmation",
             "Thank the user and ask if they need any additional information."
         )
@@ -141,10 +180,11 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Wrap up the conversation"""
-        # Calculate score based on conversation
         self.score = self.calculate_score(step_context.result)
         self.user_state.update_score(self.score)
-        
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
         feedback = self.generate_feedback()
         await step_context.context.send_activity(feedback)
         return await step_context.next(None)
@@ -153,7 +193,9 @@ class TaxiScenarioDialog(BaseDialog):
         """Provide feedback and score"""
         message = f"Scenario completed! Your score: {self.score}/100"
         translated_message = self.translate_text(message, self.language)
-        
+
+        await step_context.context.send_activity(Activity(type="typing"))
+
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated_message)
         return await step_context.end_dialog()

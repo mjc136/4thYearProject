@@ -1,6 +1,7 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult, PromptOptions
 from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
+from botbuilder.schema import Activity
 from .base_dialog import BaseDialog
 from bot.state.user_state import UserState
 
@@ -41,118 +42,132 @@ class JobInterviewScenarioDialog(BaseDialog):
         self.initial_dialog_id = f"{dialog_id}.waterfall"
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Initialize dialog and greet the user."""
         message = "Welcome to the Job Interview Scenario! Let's practice for a customer service position interview."
         translated_message = self.translate_text(message, self.language)
-        
+
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated_message)
         return await step_context.next(None)
 
     async def initial_greeting_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        prompt = self.chatbot_respond(
+        """Interview starts with a greeting."""
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             "interview start",
             "As an interviewer, greet the candidate warmly and ask them to introduce themselves briefly."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def experience_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask about work experience."""
         self.initial_impression = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Ask about their relevant experience in customer service roles."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def skills_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask about candidate skills."""
         self.experience = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "What are your key skills that make you a good fit for this role?"
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def motivation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask about motivation for applying."""
         self.skills = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Why do you want to work in customer service?"
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def strengths_weaknesses_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask about strengths and weaknesses."""
         self.motivation = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "What are your biggest strengths and weaknesses in customer service?"
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def salary_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask about salary expectations."""
         self.strengths_weaknesses = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "What are your salary expectations for this role?"
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def questions_for_interviewer_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask if the candidate has any questions."""
         self.salary_expectation = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Do you have any questions for the interviewer?"
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def closing_remarks_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Wrap up the interview."""
         self.questions_for_interviewer = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Thank the candidate for their time and provide any closing remarks."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Wrap up and provide feedback."""
         self.score = self.calculate_score(step_context.result)
         self.user_state.update_score(self.score)
-        
+        await step_context.context.send_activity(Activity(type="typing"))
+
         feedback = self.generate_feedback()
         await step_context.context.send_activity(feedback)
         return await step_context.next(None)
 
     async def feedback_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Provide final feedback and score."""
         text = "You've completed the job interview scenario! Well done."
         translated_text = self.translate_text(text, self.language)
-        
+        await step_context.context.send_activity(Activity(type="typing"))
+
         await step_context.context.send_activity(text)
         await step_context.context.send_activity(translated_text)
         await step_context.context.send_activity(f"Your final score is: {self.user_state.get_final_score()}")
         return await step_context.end_dialog()
 
     def calculate_score(self, final_response: str) -> int:
+        """Calculate the user's performance score."""
         score = 60  # Base score
         if self.experience:
             score += 10
@@ -167,6 +182,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         return min(score, 100)
 
     def generate_feedback(self) -> str:
+        """Generate interview feedback based on user performance."""
         feedback = "Here's your interview feedback:\n"
         if self.score >= 90:
             feedback += "Excellent interview! You demonstrated strong communication skills and provided comprehensive responses."

@@ -1,6 +1,7 @@
 from botbuilder.dialogs import ComponentDialog, DialogSet, DialogTurnStatus
 from botbuilder.core import TurnContext
 from typing import Optional, Tuple, Dict
+from botbuilder.schema import Activity
 import uuid
 import requests
 from urllib.parse import urlencode
@@ -111,11 +112,12 @@ class BaseDialog(ComponentDialog):
             self.logger.error(f"Failed to initialise LanguageTool: {e}")
             raise
         
-
-    def chatbot_respond(self, user_input, system_message):
+    async def chatbot_respond(self, turn_context: TurnContext, user_input, system_message):
         """Generate an AI response to the user input.""" 
         proficiency_level = self.user_state.get_proficiency_level()
         language = self.user_state.get_language()
+        
+        await turn_context.send_activity(Activity(type="typing"))
         
         # initialise memory for the conversation
         default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 

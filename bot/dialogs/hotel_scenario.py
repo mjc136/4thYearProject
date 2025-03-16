@@ -1,6 +1,7 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult, PromptOptions
 from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
+from botbuilder.schema import Activity
 from .base_dialog import BaseDialog
 from bot.state.user_state import UserState
 
@@ -50,90 +51,103 @@ class HotelScenarioDialog(BaseDialog):
         return await step_context.next(None)
 
     async def greet_receptionist_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        prompt = self.chatbot_respond("greeting", "As a hotel receptionist, greet the guest warmly and ask how you can help.")
+        """Greet the guest"""
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context, "greeting", "As a hotel receptionist, greet the guest warmly and ask how you can help."
+        )
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(prompt=MessageFactory.text(prompt))
         )
 
     async def ask_availability_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        prompt = self.chatbot_respond(
+        """Ask for check-in and check-out dates"""
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Ask the guest about their intended check-in and check-out dates."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def provide_dates_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        prompt = self.chatbot_respond(
+        """Ask for room type"""
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Ask the guest about their preferred room type."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def room_type_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask for number of guests"""
         self.room_type = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Ask the guest about the number of guests."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def guests_count_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Ask for special requests"""
         self.num_guests = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Ask the guest if they have any special requests."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def special_requests_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Confirm booking details"""
         self.special_requests = step_context.result
-        prompt = self.chatbot_respond(
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Confirm the booking details with the guest."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def confirm_booking_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        prompt = self.chatbot_respond(
+        """Ask for payment method"""
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Ask the guest for their preferred payment method."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def payment_method_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        prompt = self.chatbot_respond(
+        """Confirm booking"""
+        await step_context.context.send_activity(Activity(type="typing"))
+
+        prompt = await self.chatbot_respond(
+            step_context.context,
             step_context.result,
             "Thank the guest and confirm the booking."
         )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Wrap up the conversation and calculate score"""
         self.score = self.calculate_score(step_context.result)
         self.user_state.update_score(self.score)
-        
+        await step_context.context.send_activity(Activity(type="typing"))
+
         feedback = self.generate_feedback()
         await step_context.context.send_activity(feedback)
         return await step_context.next(None)
@@ -142,7 +156,8 @@ class HotelScenarioDialog(BaseDialog):
         """Provide feedback and score"""
         message = f"Scenario completed! Your score: {self.score}/100"
         translated_message = self.translate_text(message, self.language)
-        
+        await step_context.context.send_activity(Activity(type="typing"))
+
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated_message)
         return await step_context.end_dialog()
