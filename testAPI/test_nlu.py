@@ -1,22 +1,51 @@
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
+from azure.appconfiguration import AzureAppConfigurationClient
 from dotenv import load_dotenv
 import os
 
 # Load environment variables from a specific path
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bot', '.env')
 load_dotenv(dotenv_path=env_path)
+        
+connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
+if not connection_string:
+    raise ValueError("Azure App Configuration connection string is not set.")
 
-KEY = os.getenv("TEXT_ANALYTICS_KEY")
-ENDPOINT = os.getenv("TEXT_ANALYTICS_ENDPOINT")
+# Connect to Azure App Configuration
+app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+
+required_vars = [
+    "TRANSLATOR_KEY",
+    "TRANSLATOR_ENDPOINT",
+    "TRANSLATOR_LOCATION",
+    "TEXT_ANALYTICS_KEY",
+    "TEXT_ANALYTICS_ENDPOINT",
+    "AI_API_KEY",
+    "AI_ENDPOINT"
+]
+
+# Fetch each variable from Azure App Configuration
+for var_name in required_vars:
+    try:
+        setting = app_config_client.get_configuration_setting(key=var_name)
+        value = setting.value
+        os.environ[var_name] = value  # Set the variable as an environment variable
+        print(f"Loaded {var_name} from Azure App Configuration.")
+    except Exception as e:
+        raise ValueError(f"Failed to fetch {var_name} from Azure App Configuration: {e}")
 
 def authenticate_client():
     """Authenticate the client using credentials and endpoint."""
+    KEY = os.getenv("TEXT_ANALYTICS_KEY")
+    ENDPOINT = os.getenv("TEXT_ANALYTICS_ENDPOINT")
+    if not KEY or not ENDPOINT:
+        raise ValueError("Environment variables for TEXT_ANALYTICS_KEY and TEXT_ANALYTICS_ENDPOINT must be set.")
     return TextAnalyticsClient(endpoint=ENDPOINT, credential=AzureKeyCredential(KEY))
 
 def sentiment_analysis_example(client):
-    """Analyze sentiment for a given text."""
-    input_text = "Eu tehno uma casa muita mal."
+    """Analyse sentiment for a given text."""
+    input_text = "No that is too expensive."
     response = client.analyze_sentiment(documents=[input_text])[0]
 
     print(f"Document sentiment: {response.sentiment}\n")

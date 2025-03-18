@@ -36,11 +36,8 @@ class BaseDialog(ComponentDialog):
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints from Azure App Configuration."""
         
-        # Load environment variables from .env if present
-        if os.path.exists('bot/.env'):
-            load_dotenv()  # Load local .env if it exists
-        else:
-            self.logger.info("No .env file found, using environment variables")
+        # Load environment variables from .env file
+        load_dotenv()
         
         connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
         if not connection_string:
@@ -64,17 +61,17 @@ class BaseDialog(ComponentDialog):
             try:
                 setting = app_config_client.get_configuration_setting(key=var_name)
                 value = setting.value
-                setattr(self, var_name, value)  # Set the variable as an attribute of the object
-                self.logger.info(f"Loaded {var_name} from Azure App Configuration.")
+                os.environ[var_name] = value  # Set the variable as an environment variable
+                print(f"Loaded {var_name} from Azure App Configuration.")
             except Exception as e:
                 raise ValueError(f"Failed to fetch {var_name} from Azure App Configuration: {e}")
 
     def _initialise_clients(self):
         """Initialise Azure service clients for text analytics."""
-        try:
+        try:            
             self.text_analytics_client = TextAnalyticsClient(
-                endpoint=self.TEXT_ANALYTICS_ENDPOINT,
-                credential=AzureKeyCredential(self.TEXT_ANALYTICS_KEY)
+                endpoint=os.getenv("TEXT_ANALYTICS_ENDPOINT"),
+                credential=AzureKeyCredential(os.getenv("TEXT_ANALYTICS_KEY"))
             )
 
             self.logger.info("Successfully initialised Azure clients")
@@ -85,8 +82,8 @@ class BaseDialog(ComponentDialog):
         """Initialise the OpenAI instance."""
         try:
             self.client = OpenAI(
-                api_key=self.AI_API_KEY,
-                base_url=self.AI_ENDPOINT
+                api_key=os.getenv("AI_API_KEY"),
+                base_url=os.getenv("AI_ENDPOINT")
             )
             self.logger.info("OpenAI initialised successfully")
 
@@ -124,16 +121,31 @@ class BaseDialog(ComponentDialog):
                         languages through interactive role-playing in {proficiency_level} level {language}.
                         You will only reply in {language}. Do not use any emojis or special characters. if using numbers,
                         write them out in words. For example, write "five" instead of "5". """      
+                        
+        if proficiency_level == "beginner":
+            default_system_message += "in this role-play the user is a beginner and you are a native speaker so do not use complex words or phrases."
 
-        response = self.client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": default_system_message + " " + system_message},
-                {"role": "user", "content": user_input}
-            ]
-        )
-
-        return response.choices[0].message.content
+        combined_system_message = default_system_message + " " + system_message
+        if not user_input:
+            user_input = "fallback"
+        try:
+            response = self.client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": combined_system_message
+                    },
+                    {
+                        "role": "user",
+                        "content": str(user_input)
+                    }
+                ]
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            self.logger.error(f"OpenAI API error: {str(e)}")
+            return "I apologise, but I encountered an error. Please try again."
 
     def translate_text(self, text: str, target_language: Optional[str] = None) -> str:
         """Translate text using Azure Translator service."""
@@ -141,10 +153,10 @@ class BaseDialog(ComponentDialog):
         target_language = UserState.get_language(self.user_state)
         if not text:
             raise ValueError("No text provided for translation")
-        url = f"{self.TRANSLATOR_ENDPOINT.rstrip('/')}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
+        url = f"{os.getenv('TRANSLATOR_ENDPOINT')}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
         headers = {
-            'Ocp-Apim-Subscription-Key': self.TRANSLATOR_KEY,
-            'Ocp-Apim-Subscription-Region': self.TRANSLATOR_LOCATION,
+            'Ocp-Apim-Subscription-Key': os.getenv("TRANSLATOR_KEY"),
+            'Ocp-Apim-Subscription-Region': os.getenv("TRANSLATOR_LOCATION"),
             'Content-type': 'application/json',
             'X-ClientTraceId': str(uuid.uuid4())
         }
@@ -165,12 +177,7 @@ class BaseDialog(ComponentDialog):
 
         response = self.text_analytics_client.analyze_sentiment(documents=[{"id": "1", "text": text}])[0]
 
-        return {
-            "sentiment": response.sentiment,
-            "positive": response.confidence_scores.positive,
-            "negative": response.confidence_scores.negative,
-            "neutral": response.confidence_scores.neutral
-        }
+        return response.sentiment
 
     def detect_language(self, text: str) -> str:
         """Detect the language of the given text using Azure Text Analytics."""
@@ -179,15 +186,15 @@ class BaseDialog(ComponentDialog):
         response = self.text_analytics_client.detect_language(documents=[{"id": "1", "text": text}])[0]
         return response.primary_language.iso6391_name
 
-    def extract_entities(self, text: str) -> Dict[str, str]:
+    def extract_entities(self, text: str):
         """Extract named entities from the given text using Azure Text Analytics."""
         if not text.strip():
             return {}
 
-        response = self.text_analytics_client.recognize_entities(documents=[{"id": "1", "text": text}])[0]
-        entities = {entity.text: entity.category for entity in response.entities}
-
-        return entities if entities else {}
+        response = self.text_analytics_client.recognize_entities(documents=[text])[0]
+        if not response.entities:
+            return {}
+        return response
 
     async def run(self, turn_context: TurnContext, accessor):
         """

@@ -61,16 +61,11 @@ class MainDialog(BaseDialog):
     
     async def verify_language(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Stores the selected language and moves to proficiency selection."""
-        if step_context.result:
+        if step_context.result and step_context.result.strip().lower() in ["en", "es", "fr", "pt"]:
             language = step_context.result.strip().lower()
             self.user_state.set_language(language)
             await step_context.context.send_activity(f"Selected language: {language.capitalize()}.")
-
-            user_state_accessor = step_context.context.turn_state.get("user_state_property")
-            if user_state_accessor:
-                await user_state_accessor.save_changes(step_context.context)
-            if self.user_state.get_language() != "English":
-                return await step_context.next(None)
+            return await step_context.next(None)
         return await step_context.replace_dialog(self.id)  # Restart dialog if input is invalid
 
     async def proficiency_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -85,7 +80,7 @@ class MainDialog(BaseDialog):
     
     async def verify_proficiency(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Stores the user's proficiency level and proceeds to scenario selection."""
-        if step_context.result:
+        if step_context.result and step_context.result.strip().lower() in ["beginner", "intermediate", "advanced"]:
             proficiency_level = step_context.result.strip().lower()
             self.user_state.set_proficiency_level(proficiency_level)
             await step_context.context.send_activity(f"Proficiency level set to {proficiency_level}.")

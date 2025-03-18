@@ -20,11 +20,19 @@ class TaxiScenarioDialog(BaseDialog):
         self.user_state = user_state
         self.language = self.user_state.get_language()
         
+        # conversation markers
+        self.greeted = False
+        self.change_destination = False
+        self.location_confirmed = False
+        
         # Add conversation state
         self.destination = None
         self.pickup_location = None
         self.price = None
         self.score = 0
+        
+        # fallback
+        self.fallback = self.translate_text("I didn't catch that. Could you repeat it?", self.language)
 
         # Initialise dialogues
         self.add_dialog(TextPrompt(TextPrompt.__name__))
@@ -32,10 +40,11 @@ class TaxiScenarioDialog(BaseDialog):
             f"{dialog_id}.waterfall",
             [
                 self.intro_step,
-                self.get_pickup_step,
-                self.confirm_pickup_step,
+                self.greet_step,
                 self.get_destination_step,
                 self.confirm_destination_step,
+                self.verify_destination,
+                self.give_price_step,
                 self.price_negotiation_step,
                 self.confirm_price_step,
                 self.eta_step,
@@ -48,113 +57,167 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Initialise dialog state and display welcome message."""
-        response = "Welcome to the Taxi Scenario! Let's practise ordering a taxi."
-        translated_response = self.translate_text(response, self.language)
+        if not self.greeted:
+            response = "Welcome to the Taxi Scenario! Imagine you just got into a taxi and need to communicate with the driver."
+            translated_response = self.translate_text(response, self.language)
 
-        await step_context.context.send_activity(response)
-        await step_context.context.send_activity(translated_response)
+            await step_context.context.send_activity(response)
+            await step_context.context.send_activity(translated_response)
         return await step_context.next(None)
     
-    async def get_pickup_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Ask for pickup location"""
+    async def greet_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Greet the user and ask for their pickup location."""
+        if not self.greeted:
+            await step_context.context.send_activity(Activity(type="typing"))
 
-        # Show typing effect
-        await step_context.context.send_activity(Activity(type="typing"))
-
-
-        prompt = await self.chatbot_respond(
-            step_context.context, "pickup", "As a taxi dispatcher, ask for the pickup location in a friendly way."
-        )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
-
-    async def confirm_pickup_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Confirm pickup location"""
-        self.pickup_location = step_context.result
-
-        await step_context.context.send_activity(Activity(type="typing"))
-
-
-        prompt = await self.chatbot_respond(
-            step_context.context,
-            f"confirm pickup at {self.pickup_location}", 
-            "Confirm the pickup location and ask for the destination."
-        )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
+            prompt = await self.chatbot_respond(
+                step_context.context,
+                "Greet",
+                "You are the taxi driver. Greet the passenger with nothing but a simple hello and ask how are they."
+            )
+            self.greeted = True
+            return await step_context.prompt(
+                TextPrompt.__name__,
+                PromptOptions(prompt=MessageFactory.text(prompt))
+            )
+        return await step_context.next(None)
 
     async def get_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Process destination and ask for confirmation"""
-        self.destination = step_context.result
-
         await step_context.context.send_activity(Activity(type="typing"))
+        if not self.change_destination:
+            response = step_context.result
 
-
-        prompt = await self.chatbot_respond(
-            step_context.context,
-            f"going to {self.destination}", 
-            "Confirm the destination and mention an estimated price range."
-        )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
-        )
-
-    async def confirm_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Handle destination confirmation"""
-        response = step_context.result.lower()
-
-        await step_context.context.send_activity(Activity(type="typing"))
-
-
-        if "yes" in response or "okay" in response:
             prompt = await self.chatbot_respond(
                 step_context.context,
-                "price negotiation",
-                "Suggest a price of roughly 20-30 euro for the journey and ask if it's acceptable."
+                response, 
+                """only ask your taxi passenger for their destination. You can reply if asked how are you but that is it."""
+            )
+            return await step_context.prompt(
+                TextPrompt.__name__,
+                PromptOptions(prompt=MessageFactory.text(prompt))
+            )
+        
+        prompt = await self.chatbot_respond(
+                step_context.context,
+                "change", 
+                "The user has changed their mind ask your taxi passenger again for their destination."
+            )
+        return await step_context.prompt(
+                TextPrompt.__name__,
+                PromptOptions(prompt=MessageFactory.text(prompt))
+            )
+        
+    async def confirm_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Handle destination confirmation"""
+        response = step_context.result
+        
+        # Extract entities from response
+        ai_intent = await self.chatbot_respond(
+            step_context.context,
+            response,
+            """Did the user answer 'what location they want to go to'? if they answered with a 
+            valid location reply the location otherwise reply 'invalid'."""
+        )
+        if ai_intent != "invalid":
+            self.destination = ai_intent
+        else:
+            await step_context.context.send_activity(self.fallback)
+            return await step_context.replace_dialog(self.id)
+
+        await step_context.context.send_activity(Activity(type="typing"))
+        
+        if self.destination:
+            prompt = await self.chatbot_respond(
+                step_context.context,
+                response,
+                """Ask the user to confirm the destination nothing else.
+                As this is just a simulation don't ask for specific names of locations."""
+            )
+            return await step_context.prompt(
+                TextPrompt.__name__,
+                PromptOptions(prompt=MessageFactory.text(prompt))
             )
         else:
             prompt = await self.chatbot_respond(
                 step_context.context,
-                "request new destination",
-                "Politely ask for a new destination."
+                response,
+                "say something like 'I didn't catch the destination. Could you repeat it?'."
             )
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text(prompt))
+            return await step_context.replace_dialog(self.id)
+        
+    async def verify_destination(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Verifies if user confirmed location."""
+        response = step_context.result
+        
+        ai_intent = await self.chatbot_respond(
+            step_context.context,
+            response,
+            """Does the user confirm the destination, or do they want to change it?
+            if they want to change it reply 'change' otherwise reply 'confirm'."""
         )
 
-    async def price_negotiation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Handle price negotiation"""
-        response = step_context.result.lower()
-        self.price = "25"  # Example price
+        if self.analyse_sentiment(response) == "negative" or ai_intent == "change":
+            self.change_destination = True
+            return await step_context.replace_dialog(self.id)
 
+        # If sentiment is not negative, continue to the next step
+        self.location_confirmed = True
+        return await step_context.next(None)
+    
+    async def give_price_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Provide the user with a price estimate."""
         await step_context.context.send_activity(Activity(type="typing"))
-
 
         prompt = await self.chatbot_respond(
             step_context.context,
-            f"negotiate price {self.price}",
-            "Respond to the price negotiation and ask for final confirmation."
+            "price?",
+            "Provide the user with a price estimate for the journey. suggest 20 euro. Ask them if it's acceptable."
         )
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(prompt=MessageFactory.text(prompt))
         )
+            
+    async def price_negotiation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Handle price negotiation efficiently."""
+        response = step_context.result
+        
+        ai_intent = await self.chatbot_respond(
+            step_context.context,
+            response,
+            "if the user seems happy with the price reply 'accept' otherwise  reply 'negotiate'."
+        )
+        
+        if ai_intent == "accept":
+            return await step_context.next(None)
+
+        # negotiate
+        prompt = await self.chatbot_respond(
+            step_context.context,
+            response,
+            """ask for a price if none is offered as a counter and ifonw is and it is between 15 and 20 accept it
+            otherwise ask for a price between 15 and 20""",
+        )
+
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text(prompt))
+        )
+
+
+# continue from here onwards
 
     async def confirm_price_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Final price confirmation"""
+        response = step_context.result
 
         await step_context.context.send_activity(Activity(type="typing"))
 
 
         prompt = await self.chatbot_respond(
             step_context.context,
-            "confirm booking",
+            response,
             "Confirm the booking and provide an estimated arrival time for the taxi."
         )
         return await step_context.prompt(
@@ -207,7 +270,7 @@ class TaxiScenarioDialog(BaseDialog):
             score += 10
         if self.price:
             score += 10
-        if "thank" in final_response.lower():
+        if "thank" in final_response:
             score += 10
         return min(score, 100)
 

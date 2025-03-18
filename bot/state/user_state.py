@@ -3,7 +3,7 @@ class UserState:
     A class to manage user state in-memory using a shared dictionary.
     """
 
-    def __init__(self, user_id: str, language: str = "English", proficiency_level: str = "Beginner"):
+    def __init__(self, user_id: str, language: str = "en", proficiency_level: str = "Beginner"):
         """
         Initialise a UserState object for a specific user.
         :param user_id: Unique identifier for the user
