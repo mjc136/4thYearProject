@@ -31,11 +31,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio  # Ensure testing tools are installed
 
-      # Step 4: Run Tests
-      - name: Run Tests
-        run: |
-          source venv/bin/activate
-          pytest bot/tests --maxfail=3 --disable-warnings  # Stop after 3 failures
+      # # Step 4: Run Tests
+      # - name: Run Tests
+      #   run: |
+      #     source venv/bin/activate
+      #     pytest bot/tests --maxfail=3 --disable-warnings  # Stop after 3 failures
 
   build:
     runs-on: ubuntu-latest

@@ -204,6 +204,10 @@ class BaseDialog(ComponentDialog):
         dialog_set = DialogSet(accessor)
         dialog_set.add(self)
         dialog_context = await dialog_set.create_context(turn_context)
+        
         results = await dialog_context.continue_dialog()
+
         if results.status == DialogTurnStatus.Empty:
-            await dialog_context.begin_dialog(self.id)
+            return await dialog_context.begin_dialog(self.id)
+        
+        return results
