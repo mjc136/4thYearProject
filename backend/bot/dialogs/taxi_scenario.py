@@ -79,7 +79,7 @@ class TaxiScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask: 'Where do you want to go?' Keep it short and simple."
+            "Ask: Where do you want to go?"
         )
         example = self.translate_text("Example: I want to go to the city centre.", self.language)
         await step_context.context.send_activity(example)
@@ -90,7 +90,8 @@ class TaxiScenarioDialog(BaseDialog):
         ai_intent = await self.chatbot_respond(
             step_context.context,
             response,
-            "Check if the user gave a place. If yes, say the place. If not, reply 'invalid'."
+            """Check if the user gave a place. If yes, say the place. If not, reply 'invalid'.
+            Just ask if they are sure about the destination. Don't ask them if yes say yes."""
         )
         if ai_intent == "invalid":
             await step_context.context.send_activity(self.fallback)

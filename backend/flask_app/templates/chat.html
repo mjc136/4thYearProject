@@ -2,62 +2,99 @@
 <html>
 <head>
   <title>LingoLizard Chat</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap JS Bundle (optional for modals etc.) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-    }
     #chatBox {
-      border: 1px solid #ccc;
-      padding: 10px;
       height: 400px;
       overflow-y: auto;
-      background: #f9f9f9;
-      margin-bottom: 10px;
+      background: #f8f9fa;
+      padding: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      margin-bottom: 1rem;
     }
-    .bot {
-      color: blue;
+    .bubble {
+      padding: 0.5rem 1rem;
+      border-radius: 15px;
+      margin: 0.5rem 0;
+      max-width: 75%;
+      display: inline-block;
     }
-    .card {
-      background: #fff;
-      border: 1px solid #888;
-      padding: 10px;
-      margin: 5px 0;
+    .user-bubble {
+      background-color: #d1e7dd;
+      text-align: right;
+      float: right;
+      clear: both;
+    }
+    .bot-bubble {
+      background-color: #e2e3e5;
+      text-align: left;
+      float: left;
+      clear: both;
     }
   </style>
-<script>
-  async function sendMessage() {
-    const input = document.getElementById("userInput").value.trim();
-    if (!input) return;
 
-    const chatBox = document.getElementById("chatBox");
-    chatBox.innerHTML += `<div><b>You:</b> ${input}</div>`;
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput").value.trim();
+      if (!input) return;
 
-    const response = await fetch("/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input })
-    });
+      const chatBox = document.getElementById("chatBox");
+      chatBox.innerHTML += `<div class="bubble user-bubble"><b>You:</b> ${input}</div>`;
 
-    const data = await response.json();
-    if (data.bot) {
-      chatBox.innerHTML += `<div><b>Bot:</b> ${data.bot}</div>`;
-    }
-
-    if (data.attachments && data.attachments.length > 0) {
-      data.attachments.forEach(att => {
-        chatBox.innerHTML += `<pre><b>[Card]</b>: ${JSON.stringify(att.content, null, 2)}</pre>`;
+      const response = await fetch("/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input })
       });
-    }
 
-    chatBox.scrollTop = chatBox.scrollHeight;
-    document.getElementById("userInput").value = "";
-  }
-</script>
+      const data = await response.json();
+      if (data.bot) {
+        chatBox.innerHTML += `<div class="bubble bot-bubble"><b>Bot:</b> ${data.bot}</div>`;
+      }
+
+      if (data.attachments && data.attachments.length > 0) {
+        data.attachments.forEach(att => {
+          chatBox.innerHTML += `<div class="card my-2 p-2"><pre>${JSON.stringify(att.content, null, 2)}</pre></div>`;
+        });
+      }
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+      document.getElementById("userInput").value = "";
+    }
+  </script>
 </head>
-<body>
-  <h1>LingoLizard Chat</h1>
-  <div id="chatBox"></div>
-  <input type="text" id="userInput" placeholder="Type your message here" />
-  <button onclick="sendMessage()">Send</button>
+
+<body class="text-bg-dark p-3">
+  <nav class="navbar navbar-expand-lg bg-body-tertiary ">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">LingoLizard</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <!-- <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="#">Home</a>
+          </li>
+        </ul>
+      </div> -->
+    </div>
+  </nav>
+  <div class="container my-4">
+    <h1 class="text-center mb-4">LingoLizard Chat</h1>
+
+    <div id="chatBox"></div>
+
+    <div class="input-group">
+      <input type="text" id="userInput" class="form-control" placeholder="Type your message here..." />
+      <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
 </body>
 </html>
