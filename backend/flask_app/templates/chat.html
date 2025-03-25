@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LingoLizard Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #chatBox {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      background: #f9f9f9;
+      margin-bottom: 10px;
+    }
+    .bot {
+      color: blue;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #888;
+      padding: 10px;
+      margin: 5px 0;
+    }
+  </style>
+<script>
+  async function sendMessage() {
+    const input = document.getElementById("userInput").value.trim();
+    if (!input) return;
+
+    const chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML += `<div><b>You:</b> ${input}</div>`;
+
+    const response = await fetch("/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: input })
+    });
+
+    const data = await response.json();
+    if (data.bot) {
+      chatBox.innerHTML += `<div><b>Bot:</b> ${data.bot}</div>`;
+    }
+
+    if (data.attachments && data.attachments.length > 0) {
+      data.attachments.forEach(att => {
+        chatBox.innerHTML += `<pre><b>[Card]</b>: ${JSON.stringify(att.content, null, 2)}</pre>`;
+      });
+    }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+    document.getElementById("userInput").value = "";
+  }
+</script>
+</head>
+<body>
+  <h1>LingoLizard Chat</h1>
+  <div id="chatBox"></div>
+  <input type="text" id="userInput" placeholder="Type your message here" />
+  <button onclick="sendMessage()">Send</button>
+</body>
+</html>

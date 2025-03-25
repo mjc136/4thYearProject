@@ -6,7 +6,7 @@ from botbuilder.dialogs import (
     TextPrompt,
     PromptOptions,
 )
-from bot.state.user_state import UserState
+from backend.bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
