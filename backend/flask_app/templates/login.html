@@ -1,0 +1,11 @@
+<form method="POST" class="container mt-5">
+    <h2>Login</h2>
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    <input name="username" placeholder="Username" required class="form-control my-2">
+    <input name="password" type="password" placeholder="Password" required class="form-control my-2">
+    <button class="btn btn-success w-100">Login</button>
+</form>  
+<div>
+    <a href="/register" class="btn btn-secondary">Register</a>
+</div>
+
