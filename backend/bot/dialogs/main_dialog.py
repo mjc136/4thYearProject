@@ -4,7 +4,6 @@ from botbuilder.dialogs import (
     WaterfallStepContext,
     DialogTurnResult,
     TextPrompt,
-    PromptOptions,
 )
 from backend.bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
@@ -15,8 +14,7 @@ from .base_dialog import BaseDialog
 class MainDialog(BaseDialog):
     """
     Main entry point for user interactions.
-    This dialog guides users through selecting a language, proficiency level,
-    and scenario for practicing language skills.
+    This dialog guides users through a scenario based on stored language and proficiency level.
     """
     def __init__(self, user_state: UserState):
         dialog_id = "MainDialog"
@@ -24,76 +22,36 @@ class MainDialog(BaseDialog):
         self.user_state = user_state
 
         # Define scenario dialogs
-        taxi_dialog = TaxiScenarioDialog(user_state)
-        hotel_dialog = HotelScenarioDialog(user_state)
-        job_interview_dialog = JobInterviewScenarioDialog(user_state)
+        self.add_dialog(TaxiScenarioDialog(user_state))
+        self.add_dialog(HotelScenarioDialog(user_state))
+        self.add_dialog(JobInterviewScenarioDialog(user_state))
+        self.add_dialog(TextPrompt(TextPrompt.__name__))  # required for WaterfallDialog
 
-        # Add all available dialogs
-        self.add_dialog(taxi_dialog)
-        self.add_dialog(hotel_dialog)
-        self.add_dialog(job_interview_dialog)
-        self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
-            self.language_step,
-            self.verify_language,
-            self.proficiency_step,
-            self.verify_proficiency,
-            self.handle_scenario_step,
+            self.handle_scenario_step
         ]))
 
         self.initial_dialog_id = f"{dialog_id}.waterfall"
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Welcomes the user to LingoLizard and initiates the conversation."""
-        await step_context.context.send_activity("Welcome to LingoLizard! Let's start improving your language skills.")
-        return await step_context.next(None)  # Proceed to next step
-
-    async def language_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Prompts the user to select a language to practice."""
-        card_actions = [
-            {"type": "imBack", "title": "Spanish", "value": "es"},
-            {"type": "imBack", "title": "French", "value": "fr"},
-            {"type": "imBack", "title": "Portuguese", "value": "pt"},
-        ]
-        prompt_message = MessageFactory.suggested_actions(card_actions, "Please select the language you would like to practise:")
-        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
-    
-    async def verify_language(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Stores the selected language and moves to proficiency selection."""
-        if step_context.result and step_context.result.strip().lower() in ["en", "es", "fr", "pt"]:
-            language = step_context.result.strip().lower()
-            self.user_state.set_language(language)
-            await step_context.context.send_activity(f"Selected language: {language.capitalize()}.")
-            return await step_context.next(None)
-        return await step_context.replace_dialog(self.id)  # Restart dialog if input is invalid
-
-    async def proficiency_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Prompts the user to select their proficiency level."""
-        card_actions = [
-            {"type": "imBack", "title": "Beginner", "value": "beginner"},
-            {"type": "imBack", "title": "Intermediate", "value": "intermediate"},
-            {"type": "imBack", "title": "Advanced", "value": "advanced"},
-        ]
-        prompt_message = MessageFactory.suggested_actions(card_actions, "What is your proficiency level?")
-        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=prompt_message))
-    
-    async def verify_proficiency(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Stores the user's proficiency level and proceeds to scenario selection."""
-        if step_context.result and step_context.result.strip().lower() in ["beginner", "intermediate", "advanced"]:
-            proficiency_level = step_context.result.strip().lower()
-            self.user_state.set_proficiency_level(proficiency_level)
-            await step_context.context.send_activity(f"Proficiency level set to {proficiency_level}.")
-            return await step_context.next(None)
-        return await step_context.replace_dialog(self.id)  # Restart dialog if input is invalid
-    
-    async def handle_scenario_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Triggers the appropriate scenario based on the selected proficiency level."""
+        """Welcome user and confirm loaded preferences."""
         language = self.user_state.get_language()
         proficiency = self.user_state.get_proficiency_level()
 
-        # Debugging log
-        await step_context.context.send_activity(f"Proceeding with language: {language}, proficiency: {proficiency}")
+        await step_context.context.send_activity(
+            f"Welcome to LingoLizard! You've selected {language.capitalize()} at {proficiency.capitalize()} level."
+        )
+        return await step_context.next(None)
+
+    async def handle_scenario_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Automatically route to the correct scenario based on DB user preferences."""
+        language = self.user_state.get_language()
+        proficiency = self.user_state.get_proficiency_level()
+
+        await step_context.context.send_activity(
+            f"Starting your scenario now... (Language: {language}, Level: {proficiency})"
+        )
 
         if proficiency == "beginner":
             return await step_context.begin_dialog("TaxiScenarioDialog")

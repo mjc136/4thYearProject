@@ -1,3 +1,6 @@
+from flask import session
+from backend.models import User
+
 class UserState:
     """
     A class to manage user state in-memory using a shared dictionary.
@@ -11,22 +14,23 @@ class UserState:
         :param proficiency_level: Default proficiency level (Beginner, Intermediate, Advanced)
         """
         self.user_id: str = user_id
-        self.language: str = language  # Default to English
-        self.proficiency_level: str = proficiency_level  # Default to Beginner
-        self.gender: str = "neutral"
+        user = User.query.get(user_id)
 
-    def set_language(self, language: str) -> None:
-        """Set the current language the user is learning."""
-        self.language = language
+        if not user:
+            raise ValueError(f"User with ID {user_id} not found")
+
+        self.language: str = user.language
+        self.proficiency_level: str = user.proficiency
+        self.gender: str = "neutral"
 
     def get_language(self) -> str:
         """Get the current language the user is learning."""
         return self.language
-    
-    def set_proficiency_level(self, level: str) -> None:
-        """Set the user's proficiency level."""
-        self.proficiency_level = level
 
     def get_proficiency_level(self) -> str:
         """Get the user's proficiency level."""
         return self.proficiency_level
+    
+    def get_gender(self) -> str:
+        """Get current user gender"""
+        return self.gender
