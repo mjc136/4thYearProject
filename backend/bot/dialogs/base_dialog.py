@@ -120,10 +120,21 @@ class BaseDialog(ComponentDialog):
         default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 
                         languages through interactive role-playing in {proficiency_level} level {language}.
                         You will only reply in {language}. Do not use any emojis or special characters. if using numbers,
-                        write them out in words. For example, write "five" instead of "5". """      
+                        write them out in words. For example, write "five" instead of "5". Only use euro currency. """      
                         
         if proficiency_level == "beginner":
             default_system_message += "in this role-play the user is a beginner and you are a native speaker so do not use complex words or phrases."
+        elif proficiency_level == "intermediate":
+            default_system_message += "in this role-play the user is an intermediate speaker and you are a native speaker so use complex words or phrases."
+        else:
+            default_system_message += "in this role-play the user is an advanced speaker and you are a native speaker so use complex words or phrases."
+
+        if language == "pt":
+            default_system_message += " Use Portuguese from Portugal not brazil."
+        elif language == "fr":
+            default_system_message += " Use French from France not Canada."
+        elif language == "es":
+            default_system_message += " Use Spanish from Spain not Latin America."
 
         combined_system_message = default_system_message + " " + system_message
         if not user_input:

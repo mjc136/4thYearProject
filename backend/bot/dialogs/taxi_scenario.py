@@ -40,6 +40,7 @@ class TaxiScenarioDialog(BaseDialog):
                 self.verify_destination,
                 self.give_price_step,
                 self.price_negotiation_step,
+                self.verify_price_step,
                 self.confirm_price_step,
                 self.eta_step,
                 self.final_confirmation_step,
@@ -73,36 +74,40 @@ class TaxiScenarioDialog(BaseDialog):
         return await step_context.next(None)
 
     async def get_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        await step_context.context.send_activity(Activity(type="typing"))
-        await step_context.context.send_activity("Step 2 of 6: Saying where you want to go")
+        if not self.location_confirmed:
+            await step_context.context.send_activity(Activity(type="typing"))
+            await step_context.context.send_activity("Step 2 of 6: Saying where you want to go")
 
-        prompt = await self.chatbot_respond(
-            step_context.context,
-            step_context.result,
-            "Ask: Where do you want to go?"
-        )
-        example = self.translate_text("Example: I want to go to the city centre.", self.language)
-        await step_context.context.send_activity(example)
-        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+            prompt = await self.chatbot_respond(
+                step_context.context,
+                step_context.result,
+                "Ask: Where do you want to go?"
+            )
+            example = self.translate_text("Example: I want to go to the city centre.", self.language)
+            await step_context.context.send_activity(example)
+            return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+        return await step_context.next(None)
 
     async def confirm_destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        response = step_context.result
-        ai_intent = await self.chatbot_respond(
-            step_context.context,
-            response,
-            """Check if the user gave a place. If yes, say the place. If not, reply 'invalid'.
-            Just ask if they are sure about the destination. Don't ask them if yes say yes."""
-        )
-        if ai_intent == "invalid":
-            await step_context.context.send_activity(self.fallback)
-            return await step_context.reprompt_dialog()
-        self.destination = ai_intent
-        prompt = await self.chatbot_respond(
-            step_context.context,
-            response,
-            f"Confirm the destination: {ai_intent}. Ask: Is that correct?"
-        )
-        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+        if not self.location_confirmed:
+            response = step_context.result
+            ai_intent = await self.chatbot_respond(
+                step_context.context,
+                response,
+                """Check if the user gave a location. If yes, say the location. If not, reply 'invalid'.
+                Just ask if they are sure about the destination. Don't ask them if yes say yes."""
+            )
+            if ai_intent == "invalid":
+                await step_context.context.send_activity(self.fallback)
+                return await step_context.reprompt_dialog()
+            self.destination = ai_intent
+            prompt = await self.chatbot_respond(
+                step_context.context,
+                response,
+                f"Confirm the destination: {ai_intent}. Ask: Is that correct?"
+            )
+            return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+        return await step_context.next(None)
 
     async def verify_destination(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         response = step_context.result
@@ -113,6 +118,7 @@ class TaxiScenarioDialog(BaseDialog):
         )
         if ai_intent == "change":
             self.change_destination = True
+            self.destination = None
             return await step_context.replace_dialog(self.id)
         self.location_confirmed = True
         return await step_context.next(None)
@@ -135,13 +141,28 @@ class TaxiScenarioDialog(BaseDialog):
             "Did the user accept the price? Reply 'accept' or 'negotiate'."
         )
         if ai_intent == "accept":
+            self.price = 20
             return await step_context.next(None)
         prompt = await self.chatbot_respond(
             step_context.context,
             response,
-            "Ask: What price would you like to pay? Accept if it's between fifteen and twenty."
+            "Ask: 'What price would you like to pay?' Note: Accept if it's between fifteen and twenty."
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+    
+    async def verify_price_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        response = step_context.result
+        ai_intent = await self.chatbot_respond(
+            step_context.context,
+            response,
+            "Did the user give a valid price? Reply with the amount or 'invalid'."
+        )
+        if ai_intent != "invalid":
+            self.price = ai_intent
+            return await step_context.next(None)
+        await step_context.context.send_activity(self.fallback)
+        return await step_context.reprompt_dialog()
+
 
     async def confirm_price_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity("Step 4 of 6: Confirming price and pickup")
@@ -180,12 +201,11 @@ class TaxiScenarioDialog(BaseDialog):
 
     def calculate_score(self, final_response: str) -> int:
         score = 70
-        if self.pickup_location and self.destination:
+        if self.destination:
             score += 10
         if self.price:
             score += 10
-        if "thank" in final_response:
-            score += 10
+
         return min(score, 100)
 
     def generate_feedback(self) -> str:
@@ -194,4 +214,4 @@ class TaxiScenarioDialog(BaseDialog):
         elif self.score >= 70:
             return "Good work! Try to use more full sentences next time."
         else:
-            return "Keep practising! Speak slowly and try short answers."
+            return "Keep practising!"

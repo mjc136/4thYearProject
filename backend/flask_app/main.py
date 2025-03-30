@@ -7,6 +7,9 @@ app = Flask(__name__)
 app.secret_key = "lingosecret"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///lingolizard.db"
 db.init_app(app)
+with app.app_context():
+    db.create_all()
+
 bcrypt = Bcrypt(app)
 
 # ────── ROUTES ──────
@@ -21,12 +24,12 @@ def register():
         username = request.form["username"]
         password = bcrypt.generate_password_hash(request.form["password"]).decode("utf-8")
         language = request.form["language"]
-        level = request.form["level"]
+        proficiency = request.form["proficiency"]
 
         if User.query.filter_by(username=username).first():
             return render_template("register.html", error="Username already exists")
 
-        user = User(username=username, password=password, language=language, level=level)
+        user = User(username=username, password=password, language=language, proficiency=proficiency)
         db.session.add(user)
         db.session.commit()
         return redirect("/login")
