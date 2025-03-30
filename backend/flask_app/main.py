@@ -2,9 +2,22 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from models import db, User
+import os
+from dotenv import load_dotenv
+from azure.appconfiguration import AzureAppConfigurationClient
 
 app = Flask(__name__)
-app.secret_key = "lingosecret"
+
+load_dotenv()
+connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
+
+if connection_string:
+    try:
+        app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+        app.secret_key = app_config_client.get_configuration_setting(key="FLASK_SECRET").value
+    except Exception as e:
+        print(f"Could not fetch from Azure App Configuration: {e}")
+
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///lingolizard.db"
 db.init_app(app)
 with app.app_context():
