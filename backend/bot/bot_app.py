@@ -43,6 +43,12 @@ async def health_check(req):
 async def messages(req):
     try:
         body = await req.json()
+        # Set default channel information if missing
+        if 'channelId' not in body:
+            body['channelId'] = 'web'
+        if 'conversation' not in body:
+            body['conversation'] = {'id': 'web'}
+            
         activity = Activity().deserialize(body)
         auth_header = req.headers.get("Authorization", "")
         user_id = req.headers.get("X-User-ID")
@@ -50,17 +56,45 @@ async def messages(req):
         if not user_id:
             return web.Response(status=401, text="Missing X-User-ID header")
 
+        bot_response = {"text": "", "attachments": []}
+
         with flask_app.app_context():
             user_state = UserState(user_id)
             dialog = MainDialog(user_state)
 
         async def turn_logic(turn_context: TurnContext):
+            from botbuilder.schema import Activity
+
+            async def capture_send_activity(msg):
+                if isinstance(msg, str):
+                    bot_response["text"] = msg
+                elif isinstance(msg, Activity):
+                    bot_response["text"] = msg.text or ""
+                    if msg.attachments:
+                        bot_response["attachments"] = [
+                            {
+                                "contentType": att.content_type,
+                                "content": att.content
+                            }
+                            for att in msg.attachments
+                        ]
+                else:
+                    bot_response["text"] = str(msg)
+
+                LOGGER.info(f"Bot said: {bot_response['text']}")
+
+            turn_context.send_activity = capture_send_activity
+
             await dialog.run(turn_context, conversation_state.create_property("DialogState"))
             await conversation_state.save_changes(turn_context)
             await user_state_property.save_changes(turn_context)
 
         await ADAPTER.process_activity(activity, auth_header, turn_logic)
-        return web.json_response({"status": "ok"})
+
+        return web.json_response({
+            "bot_reply": bot_response["text"],
+            "attachments": bot_response["attachments"]
+        })
 
     except Exception as e:
         LOGGER.error(f"Message error: {e}", exc_info=True)

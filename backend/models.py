@@ -1,8 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from common.extensions import db
 
 class User(db.Model):
+    __tablename__ = 'user'  # explicitly name the table
+    __table_args__ = {'extend_existing': True}  # allow redefinition if needed
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)

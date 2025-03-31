@@ -29,13 +29,18 @@ class MainDialog(BaseDialog):
 
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
-            self.handle_scenario_step
+            self.handle_scenario_step,
+            self.continue_step
         ]))
 
         self.initial_dialog_id = f"{dialog_id}.waterfall"
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Welcome user and confirm loaded preferences."""
+        # Check if we're in an active dialog
+        if step_context.options and step_context.options.get("continue_conversation"):
+            return await step_context.next(None)
+            
         language = self.user_state.get_language()
         proficiency = self.user_state.get_proficiency_level()
 
@@ -46,6 +51,10 @@ class MainDialog(BaseDialog):
 
     async def handle_scenario_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Automatically route to the correct scenario based on DB user preferences."""
+        # If we're continuing a conversation, skip to continue step
+        if step_context.options and step_context.options.get("continue_conversation"):
+            return await step_context.next(None)
+
         language = self.user_state.get_language()
         proficiency = self.user_state.get_proficiency_level()
 
@@ -53,9 +62,39 @@ class MainDialog(BaseDialog):
             f"Starting your scenario now... (Language: {language}, Level: {proficiency})"
         )
 
+        dialog_id = None
         if proficiency == "beginner":
-            return await step_context.begin_dialog("TaxiScenarioDialog")
+            dialog_id = "TaxiScenarioDialog"
         elif proficiency == "intermediate":
-            return await step_context.begin_dialog("HotelScenarioDialog")
+            dialog_id = "HotelScenarioDialog"
         else:
-            return await step_context.begin_dialog("JobInterviewScenarioDialog")
+            dialog_id = "JobInterviewScenarioDialog"
+
+        # Store the active dialog ID
+        self.user_state.set_active_dialog(dialog_id)
+        return await step_context.begin_dialog(dialog_id)
+
+    async def continue_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Handle ongoing conversation within the active scenario."""
+        active_dialog = self.user_state.get_active_dialog()
+        if active_dialog:
+            # Replace dialog with the active scenario to continue conversation
+            return await step_context.replace_dialog(active_dialog)
+        
+        # If no active dialog, restart from beginning
+        return await step_context.replace_dialog(self.id)
+
+    async def run(self, turn_context, dialog_state):
+        """Run the dialog."""
+        # Check if we have an ongoing conversation
+        active_dialog = self.user_state.get_active_dialog()
+        dialog_set = self.create_child_dialog_set(dialog_state)
+        
+        dialog_context = await dialog_set.create_context(turn_context)
+        results = await dialog_context.continue_dialog()
+        
+        if results.status == DialogTurnStatus.Empty:
+            options = {"continue_conversation": True} if active_dialog else {}
+            await dialog_context.begin_dialog(self.id, options)
+        
+        return True

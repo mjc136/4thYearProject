@@ -128,8 +128,14 @@
 
       const response = await fetch("/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          message,
+          channelId: "web",
+          conversation: { id: "web" }
+        })
       });
 
       const data = await response.json();
