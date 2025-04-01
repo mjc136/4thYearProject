@@ -1,11 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, session
-from werkzeug.security import check_password_hash
 from backend.models import db, User
 from flask_bcrypt import Bcrypt
+from backend.common.extensions import bcrypt
 
 auth_bp = Blueprint("auth", __name__, template_folder="templates")
-
-bcrypt = Bcrypt()
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():

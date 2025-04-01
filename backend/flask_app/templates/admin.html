@@ -1,0 +1,29 @@
+<div class="container">
+  <h2 class="mb-4">Admin Tools</h2>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">Current Language: <strong>{{ user.language }}</strong></label>
+      <select class="form-select" name="language">
+        <option value="english">English</option>
+        <option value="spanish">Spanish</option>
+        <option value="french">French</option>
+        <option value="portuguese">Portuguese</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Current Proficiency: <strong>{{ user.proficiency }}</strong></label>
+      <select class="form-select" name="proficiency">
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+    </div>
+
+    <button class="btn btn-success">Update</button>
+  </form>
+
+  <a href="/chat" class="btn btn-outline-light mt-3">Back to Chat</a>
+</div>
+

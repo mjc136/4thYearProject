@@ -1,4 +1,5 @@
-from common.extensions import db
+from backend.common.extensions import db
+
 
 class User(db.Model):
     __tablename__ = 'user'  # explicitly name the table
@@ -10,3 +11,7 @@ class User(db.Model):
     language = db.Column(db.String(10), nullable=False)
     proficiency = db.Column(db.String(20), nullable=False)
     xp = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+    streak = db.Column(db.Integer, default=0)
+    last_login = db.Column(db.DateTime, nullable=True)
+    admin = db.Column(db.Boolean, default=False)

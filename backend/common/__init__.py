@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from dotenv import load_dotenv
-from common.extensions import db, bcrypt
+from backend.common.extensions import db, bcrypt
 
 # Load .env variables
 load_dotenv()
