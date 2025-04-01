@@ -1,6 +1,6 @@
 from flask import session
 from backend.models import User
-from common import app  # Import the Flask app to use app context
+from common import app  # Ensure this points to your actual Flask app (backend.flask_app.flask_app)
 
 class UserState:
     """
@@ -15,7 +15,11 @@ class UserState:
 
         # Ensure we're inside Flask app context
         with app.app_context():
-            user = User.query.get(user_id)
+            print(f"[DEBUG] Looking for user ID {user_id}")
+            try:
+                user = User.query.get(int(user_id))  # Ensure ID is int
+            except Exception as e:
+                raise ValueError(f"[ERROR] Invalid user ID '{user_id}': {e}")
 
             if not user:
                 raise ValueError(f"User with ID {user_id} not found")

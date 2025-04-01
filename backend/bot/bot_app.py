@@ -48,19 +48,19 @@ async def messages(req):
         if not user_id:
             return web.Response(status=401, text="Missing X-User-ID header")
 
-        # # Ensure required activity properties
-        # if 'type' not in body:
-        #     body['type'] = 'message'
-        # if 'channelId' not in body:
-        #     body['channelId'] = 'web'
-        # if 'from' not in body:
-        #     body['from'] = {'id': user_id}
-        # if 'recipient' not in body:
-        #     body['recipient'] = {'id': 'bot'}
-        # if 'conversation' not in body:
-        #     body['conversation'] = {'id': f'web-{user_id}'}
-        # if 'serviceUrl' not in body:
-        #     body['serviceUrl'] = 'http://localhost'
+        # Ensure required activity properties
+        if 'type' not in body:
+            body['type'] = 'message'
+        if 'channelId' not in body:
+            body['channelId'] = 'web'
+        if 'from' not in body:
+            body['from'] = {'id': user_id}
+        if 'recipient' not in body:
+            body['recipient'] = {'id': 'bot'}
+        if 'conversation' not in body:
+            body['conversation'] = {'id': f'web-{user_id}'}
+        if 'serviceUrl' not in body:
+            body['serviceUrl'] = 'http://localhost'
 
         activity = Activity().deserialize(body)
         auth_header = req.headers.get("Authorization", "")
@@ -69,6 +69,7 @@ async def messages(req):
 
         with flask_app.app_context():
             user_state = UserState(user_id)
+            user_state.set_active_dialog(None)
             dialog = MainDialog(user_state)
 
         async def turn_logic(turn_context: TurnContext):

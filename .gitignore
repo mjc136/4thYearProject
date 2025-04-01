@@ -51,3 +51,4 @@ venv.bak/
 
 /results
 /trained_model
+/migrations

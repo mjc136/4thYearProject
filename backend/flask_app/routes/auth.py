@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, session
 from backend.models import db, User
-from flask_bcrypt import Bcrypt
 from backend.common.extensions import bcrypt
 
 auth_bp = Blueprint("auth", __name__, template_folder="templates")

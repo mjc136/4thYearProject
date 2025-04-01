@@ -160,10 +160,22 @@ class BaseDialog(ComponentDialog):
 
     def translate_text(self, text: str, target_language: Optional[str] = None) -> str:
         """Translate text using Azure Translator service."""
-        
-        target_language = UserState.get_language(self.user_state)
+        LANGUAGE_CODE_MAP = {
+            "english": "en",
+            "spanish": "es",
+            "french": "fr",
+            "portuguese": "pt"
+        }
+
+        lang_name = UserState.get_language(self.user_state).lower()
+        target_language = LANGUAGE_CODE_MAP.get(lang_name)
+
+        if not target_language:
+            raise ValueError(f"Unsupported language for translation: {lang_name}")
+
         if not text:
             raise ValueError("No text provided for translation")
+
         url = f"{os.getenv('TRANSLATOR_ENDPOINT')}/translate?{urlencode({'api-version': '3.0', 'to': target_language})}"
         headers = {
             'Ocp-Apim-Subscription-Key': os.getenv("TRANSLATOR_KEY"),
@@ -171,6 +183,7 @@ class BaseDialog(ComponentDialog):
             'Content-type': 'application/json',
             'X-ClientTraceId': str(uuid.uuid4())
         }
+
         try:
             response = requests.post(url, headers=headers, json=[{'text': text}])
             response.raise_for_status()
@@ -180,6 +193,7 @@ class BaseDialog(ComponentDialog):
             return translations[0]['translations'][0]['text']
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Translation request failed: {str(e)}")
+
         
     def analyse_sentiment(self, text: str) -> Dict[str, float]:
         """Analyse sentiment of the given text using Azure Text Analytics."""

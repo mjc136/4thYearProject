@@ -27,11 +27,18 @@ def send_message():
     user_id = session["user_id"]
     message = request.json.get("message")
 
-    if not message:
+    # Special trigger to auto-start conversation (sends blank to bot)
+    if message == "__start__":
+        message = ""
+
+    if message is None:
         return jsonify({"error": "Missing message"}), 400
 
     message = message.strip()
-    if len(message) > 500:
+    if len(message) == 0:
+        # Still allow empty message to trigger the dialog
+        pass
+    elif len(message) > 500:
         return jsonify({"error": "Message too long"}), 400
 
     try:
@@ -57,3 +64,4 @@ def send_message():
     except requests.RequestException as e:
         print("[ERROR] Failed to contact bot:", e)
         return jsonify({"error": "Bot connection failed", "details": str(e)}), 502
+

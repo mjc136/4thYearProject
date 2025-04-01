@@ -14,7 +14,8 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 # Base configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///lingolizard.db")
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, '..', 'lingolizard.db')}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -35,6 +36,9 @@ if connection_string:
 # Initialise extensions with app
 db.init_app(app)
 bcrypt.init_app(app)
+
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
 
 # Auto-create tables if they don’t exist
 with app.app_context():

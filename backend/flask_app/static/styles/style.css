@@ -1,0 +1,54 @@
+body {
+    background-color: #1c1f23;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.container {
+    max-width: 700px;
+    margin-top: 40px;
+}
+
+#chatBox {
+    height: 400px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.bubble {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    margin: 0.5rem 0;
+    max-width: 75%;
+    display: inline-block;
+    word-wrap: break-word;
+}
+
+.user-bubble {
+    background-color: #0d6efd;
+    color: white;
+    text-align: right;
+    float: right;
+    clear: both;
+}
+
+.bot-bubble {
+    background-color: #198754;
+    color: white;
+    text-align: left;
+    float: left;
+    clear: both;
+}
+
+.card-box {
+    clear: both;
+    margin-top: 10px;
+}
+
+.input-group {
+    box-shadow: 0 0 10px rgba(0,0,0,0.15);
+}
