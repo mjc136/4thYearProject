@@ -126,48 +126,54 @@
       typing.style.display = "block";
       startTypingDots();
 
-      const response = await fetch("/send", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ 
-          message,
-          channelId: "web",
-          conversation: { id: "web" }
-        })
-      });
-
-      const data = await response.json();
-
-      // Enable input again
-      stopTypingDots();
-      typing.style.display = "none";
-      inputBox.disabled = false;
-      sendButton.disabled = false;
-      inputBox.focus();
-
-      if (data.bot) {
-        typeBotMessage(data.bot, chatBox);
-      }
-
-      if (data.attachments && data.attachments.length > 0) {
-        data.attachments.forEach(att => {
-          const card = att.content;
-          chatBox.innerHTML += `
-            <div class="card card-box my-2">
-              <div class="card-body">
-                <h5 class="card-title">${card.title || "[Card]"}</h5>
-                <p class="card-text">${card.text || card.subtitle || ""}</p>
-                ${card.buttons?.map(btn => `
-                  <button class="btn btn-sm btn-outline-light me-2" onclick="sendQuickReply('${btn.value}')">${btn.title}</button>
-                `).join("") || ""}
-              </div>
-            </div>`;
+      try {
+        const response = await fetch("/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
         });
-      }
 
-      chatBox.scrollTop = chatBox.scrollHeight;
+        const data = await response.json();
+
+        stopTypingDots();
+        typing.style.display = "none";
+        inputBox.disabled = false;
+        sendButton.disabled = false;
+        inputBox.focus();
+
+        if (data.reply) {
+          typeBotMessage(data.reply, chatBox);
+        } else if (data.error) {
+          typeBotMessage(`⚠️ Error: ${data.error}`, chatBox);
+        } else {
+          typeBotMessage("⚠️ Unexpected response from bot.", chatBox);
+        }
+
+        if (data.attachments && data.attachments.length > 0) {
+          data.attachments.forEach(att => {
+            const card = att.content;
+            chatBox.innerHTML += `
+              <div class="card card-box my-2">
+                <div class="card-body">
+                  <h5 class="card-title">${card.title || "[Card]"}</h5>
+                  <p class="card-text">${card.text || card.subtitle || ""}</p>
+                  ${card.buttons?.map(btn => `
+                    <button class="btn btn-sm btn-outline-light me-2" onclick="sendQuickReply('${btn.value}')">${btn.title}</button>
+                  `).join("") || ""}
+                </div>
+              </div>`;
+          });
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+      } catch (err) {
+        stopTypingDots();
+        typing.style.display = "none";
+        inputBox.disabled = false;
+        sendButton.disabled = false;
+        typeBotMessage("⚠️ Could not reach the server.", chatBox);
+      }
     }
 
     function sendQuickReply(value) {
@@ -176,7 +182,6 @@
       sendMessage();
     }
 
-    // Support Enter key
     document.getElementById("userInput").addEventListener("keypress", function (e) {
       if (e.key === "Enter") sendMessage();
     });

@@ -43,16 +43,17 @@ def send_message():
             },
             json={
                 "type": "message",
-                "text": message,
-                "channelId": "web",
-                "conversation": {"id": f"web-{user_id}"},
-                "from": {"id": str(user_id)}
+                "text": message
             },
-            timeout=5
+            timeout=15
         )
         bot_response.raise_for_status()
-    except requests.RequestException as e:
-        return jsonify({"error": "Bot connection failed", "details": str(e)}), 502
+        data = bot_response.json()
+        return jsonify({
+            "reply": data.get("bot_reply", ""),
+            "attachments": data.get("attachments", [])
+        })
 
-    data = bot_response.json()
-    return jsonify({"reply": data.get("bot_reply", "")})
+    except requests.RequestException as e:
+        print("[ERROR] Failed to contact bot:", e)
+        return jsonify({"error": "Bot connection failed", "details": str(e)}), 502

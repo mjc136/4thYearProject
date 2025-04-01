@@ -1,15 +1,18 @@
-from botbuilder.core import MessageFactory
+from botbuilder.core import MessageFactory, TurnContext
 from botbuilder.dialogs import (
     WaterfallDialog,
     WaterfallStepContext,
     DialogTurnResult,
     TextPrompt,
+    DialogTurnStatus,
+    DialogSet,
 )
 from backend.bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
 from .base_dialog import BaseDialog
+
 
 class MainDialog(BaseDialog):
     """
@@ -25,7 +28,7 @@ class MainDialog(BaseDialog):
         self.add_dialog(TaxiScenarioDialog(user_state))
         self.add_dialog(HotelScenarioDialog(user_state))
         self.add_dialog(JobInterviewScenarioDialog(user_state))
-        self.add_dialog(TextPrompt(TextPrompt.__name__))  # required for WaterfallDialog
+        self.add_dialog(TextPrompt(TextPrompt.__name__))
 
         self.add_dialog(WaterfallDialog(f"{dialog_id}.waterfall", [
             self.intro_step,
@@ -37,7 +40,6 @@ class MainDialog(BaseDialog):
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Welcome user and confirm loaded preferences."""
-        # Check if we're in an active dialog
         if step_context.options and step_context.options.get("continue_conversation"):
             return await step_context.next(None)
             
@@ -51,12 +53,11 @@ class MainDialog(BaseDialog):
 
     async def handle_scenario_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Automatically route to the correct scenario based on DB user preferences."""
-        # If we're continuing a conversation, skip to continue step
         if step_context.options and step_context.options.get("continue_conversation"):
             return await step_context.next(None)
 
         language = self.user_state.get_language()
-        proficiency = self.user_state.get_proficiency_level()
+        proficiency = self.user_state.get_proficiency_level().lower()
 
         await step_context.context.send_activity(
             f"Starting your scenario now... (Language: {language}, Level: {proficiency})"
@@ -67,10 +68,13 @@ class MainDialog(BaseDialog):
             dialog_id = "TaxiScenarioDialog"
         elif proficiency == "intermediate":
             dialog_id = "HotelScenarioDialog"
-        else:
+        elif proficiency == "advanced":
             dialog_id = "JobInterviewScenarioDialog"
 
-        # Store the active dialog ID
+        if not dialog_id:
+            await step_context.context.send_activity("No matching scenario for your proficiency level.")
+            return await step_context.end_dialog()
+
         self.user_state.set_active_dialog(dialog_id)
         return await step_context.begin_dialog(dialog_id)
 
@@ -78,23 +82,19 @@ class MainDialog(BaseDialog):
         """Handle ongoing conversation within the active scenario."""
         active_dialog = self.user_state.get_active_dialog()
         if active_dialog:
-            # Replace dialog with the active scenario to continue conversation
             return await step_context.replace_dialog(active_dialog)
-        
-        # If no active dialog, restart from beginning
         return await step_context.replace_dialog(self.id)
 
-    async def run(self, turn_context, dialog_state):
-        """Run the dialog."""
-        # Check if we have an ongoing conversation
-        active_dialog = self.user_state.get_active_dialog()
-        dialog_set = self.create_child_dialog_set(dialog_state)
-        
+    async def run(self, turn_context: TurnContext, dialog_state):
+        """Run the dialog with the given turn context and state."""
+        dialog_set = DialogSet(dialog_state)
+        dialog_set.add(self)
+
         dialog_context = await dialog_set.create_context(turn_context)
         results = await dialog_context.continue_dialog()
-        
+
         if results.status == DialogTurnStatus.Empty:
-            options = {"continue_conversation": True} if active_dialog else {}
+            options = {"continue_conversation": True} if self.user_state.get_active_dialog() else {}
             await dialog_context.begin_dialog(self.id, options)
-        
+
         return True

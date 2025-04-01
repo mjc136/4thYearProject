@@ -43,18 +43,27 @@ async def health_check(req):
 async def messages(req):
     try:
         body = await req.json()
-        # Set default channel information if missing
-        if 'channelId' not in body:
-            body['channelId'] = 'web'
-        if 'conversation' not in body:
-            body['conversation'] = {'id': 'web'}
-            
-        activity = Activity().deserialize(body)
-        auth_header = req.headers.get("Authorization", "")
         user_id = req.headers.get("X-User-ID")
 
         if not user_id:
             return web.Response(status=401, text="Missing X-User-ID header")
+
+        # # Ensure required activity properties
+        # if 'type' not in body:
+        #     body['type'] = 'message'
+        # if 'channelId' not in body:
+        #     body['channelId'] = 'web'
+        # if 'from' not in body:
+        #     body['from'] = {'id': user_id}
+        # if 'recipient' not in body:
+        #     body['recipient'] = {'id': 'bot'}
+        # if 'conversation' not in body:
+        #     body['conversation'] = {'id': f'web-{user_id}'}
+        # if 'serviceUrl' not in body:
+        #     body['serviceUrl'] = 'http://localhost'
+
+        activity = Activity().deserialize(body)
+        auth_header = req.headers.get("Authorization", "")
 
         bot_response = {"text": "", "attachments": []}
 
