@@ -15,7 +15,9 @@ app = Flask(
 )
 
 # Config (same as your .env or config file)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///lingolizard.db")
+db_path = os.path.join(BASE_DIR, "lingolizard.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+print("[DEBUG] Using DB:", db_path)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 

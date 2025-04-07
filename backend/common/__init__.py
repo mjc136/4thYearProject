@@ -1,7 +1,9 @@
 import os
-from flask import Flask
+from flask import Flask, redirect
 from dotenv import load_dotenv
 from backend.common.extensions import db, bcrypt
+from backend.models import User
+
 
 # Load .env variables
 load_dotenv()
@@ -38,8 +40,47 @@ db.init_app(app)
 bcrypt.init_app(app)
 
 from flask_migrate import Migrate
+from backend.models import User
+
 migrate = Migrate(app, db)
 
-# Auto-create tables if they don’t exist
+# Auto-create tables and default users
 with app.app_context():
     db.create_all()
+
+    if not User.query.filter_by(username="admin").first():
+        admin_user = User(
+            username="admin",
+            password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
+            language="english",
+            proficiency="beginner",
+            xp=0,
+            level=1,
+            admin=True
+        )
+        db.session.add(admin_user)
+
+    if not User.query.filter_by(username="testuser").first():
+        regular_user = User(
+            username="testuser",
+            password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
+            language="spanish",
+            proficiency="beginner",
+            xp=0,
+            level=1,
+            admin=False
+        )
+        db.session.add(regular_user)
+
+    db.session.commit()
+    print("[INFO] Database ready and default users added.")
+
+    db_path = os.path.join(basedir, '..', 'lingolizard.db')
+    print("[DEBUG] DB path:", os.path.abspath(db_path))
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
+
+# Default redirect from `/` → `/login`
+@app.route("/")
+def index():
+    return redirect("/login")

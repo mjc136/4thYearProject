@@ -14,7 +14,7 @@ from botbuilder.core import (
 from botbuilder.schema import Activity
 from bot.dialogs.main_dialog import MainDialog
 from bot.state.user_state import UserState
-from common import app as flask_app
+from backend.common import app as flask_app
 
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -48,19 +48,13 @@ async def messages(req):
         if not user_id:
             return web.Response(status=401, text="Missing X-User-ID header")
 
-        # Ensure required activity properties
-        if 'type' not in body:
-            body['type'] = 'message'
-        if 'channelId' not in body:
-            body['channelId'] = 'web'
-        if 'from' not in body:
-            body['from'] = {'id': user_id}
-        if 'recipient' not in body:
-            body['recipient'] = {'id': 'bot'}
-        if 'conversation' not in body:
-            body['conversation'] = {'id': f'web-{user_id}'}
-        if 'serviceUrl' not in body:
-            body['serviceUrl'] = 'http://localhost'
+        # Set required activity fields
+        body.setdefault('type', 'message')
+        body.setdefault('channelId', 'web')
+        body.setdefault('from', {'id': user_id})
+        body.setdefault('recipient', {'id': 'bot'})
+        body.setdefault('conversation', {'id': f'web-{user_id}'})
+        body.setdefault('serviceUrl', 'http://localhost')
 
         activity = Activity().deserialize(body)
         auth_header = req.headers.get("Authorization", "")
@@ -110,11 +104,11 @@ async def messages(req):
         LOGGER.error(f"Message error: {e}", exc_info=True)
         return web.Response(status=500, text="Internal Server Error")
 
-APP = web.Application()
-APP.router.add_get("/health", health_check)
-APP.router.add_post("/api/messages", messages)
+app = web.Application()
+app.router.add_get("/health", health_check)
+app.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3978))
     LOGGER.info(f"Starting bot on port {port}")
-    web.run_app(APP, host="0.0.0.0", port=port)
+    web.run_app(app, host="0.0.0.0", port=port)
