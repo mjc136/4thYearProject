@@ -1,3 +1,8 @@
+{% extends "base.html" %}
+
+{% block title %}Profile | LingoLizard{% endblock %}
+
+{% block content %}
 <div class="container mt-5 text-white">
     <h2>{{ user.username }}</h2>
     <p><strong>Language:</strong> {{ user.language }}</p>
@@ -9,3 +14,4 @@
     <a href="/admin" class="btn btn-warning mt-2">Admin Tools</a>
     {% endif %}
 </div>
+{% endblock %}

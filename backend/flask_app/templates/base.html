@@ -10,7 +10,7 @@
 
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='styles/style.css') }}" rel="stylesheet">
-
+    
 </head>
 <body class="text-bg-dark p-3">
     <ul class="nav nav-pills nav-fill gap-2 p-1 small bg-primary rounded-5 shadow-sm">
@@ -18,9 +18,11 @@
         <li class="nav-item"><a class="nav-link rounded-5 {% if '/chat' in request.path %}active{% endif %}" href="/chat">Chat</a></li>
         <li class="nav-item"><a class="nav-link rounded-5 {% if '/profile' in request.path %}active{% endif %}" href="/profile">Profile</a></li>
     </ul>
-
+    
     <div class="container my-4">
         {% block content %}{% endblock %}
     </div>
+    <!-- Custom JS -->
+    {% block scripts %}{% endblock %}
 </body>
 </html>

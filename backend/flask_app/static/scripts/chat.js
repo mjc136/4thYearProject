@@ -95,6 +95,7 @@ async function sendMessage(msgOverride = null, auto = false) {
         chatBox.scrollTop = chatBox.scrollHeight;
 
     } catch (err) {
+        console.error("Fetch error:", err);
         stopTypingDots();
         typing.style.display = "none";
         inputBox.disabled = false;
@@ -110,7 +111,10 @@ function sendQuickReply(value) {
 }
 
 document.getElementById("userInput").addEventListener("keypress", function (e) {
-    if (e.key === "Enter") sendMessage();
+    if (e.key === "Enter"){
+        e.preventDefault();
+        sendMessage();
+    }
 });
 
 // Auto-start welcome message
