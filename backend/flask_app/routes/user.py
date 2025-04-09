@@ -17,9 +17,44 @@ def profile():
 
 @user_bp.route("/chat")
 def chat():
+    """Render chat interface with custom welcome message."""
     if "user_id" not in session:
         return redirect("/login")
-    return render_template("chat.html")
+    
+    user = User.query.get(session["user_id"])
+    if not user:
+        return redirect("/logout")  # Invalid user session
+    
+    # Map language codes to display names
+    language_display = {
+        'en': 'English',
+        'es': 'Spanish',
+        'fr': 'French',
+        'pt': 'Portuguese'
+    }
+    
+    # Get scenario intro based on proficiency level
+    scenario_intro = get_scenario_intro(user.proficiency)
+    
+    return render_template(
+        "chat.html", 
+        user=user,
+        language_display=language_display.get(user.language, user.language),
+        proficiency=user.proficiency,
+        scenario_intro=scenario_intro
+    )
+
+def get_scenario_intro(proficiency):
+    """Return appropriate scenario introduction based on proficiency level."""
+    proficiency = proficiency.lower()
+    if proficiency == "beginner":
+        return "Imagine you just entered a taxi in a Spanish-speaking country. You need to communicate with the driver to get to your destination."
+    elif proficiency == "intermediate":
+        return "Imagine you are at a hotel reception in a French-speaking country. You need to book a room and discuss accommodations with the staff."
+    elif proficiency == "advanced":
+        return "Imagine you are attending a job interview in Portuguese. You need to showcase your skills and experience to make a good impression."
+    else:
+        return "Get ready for your language practice scenario."
 
 @user_bp.route("/send", methods=["POST"])
 def send_message():

@@ -5,16 +5,55 @@
 {% block content %}
 <h1 class="text-center mb-4">LingoLizard Chat</h1>
 
-<div id="chatBox" class="chat-box"></div>
+<div id="chatBox" class="chat-box">
+  <!-- Welcome message is pre-rendered -->
+  <div class="bubble bot-bubble">
+    <b>Bot:</b> Welcome to LingoLizard! 🦎
+    <br><br>
+    You're practicing <strong>{{ language_display }}</strong> at <strong>{{ proficiency }}</strong> level.
+    <br><br>
+    <strong>Scenario:</strong> {{ scenario_intro }}
+    <br><br>
+    Type "start" when you're ready to begin!
+  </div>
+</div>
 
 <div id="typingIndicator" class="text-white fst-italic mb-2" style="display: none;">
   Bot is typing<span id="dots">.</span>
 </div>
 
 <div class="input-group">
-  <input type="text" id="userInput" class="form-control" placeholder="Type your message here...">
+  <input type="text" id="userInput" class="form-control" placeholder="Type 'start' to begin...">
   <button class="btn btn-primary" onclick="sendMessage()" id="sendButton">Send</button>
 </div>
+{% endblock %}
+
+{% block styles %}
+<style>
+  .step-indicator {
+    text-align: center;
+    background-color: rgba(75, 192, 192, 0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin: 10px auto;
+    font-weight: bold;
+    max-width: 80%;
+  }
+  
+  .example-text {
+    font-style: italic;
+    color: #ccf;
+  }
+  
+  /* Improved typing indicator */
+  #typingIndicator {
+    padding: 5px 10px;
+    margin: 5px 0;
+    font-style: italic;
+    color: #aaa;
+  }
+</style>
 {% endblock %}
 
 {% block scripts %}

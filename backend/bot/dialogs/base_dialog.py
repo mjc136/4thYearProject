@@ -32,6 +32,10 @@ class BaseDialog(ComponentDialog):
         self._initialise_clients()
         self._initialise_ai()
         self.score = 0  # Initialise the score
+        
+        # Add conversation history to maintain context
+        self.conversation_history = []
+        self.max_history_length = 6  # Keep last 6 exchanges for context
 
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints from Azure App Configuration."""
@@ -41,30 +45,68 @@ class BaseDialog(ComponentDialog):
         
         connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
         if not connection_string:
-            raise ValueError("Azure App Configuration connection string is not set.")
+            self.logger.warning("Azure App Configuration connection string not set. Using local environment variables.")
+            return
+            
+        try:
+            # Connect to Azure App Configuration
+            self.logger.info("Connecting to Azure App Configuration...")
+            
+            # Check if the required variables already exist in the environment
+            # If they do, we can skip loading from Azure App Configuration
+            required_vars = [
+                "TRANSLATOR_KEY",
+                "TRANSLATOR_ENDPOINT",
+                "TRANSLATOR_LOCATION",
+                "TEXT_ANALYTICS_KEY",
+                "TEXT_ANALYTICS_ENDPOINT",
+                "AI_API_KEY",
+                "AI_ENDPOINT"
+            ]
+            
+            missing_vars = [var for var in required_vars if not os.getenv(var)]
+            
+            # If all variables are present in environment, skip Azure App Configuration
+            if not missing_vars:
+                self.logger.info("All required variables already in environment, skipping Azure App Configuration")
+                return
+                
+            # Otherwise, load only missing variables from Azure App Configuration
+            app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
 
-        # Connect to Azure App Configuration
-        app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
-
-        required_vars = [
-            "TRANSLATOR_KEY",
-            "TRANSLATOR_ENDPOINT",
-            "TRANSLATOR_LOCATION",
-            "TEXT_ANALYTICS_KEY",
-            "TEXT_ANALYTICS_ENDPOINT",
-            "AI_API_KEY",
-            "AI_ENDPOINT"
-        ]
-
-        # Fetch each variable from Azure App Configuration
-        for var_name in required_vars:
-            try:
-                setting = app_config_client.get_configuration_setting(key=var_name)
-                value = setting.value
-                os.environ[var_name] = value  # Set the variable as an environment variable
-                print(f"Loaded {var_name} from Azure App Configuration.")
-            except Exception as e:
-                raise ValueError(f"Failed to fetch {var_name} from Azure App Configuration: {e}")
+            # Fetch each missing variable from Azure App Configuration with retry
+            for var_name in missing_vars:
+                max_retries = 3
+                retry_count = 0
+                retry_delay = 1  # Start with 1 second delay
+                
+                while retry_count < max_retries:
+                    try:
+                        setting = app_config_client.get_configuration_setting(key=var_name)
+                        value = setting.value
+                        os.environ[var_name] = value  # Set the variable as an environment variable
+                        print(f"Loaded {var_name} from Azure App Configuration.")
+                        break  # Successfully loaded, exit retry loop
+                    except Exception as e:
+                        # Check if it's a rate limit error
+                        if "429" in str(e) or "rate limit" in str(e).lower():
+                            retry_count += 1
+                            if retry_count < max_retries:
+                                self.logger.warning(f"Rate limit hit for {var_name}, retrying in {retry_delay}s (attempt {retry_count}/{max_retries})")
+                                time.sleep(retry_delay)
+                                retry_delay *= 2  # Exponential backoff
+                            else:
+                                self.logger.error(f"Failed to load {var_name} after {max_retries} attempts")
+                                # Continue with next variable instead of raising exception
+                                break
+                        else:
+                            # Not a rate limit error
+                            self.logger.error(f"Failed to fetch {var_name} from Azure App Configuration: {e}")
+                            break
+        except Exception as e:
+            self.logger.error(f"Error initializing configuration: {e}")
+            # Continue anyway - we'll use whatever environment variables are available
+            pass
 
     def _initialise_clients(self):
         """Initialise Azure service clients for text analytics."""
@@ -120,7 +162,8 @@ class BaseDialog(ComponentDialog):
         default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 
                         languages through interactive role-playing in {proficiency_level} level {language}.
                         You will only reply in {language}. Do not use any emojis or special characters. if using numbers,
-                        write them out in words. For example, write "five" instead of "5". Only use euro currency. """      
+                        write them out in words. For example, write "five" instead of "5". Only use euro currency. 
+                        do not break the fourth wall. Do not mention that you are an AI or a bot or that you are helping them practice langauges. """      
                         
         if proficiency_level == "beginner":
             default_system_message += "in this role-play the user is a beginner and you are a native speaker so do not use complex words or phrases."
@@ -137,23 +180,41 @@ class BaseDialog(ComponentDialog):
             default_system_message += " Use Spanish from Spain not Latin America."
 
         combined_system_message = default_system_message + " " + system_message
+
+        # Add user input to conversation history
+        if user_input and user_input != "Greet" and user_input != "price?" and user_input != "eta confirmation":
+            self.conversation_history.append({"role": "user", "content": str(user_input)})
+        
         if not user_input:
             user_input = "fallback"
         try:
+            # Build messages array with system message, conversation history, and current user input
+            messages = [{"role": "system", "content": combined_system_message}]
+            
+            # Add conversation history to provide context
+            for message in self.conversation_history[-self.max_history_length:]:
+                messages.append(message)
+                
+            # Only add current user message if it's not already in conversation history
+            if not self.conversation_history or self.conversation_history[-1]["role"] != "user":
+                messages.append({"role": "user", "content": str(user_input)})
+            
             response = self.client.chat.completions.create(
                 model="deepseek-chat",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": combined_system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": str(user_input)
-                    }
-                ]
+                messages=messages
             )
-            return response.choices[0].message.content
+            
+            bot_response = response.choices[0].message.content
+            
+            # Add bot response to conversation history
+            self.conversation_history.append({"role": "assistant", "content": bot_response})
+            
+            # Trim conversation history if it gets too long
+            if len(self.conversation_history) > self.max_history_length * 2:
+                self.conversation_history = self.conversation_history[-self.max_history_length * 2:]
+                
+            return bot_response
+            
         except Exception as e:
             self.logger.error(f"OpenAI API error: {str(e)}")
             return "I apologise, but I encountered an error. Please try again."
@@ -228,11 +289,28 @@ class BaseDialog(ComponentDialog):
         """
         dialog_set = DialogSet(accessor)
         dialog_set.add(self)
-        dialog_context = await dialog_set.create_context(turn_context)
         
-        results = await dialog_context.continue_dialog()
-
-        if results.status == DialogTurnStatus.Empty:
-            return await dialog_context.begin_dialog(self.id)
-        
-        return results
+        try:
+            dialog_context = await dialog_set.create_context(turn_context)
+            
+            results = await dialog_context.continue_dialog()
+            
+            # Handle case where continue_dialog returns None
+            if results is None:
+                self.logger.warning("Dialog context continue_dialog returned None")
+                # Initialize with empty result to avoid NoneType errors
+                from botbuilder.dialogs import DialogTurnResult, DialogTurnStatus
+                results = DialogTurnResult(DialogTurnStatus.Empty)
+            
+            if results.status == DialogTurnStatus.Empty:
+                return await dialog_context.begin_dialog(self.id)
+            
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Error in dialog execution: {str(e)}", exc_info=True)
+            # Send a message to the user that something went wrong
+            await turn_context.send_activity("I apologize, but something went wrong. Let's try again.")
+            # Return a default dialog result to prevent cascading errors
+            from botbuilder.dialogs import DialogTurnResult, DialogTurnStatus
+            return DialogTurnResult(DialogTurnStatus.Cancelled)

@@ -20,6 +20,8 @@ from bot.state.user_state import UserState
 from common import app as flask_app
 from azure.core.exceptions import DeserializationError
 from azure.appconfiguration import AzureAppConfigurationClient
+import time
+import threading
 
 # Configure logging
 logging.basicConfig(
@@ -40,37 +42,60 @@ def load_azure_app_config():
     if not connection_string:
         LOGGER.warning("Azure App Configuration connection string not found. Using local environment variables only.")
         return False
-        
-    try:
-        # Connect to Azure App Configuration
-        client = AzureAppConfigurationClient.from_connection_string(connection_string)
-        
-        # Define the list of configuration keys we need to load
-        config_keys = [
-            "AI_API_KEY",
-            "AI_ENDPOINT",
-            "TRANSLATOR_KEY",
-            "TRANSLATOR_ENDPOINT",
-            "TRANSLATOR_LOCATION",
-            "TEXT_ANALYTICS_KEY",
-            "TEXT_ANALYTICS_ENDPOINT",
-            "MicrosoftAppId",
-            "MicrosoftAppPassword"
-        ]
-        
-        # Load each key and set as environment variable
-        for key in config_keys:
-            try:
-                setting = client.get_configuration_setting(key=key)
-                os.environ[key] = setting.value
-                LOGGER.info(f"Loaded {key} from Azure App Configuration.")
-            except Exception as e:
-                LOGGER.warning(f"Failed to load {key} from Azure App Configuration: {str(e)}")
-                
-        return True
-    except Exception as e:
-        LOGGER.error(f"Error connecting to Azure App Configuration: {str(e)}")
+    
+    # Set up a timeout for Azure App Configuration loading
+    def fetch_config():
+        nonlocal config_loaded
+        try:
+            # Connect to Azure App Configuration
+            LOGGER.info("Connecting to Azure App Configuration...")
+            client = AzureAppConfigurationClient.from_connection_string(connection_string)
+            
+            # Define the list of configuration keys we need to load
+            config_keys = [
+                "AI_API_KEY",
+                "AI_ENDPOINT",
+                "TRANSLATOR_KEY",
+                "TRANSLATOR_ENDPOINT", 
+                "TRANSLATOR_LOCATION",
+                "TEXT_ANALYTICS_KEY",
+                "TEXT_ANALYTICS_ENDPOINT",
+                "MicrosoftAppId",
+                "MicrosoftAppPassword"
+            ]
+            
+            # Only try to load if not already in environment
+            for key in config_keys:
+                if os.getenv(key):
+                    LOGGER.info(f"Skipping {key} - already set in environment")
+                    continue
+                    
+                try:
+                    setting = client.get_configuration_setting(key=key)
+                    os.environ[key] = setting.value
+                    LOGGER.info(f"Loaded {key} from Azure App Configuration.")
+                except Exception as e:
+                    LOGGER.warning(f"Failed to load {key} from Azure App Configuration: {str(e)}")
+            
+            config_loaded = True
+        except Exception as e:
+            LOGGER.error(f"Error connecting to Azure App Configuration: {str(e)}")
+            config_loaded = False
+    
+    # Run config loading with a timeout
+    config_loaded = False
+    config_thread = threading.Thread(target=fetch_config)
+    config_thread.daemon = True
+    config_thread.start()
+    
+    # Wait up to 5 seconds for config to load
+    config_thread.join(timeout=5.0)
+    
+    if config_thread.is_alive():
+        LOGGER.warning("Azure App Configuration loading timed out after 5 seconds. Using environment variables.")
         return False
+    
+    return config_loaded
 
 # Load variables from Azure App Configuration before initializing other services
 load_azure_app_config()
@@ -119,14 +144,21 @@ class DirectResponseAdapter(BotFrameworkAdapter):
             return await super().process_activity(req_body, auth_header, logic)
         except Exception as e:
             error_message = str(e)
-            if "Authorization" in error_message and BYPASS_AUTH:
+            if ("Authorization" in error_message or "authentication" in error_message.lower()) and BYPASS_AUTH:
                 LOGGER.info("Bypassing authentication error for local development")
                 # Convert the body to an Activity
                 activity = Activity().deserialize(req_body) if isinstance(req_body, dict) else req_body
                 
-                # Create context and call the bot logic
+                # Create context and call the bot logic directly
                 context = TurnContext(self, activity)
-                return await logic(context)
+                context.responded = False  # Explicitly set this flag
+                
+                try:
+                    await logic(context)
+                    return
+                except Exception as logic_error:
+                    LOGGER.error(f"Logic error after auth bypass: {str(logic_error)}", exc_info=True)
+                    raise logic_error
             else:
                 # Re-raise for other exceptions
                 LOGGER.error(f"Error in process_activity: {error_message}")
@@ -264,13 +296,25 @@ async def messages(req):
             # Store the original send_activity method
             original_send_activity = turn_context.send_activity
             
+            # Keep track of all responses
+            all_responses = []
+            
             # Create a wrapper for send_activity to capture the response
             async def capture_send_activity(msg):
                 try:
                     if isinstance(msg, str):
+                        # Plain text message
+                        all_responses.append({"type": "message", "text": msg})
                         bot_response["text"] = msg
                     elif isinstance(msg, Activity):
-                        bot_response["text"] = msg.text or ""
+                        # Handle typing indicator
+                        if msg.type == "typing":
+                            all_responses.append({"type": "typing"})
+                        # Normal text activity
+                        elif msg.text:
+                            all_responses.append({"type": "message", "text": msg.text})
+                            bot_response["text"] = msg.text
+                        # Handle attachments if present
                         if msg.attachments:
                             bot_response["attachments"] = [
                                 {
@@ -280,9 +324,11 @@ async def messages(req):
                                 for att in msg.attachments
                             ]
                     else:
+                        # Unknown message type, convert to string
+                        all_responses.append({"type": "message", "text": str(msg)})
                         bot_response["text"] = str(msg)
 
-                    LOGGER.info(f"Bot response to {user_id}: {bot_response['text'][:100]}...")
+                    LOGGER.info(f"Bot response to {user_id}: {str(msg)[:100]}...")
                     
                     # Try to send the message (might fail with deserialization errors)
                     return await original_send_activity(msg)
@@ -299,7 +345,7 @@ async def messages(req):
                         return None
                     # We already captured the message in bot_response, so no need to raise
                     return None
-            
+
             # Replace the send_activity method with our wrapper
             turn_context.send_activity = capture_send_activity
 
@@ -309,13 +355,27 @@ async def messages(req):
                     turn_context.responded = False
                 
                 # Run the dialog
-                dialog_result = await dialog.run(turn_context, conversation_state.create_property("DialogState"))
+                try:
+                    dialog_result = await dialog.run(turn_context, conversation_state.create_property("DialogState"))
+                    # Handle case where dialog_result is None
+                    if dialog_result is None:
+                        LOGGER.warning(f"Dialog returned None result for user {user_id}")
+                        if not bot_response["text"]:
+                            bot_response["text"] = "I'm still processing. Let me think about that."
+                    else:
+                        # Mark as responded if we got a result
+                        turn_context.responded = True
+                except AttributeError as ae:
+                    LOGGER.error(f"AttributeError in dialog execution: {str(ae)}", exc_info=True)
+                    if "NoneType" in str(ae) and "status" in str(ae):
+                        # This is the specific error we're handling
+                        LOGGER.info("Handling None dialog result error")
+                        bot_response["text"] = "I'm ready to continue our conversation."
+                    else:
+                        raise ae
+                
                 await conversation_state.save_changes(turn_context)
                 await user_state_property.save_changes(turn_context)
-                
-                # Mark as responded if we got a result
-                if dialog_result:
-                    turn_context.responded = True
                 
             except DeserializationError as de:
                 # If we get HTML instead of JSON, this happens
@@ -327,6 +387,20 @@ async def messages(req):
             except Exception as e:
                 LOGGER.error(f"Dialog execution error: {str(e)}", exc_info=True)
                 bot_response["text"] = "I apologize, but I encountered an error. Let's try again."
+
+            # After dialog execution, combine all responses
+            if all_responses:
+                # Join all text messages, preserving order
+                combined_text = ""
+                for resp in all_responses:
+                    if resp["type"] == "message" and resp["text"]:
+                        if combined_text:
+                            combined_text += "\n\n"
+                        combined_text += resp["text"]
+                
+                # Only update if we have content
+                if combined_text:
+                    bot_response["text"] = combined_text
 
         try:
             await ADAPTER.process_activity(activity, auth_header, turn_logic)

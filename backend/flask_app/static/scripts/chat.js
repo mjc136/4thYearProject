@@ -17,7 +17,15 @@ function stopTypingDots() {
 function typeBotMessage(text, container) {
     const bubble = document.createElement("div");
     bubble.className = "bubble bot-bubble";
-    bubble.innerHTML = "<b>Bot:</b> ";
+    
+    // Check if this is an example message
+    if (text.startsWith("Example:") || text.startsWith("Tip:")) {
+        bubble.className += " example-bubble"; // Add a special class for examples
+        bubble.innerHTML = "<b>Bot:</b> <span class='example-text'>";
+    } else {
+        bubble.innerHTML = "<b>Bot:</b> ";
+    }
+    
     container.appendChild(bubble);
 
     let i = 0;
@@ -25,10 +33,22 @@ function typeBotMessage(text, container) {
 
     const interval = setInterval(() => {
         if (i < text.length) {
-            bubble.innerHTML += text.charAt(i);
+            if (text.startsWith("Example:") || text.startsWith("Tip:")) {
+                // For examples, we add to the span
+                const span = bubble.querySelector('.example-text');
+                span.textContent += text.charAt(i);
+            } else {
+                // Normal message
+                bubble.innerHTML += text.charAt(i);
+            }
             i++;
         } else {
             clearInterval(interval);
+            if (text.startsWith("Example:") || text.startsWith("Tip:")) {
+                // Close the span
+                const span = bubble.querySelector('.example-text');
+                span.innerHTML += "</span>";
+            }
         }
         container.scrollTop = container.scrollHeight;
     }, speed);
@@ -79,11 +99,29 @@ async function sendMessage(msgOverride = null, auto = false) {
             inputBox.focus();
 
             if (data.reply) {
-                typeBotMessage(data.reply, chatBox);
+                // Handle multiline responses by splitting on double newlines
+                const messages = data.reply.split("\n\n").filter(msg => msg.trim());
+                
+                // Display each message separately
+                for (const msg of messages) {
+                    // Check for instruction messages (Step X of Y)
+                    if (msg.startsWith("Step ") && msg.includes(" of ")) {
+                        const stepDiv = document.createElement("div");
+                        stepDiv.className = "step-indicator";
+                        stepDiv.textContent = msg;
+                        chatBox.appendChild(stepDiv);
+                    } else {
+                        // Normal bot message
+                        typeBotMessage(msg, chatBox);
+                    }
+                    // Short delay between multiple messages for better user experience
+                    if (messages.length > 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
             } else if (data.error) {
                 typeBotMessage(`⚠️ Error: ${data.error}`, chatBox);
             } else {
-                // This could be the case causing "Unexpected response from bot"
                 typeBotMessage("⚠️ The bot is taking longer than expected to respond. Please try again.", chatBox);
             }
 
@@ -143,73 +181,4 @@ document.getElementById("userInput").addEventListener("keypress", function (e) {
         e.preventDefault();
         sendMessage();
     }
-});
-
-// Returns appropriate scenario intro based on proficiency level
-function getScenarioIntro(proficiency) {
-    switch(proficiency.toLowerCase()) {
-        case 'beginner':
-            return "Imagine you just entered a taxi in a Spanish-speaking country. You need to communicate with the driver to get to your destination.";
-        case 'intermediate':
-            return "Imagine you are at a hotel reception in a French-speaking country. You need to book a room and discuss accommodations with the staff.";
-        case 'advanced':
-            return "Imagine you are attending a job interview in Portuguese. You need to showcase your skills and experience to make a good impression.";
-        default:
-            return "Get ready for your language practice scenario.";
-    }
-}
-
-// Fetch user profile to get language and proficiency
-async function fetchUserProfile() {
-    try {
-        const response = await fetch("/api/user/profile");
-        if (!response.ok) {
-            throw new Error("Could not fetch user profile");
-        }
-        return await response.json();
-    } catch (error) {
-        console.error("Error fetching profile:", error);
-        return { language: "Spanish", proficiency: "beginner" };
-    }
-}
-
-// Custom welcome message with scenario context
-window.addEventListener("load", async function() {
-    const chatBox = document.getElementById("chatBox");
-    
-    // Show initial welcome message
-    chatBox.innerHTML = `
-        <div class="bubble bot-bubble">
-            <b>Bot:</b> Welcome to LingoLizard! 🦎
-            <br><br>
-            Loading your personalized scenario...
-        </div>
-    `;
-    
-    // Try to fetch user profile info
-    let userProfile;
-    try {
-        userProfile = await fetchUserProfile();
-    } catch (error) {
-        userProfile = { language: "Spanish", proficiency: "beginner" };
-    }
-    
-    // Determine the scenario based on proficiency
-    const scenarioIntro = getScenarioIntro(userProfile.proficiency);
-    const language = userProfile.language.charAt(0).toUpperCase() + userProfile.language.slice(1);
-    
-    // Add the complete welcome message with scenario context
-    chatBox.innerHTML = `
-        <div class="bubble bot-bubble">
-            <b>Bot:</b> Welcome to LingoLizard! 🦎
-            <br><br>
-            You're practicing <strong>${language}</strong> at <strong>${userProfile.proficiency}</strong> level.
-            <br><br>
-            <strong>Scenario:</strong> ${scenarioIntro}
-            <br><br>
-            Type "start" when you're ready to begin!
-        </div>
-    `;
-    
-    // Don't automatically send "start" - let the user initiate the conversation
 });

@@ -68,13 +68,25 @@ class MainDialog(BaseDialog):
 
     async def run(self, turn_context: TurnContext, dialog_state):
         """Run the dialog with the given turn context and state."""
-        dialog_set = DialogSet(dialog_state)
-        dialog_set.add(self)
+        try:
+            dialog_set = DialogSet(dialog_state)
+            dialog_set.add(self)
 
-        dialog_context = await dialog_set.create_context(turn_context)
-        results = await dialog_context.continue_dialog()
+            dialog_context = await dialog_set.create_context(turn_context)
+            results = await dialog_context.continue_dialog()
 
-        if results.status == DialogTurnStatus.Empty:
-            await dialog_context.begin_dialog(self.id)
+            if results is None:
+                # Handle None result by treating it as Empty status
+                print("Dialog returned None - treating as empty")
+                await dialog_context.begin_dialog(self.id)
+                return True
+                
+            if results.status == DialogTurnStatus.Empty:
+                await dialog_context.begin_dialog(self.id)
 
-        return True
+            return True
+        except Exception as e:
+            print(f"Error in MainDialog.run: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False

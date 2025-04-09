@@ -50,7 +50,7 @@ class UserState:
 
     def get_new_conversation(self):
         """Get whether this is a new conversation."""
-        return self.new_conversation
+        return getattr(self, 'new_conversation', True)
         
     def set_new_conversation(self, new_conversation):
         """Set whether this is a new conversation."""

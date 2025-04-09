@@ -4,175 +4,196 @@ import sys
 import logging
 import signal
 import time
-import requests
-from flask_app.flask_app import app as flask_app
-from bot.bot_app import app as bot_app, load_azure_app_config
-from aiohttp import web
-from dotenv import load_dotenv
+import traceback
 
-# Load environment variables from .env file
-load_dotenv()
+# Force output to be unbuffered for real-time visibility
+sys.stdout = sys.stderr
 
-# Configure logging
+print("=== STARTING APPLICATION - INITIALIZATION ===")
+
+# Load environment variables first
+try:
+    from dotenv import load_dotenv
+    print("Loading .env file...")
+    load_dotenv()
+    print(".env file loaded successfully")
+except Exception as e:
+    print(f"Error loading .env: {str(e)}")
+    traceback.print_exc()
+
+# Global config cache
+APP_CONFIG_CACHE = {}
+
+def load_configuration():
+    """Load configuration from either Azure App Config or environment variables"""
+    global APP_CONFIG_CACHE
+    
+    # First attempt to load environment variables from file again to ensure they're available
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(override=True)
+    except Exception as e:
+        print(f"Warning: Could not load environment variables from .env file: {str(e)}")
+    
+    # Check if we should use Azure App Config
+    use_azure = os.getenv("USE_AZURE_APP_CONFIG", "false").lower() == "true"
+    
+    if use_azure:
+        try:
+            print("Loading configuration from Azure App Configuration...")
+            from azure.appconfiguration import AzureAppConfigurationClient
+            connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
+            
+            if not connection_string:
+                print("ERROR: AZURE_APP_CONFIG_CONNECTION_STRING environment variable not set")
+                print("Falling back to local environment variables...")
+                use_azure = False
+            else:
+                try:
+                    client = AzureAppConfigurationClient.from_connection_string(connection_string)
+                    
+                    # Fetch all settings at once to minimize API calls
+                    settings = client.list_configuration_settings()
+                    settings_count = 0
+                    for setting in settings:
+                        APP_CONFIG_CACHE[setting.key] = setting.value
+                        # Also set as environment variable for compatibility
+                        os.environ[setting.key] = setting.value
+                        settings_count += 1
+                        
+                    print(f"Successfully loaded {settings_count} settings from Azure App Configuration")
+                    
+                    if settings_count == 0:
+                        print("WARNING: No configuration settings were loaded from Azure App Configuration")
+                except Exception as azure_error:
+                    print(f"ERROR accessing Azure App Configuration: {str(azure_error)}")
+                    print("Falling back to local environment variables...")
+                    use_azure = False
+        except ImportError:
+            print("Azure App Configuration SDK not installed. Falling back to local environment variables...")
+            print("To use Azure App Config, install with: pip install azure-appconfiguration")
+            use_azure = False
+        except Exception as e:
+            print(f"ERROR loading Azure App Configuration: {str(e)}")
+            print("Falling back to local environment variables...")
+            use_azure = False
+    
+    if not use_azure:
+        print("Using local environment variables...")
+        # Ensure we have at least the basic configuration in APP_CONFIG_CACHE
+        for key, value in os.environ.items():
+            APP_CONFIG_CACHE[key] = value
+    
+    # Always check critical env vars regardless of source
+    return check_critical_env_vars()
+
+# Configure simple logging to stdout
 logging.basicConfig(
-    level=logging.getLevelName(os.getenv("LOG_LEVEL", "INFO")),
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
+logger.info("Logging initialized")
 
-# Flag to track if we're shutting down
+# Flag to track shutdown
 is_shutting_down = False
-flask_thread = None
-bot_running = False
 flask_running = False
+bot_running = False
 
-def load_config_from_azure():
-    """Load configuration from Azure App Configuration."""
-    logger.info("Loading configuration from Azure App Configuration...")
-    success = load_azure_app_config()
-    if success:
-        logger.info("Successfully loaded configuration from Azure App Configuration")
-    else:
-        logger.warning("Failed to load configuration from Azure App Configuration. Using local environment variables.")
-    
-    # Check key environment variables after loading from Azure
-    check_environment_variables()
-
-def check_environment_variables():
-    """Check for required environment variables and warn if any are missing."""
-    required_vars = [
-        "AI_API_KEY", "AI_ENDPOINT", 
-        "TRANSLATOR_KEY", "TRANSLATOR_ENDPOINT", "TRANSLATOR_LOCATION", 
-        "TEXT_ANALYTICS_KEY", "TEXT_ANALYTICS_ENDPOINT"
-    ]
+# Check for minimum required environment variables
+def check_critical_env_vars():
+    """Check for critical environment variables and set defaults if needed."""
+    # Minimum required variables with default values
+    critical_vars = {
+        "AI_API_KEY": os.getenv("AI_API_KEY", ""),  # No default for API keys
+        "AI_ENDPOINT": os.getenv("AI_ENDPOINT", "https://api.deepseek.com"),  # Example default
+        "TRANSLATOR_KEY": os.getenv("TRANSLATOR_KEY", ""),
+        "TRANSLATOR_ENDPOINT": os.getenv("TRANSLATOR_ENDPOINT", "https://api.cognitive.microsofttranslator.com"),
+        "TRANSLATOR_LOCATION": os.getenv("TRANSLATOR_LOCATION", "global"),
+        "TEXT_ANALYTICS_KEY": os.getenv("TEXT_ANALYTICS_KEY", ""),
+        "TEXT_ANALYTICS_ENDPOINT": os.getenv("TEXT_ANALYTICS_ENDPOINT", ""),
+    }
     
     missing = []
-    for var in required_vars:
-        if not os.getenv(var):
+    for var, value in critical_vars.items():
+        if not value:
             missing.append(var)
+        else:
+            # Make sure the value is set in os.environ
+            os.environ[var] = value
     
     if missing:
-        logger.warning(f"WARNING: The following environment variables are missing: {', '.join(missing)}")
-        logger.warning("This may cause errors in the application.")
+        print(f"WARNING: Missing critical environment variables: {', '.join(missing)}")
+        print("Application may not function correctly without these variables.")
     else:
-        logger.info("All required environment variables are set.")
+        print("All critical environment variables are set.")
     
-    return missing
+    return len(missing) == 0
 
 def run_flask():
     global flask_running
+    print("Setting up Flask app...")
     try:
+        # Import flask app here to avoid circular imports
+        from flask_app.flask_app import app as flask_app
         port = int(os.getenv("FLASK_PORT", "5000"))
-        logger.info(f"Starting Flask application on port {port}")
+        print(f"Starting Flask on port {port}...")
+        
+        # Start the Flask app
         flask_running = True
         flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
     except Exception as e:
         flask_running = False
-        logger.error(f"Error in Flask application: {str(e)}")
-        if not is_shutting_down:
-            os._exit(1)  # Force exit if Flask fails to start (unless we're shutting down)
-
+        print(f"Flask error: {str(e)}")
+        traceback.print_exc()
+        
 def run_bot():
     global bot_running
+    print("Setting up Bot app...")
     try:
-        port = int(os.getenv("PORT", 3978))
-        logger.info(f"Starting Bot application on port {port}")
+        # Load configuration
+        load_configuration()
         
-        # Add additional routes if needed
+        # Import bot modules here to see any errors during import
+        print("Importing bot_app...")
+        from bot.bot_app import app as bot_app
+        
+        port = int(os.getenv("PORT", "3978"))
+        print(f"Starting Bot on port {port}...")
+        
+        # Start the bot app
+        from aiohttp import web
         bot_running = True
-        web.run_app(bot_app, host="0.0.0.0", port=port, print=logger.info)
+        web.run_app(bot_app, host="0.0.0.0", port=port)
     except Exception as e:
         bot_running = False
-        logger.error(f"Error in Bot application: {str(e)}")
-        if not is_shutting_down:
-            os._exit(1)  # Force exit if bot fails to start (unless we're shutting down)
+        print(f"Bot error: {str(e)}")
+        traceback.print_exc()
 
-def check_services():
-    """Check if the services are operational after startup."""
-    time.sleep(5)  # Give services time to start
+def start_app():
+    print("Starting application with sequential components...")
     
-    services_ok = True
+    # Start Flask in a thread
+    print("Starting Flask app thread...")
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
     
-    # Check Flask app
-    try:
-        if not flask_running:
-            logger.error("Flask application failed to start")
-            services_ok = False
-        else:
-            logger.info("Flask application is running")
-    except Exception as e:
-        logger.error(f"Error checking Flask service: {str(e)}")
-        services_ok = False
+    # Wait a moment and then start bot directly
+    print("Waiting for Flask to initialize...")
+    time.sleep(2)
     
-    # Check Bot app
-    try:
-        if not bot_running:
-            logger.error("Bot application failed to start")
-            services_ok = False
-        else:
-            try:
-                response = requests.get(f"http://localhost:{os.getenv('PORT', '3978')}/health", timeout=5)
-                if response.status_code == 200:
-                    logger.info("Bot application is running and healthy")
-                    # Log the details from the health check
-                    try:
-                        health_data = response.json()
-                        logger.info(f"Health check details: {health_data}")
-                    except:
-                        pass
-                else:
-                    logger.warning(f"Bot application health check returned status {response.status_code}")
-                    services_ok = False
-            except requests.exceptions.RequestException as req_err:
-                logger.warning(f"Bot health endpoint not available: {req_err}")
-                # Don't mark services as failed - the endpoint might just not exist yet
-                logger.info("Bot application is running but health check failed")
-    except Exception as e:
-        logger.error(f"Error checking Bot service: {str(e)}")
-        services_ok = False
-    
-    return services_ok
+    # Run bot in main thread so we can see errors
+    print("Starting Bot application (main thread)...")
+    run_bot()
 
-def graceful_shutdown(sig, frame):
-    global is_shutting_down
-    logger.info("Received shutdown signal, shutting down gracefully...")
-    is_shutting_down = True
-    
-    # Give the services a moment to complete any pending requests
-    time.sleep(1)
-    
-    # Exit the process
-    sys.exit(0)
-
+# Run the app
 if __name__ == "__main__":
-    # Register signal handlers for graceful shutdown
-    signal.signal(signal.SIGINT, graceful_shutdown)
-    signal.signal(signal.SIGTERM, graceful_shutdown)
-    
     try:
-        logger.info("Starting LingoLizard application")
-        
-        # First load configuration from Azure App Configuration
-        load_config_from_azure()
-        
-        # Start the Flask application in a thread
-        flask_thread = threading.Thread(target=run_flask)
-        flask_thread.daemon = True  # Make thread exit when main thread exits
-        flask_thread.start()
-        
-        # Wait a moment to ensure Flask is starting up
-        time.sleep(2)
-        
-        # Run the service health check in a separate thread
-        health_check_thread = threading.Thread(target=check_services)
-        health_check_thread.daemon = True
-        health_check_thread.start()
-        
-        # Run the bot application in the main thread
-        run_bot()
+        print("Starting LingoLizard application...")
+        start_app()
     except Exception as e:
-        logger.critical(f"Fatal error in main process: {str(e)}")
+        print(f"FATAL ERROR: {str(e)}")
+        traceback.print_exc()
         sys.exit(1)
