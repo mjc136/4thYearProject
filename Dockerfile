@@ -1,24 +1,25 @@
-# Use the official Python image from Docker Hub
+# Use the official Python image
 FROM python:3.10
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the requirements file into the container
-COPY requirements.txt /app/
-
-# Install dependencies
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the entire project into the container
-COPY . /app/
+COPY . .
 
-# Set environment variables (ensure these are configured in Azure)
-ENV PYTHONPATH="/app/bot"
+# Set environment variables
+ENV PYTHONPATH="/app"
+ENV FLASK_APP="backend/flask_app/flask_app.py"
 ENV PORT=8000
 
-# Expose the port (Make sure this matches Azure settings)
+# Expose Flask (5000) and Bot (8000 or 3978) ports
+EXPOSE 5000
 EXPOSE 8000
+EXPOSE 3978
 
-# Run the application
-CMD ["python", "-m", "bot.app"]
+# Run both Flask and bot apps in parallel
+CMD ["sh", "-c", "python backend/flask_app/flask_app.py & python bot_app.py"]
