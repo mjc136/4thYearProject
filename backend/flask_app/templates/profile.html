@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Profile | LingoLizard{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-white">
+    <h2>{{ user.username }}</h2>
+    <p><strong>Language:</strong> {{ user.language }}</p>
+    <p><strong>proficiency:</strong> {{ user.proficiency }}</p>
+    <p><strong>XP:</strong> {{ user.xp }}</p>
+    <a href="/chat" class="btn btn-primary">Go to Chat</a>
+    <a href="/logout" class="btn btn-secondary">Logout</a>
+    {% if user.admin %}
+    <a href="/admin" class="btn btn-warning mt-2">Admin Tools</a>
+    {% endif %}
+</div>
+{% endblock %}

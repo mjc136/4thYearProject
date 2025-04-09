@@ -47,10 +47,8 @@ ENV/
 env.bak/
 venv.bak/
 
-LingoLizardDev.bot
-LingoLizardLocal.bot
-
 .vscode/
 
 /results
 /trained_model
+/migrations

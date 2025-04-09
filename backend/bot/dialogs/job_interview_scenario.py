@@ -4,7 +4,6 @@ from botbuilder.core import MessageFactory
 from botbuilder.schema import Activity
 from .base_dialog import BaseDialog
 from bot.state.user_state import UserState
-import re
 
 class JobInterviewScenarioDialog(BaseDialog):
     def __init__(self, user_state: UserState):
