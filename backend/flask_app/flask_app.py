@@ -4,6 +4,7 @@ from flask_app.routes.auth import auth_bp
 from flask_app.routes.user import user_bp
 from flask_app.routes.admin import admin_bp
 from flask_app.routes.api import api_bp
+from backend.flask_app.routes.health import health_bp
 import os
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -31,6 +32,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(health_bp)
 
 @app.route("/")
 def index():
