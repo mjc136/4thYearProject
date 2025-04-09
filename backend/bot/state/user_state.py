@@ -27,6 +27,9 @@ class UserState:
             self.language: str = user.language
             self.proficiency_level: str = user.proficiency
             self.gender: str = "neutral"
+            self.active_dialog = None
+            self.final_score = 0
+            self.new_conversation = True  # Add this line
 
     def get_language(self) -> str:
         return self.language
@@ -44,3 +47,11 @@ class UserState:
     def get_active_dialog(self) -> str:
         """Get the currently active dialog ID."""
         return getattr(self, '_active_dialog', None)
+
+    def get_new_conversation(self):
+        """Get whether this is a new conversation."""
+        return self.new_conversation
+        
+    def set_new_conversation(self, new_conversation):
+        """Set whether this is a new conversation."""
+        self.new_conversation = new_conversation
