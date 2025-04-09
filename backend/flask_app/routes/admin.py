@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, session, request
-from backend.models import User
-from backend.common.extensions import db
+from models import User
+from common.extensions import db
 
 admin_bp = Blueprint("admin", __name__, template_folder="templates")
 

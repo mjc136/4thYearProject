@@ -7,7 +7,7 @@ from botbuilder.dialogs import (
     DialogTurnStatus,
     DialogSet,
 )
-from backend.bot.state.user_state import UserState
+from bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog

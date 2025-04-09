@@ -14,7 +14,7 @@ import language_tool_python
 from azure.appconfiguration import AzureAppConfigurationClient
 from azure.core.credentials import AzureKeyCredential
 from openai import OpenAI
-from backend.bot.state.user_state import UserState
+from bot.state.user_state import UserState
 
 class BaseDialog(ComponentDialog):
     """

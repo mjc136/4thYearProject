@@ -7,7 +7,7 @@ from botbuilder.dialogs import (
     PromptOptions,
 )
 from botbuilder.schema import Activity
-from backend.bot.state.user_state import UserState
+from bot.state.user_state import UserState
 from .base_dialog import BaseDialog
 
 class TaxiScenarioDialog(BaseDialog):
