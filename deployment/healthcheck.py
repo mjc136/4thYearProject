@@ -31,7 +31,7 @@ class HealthStatus:
         # Check Bot service
         try:
             bot_port = os.environ.get("PORT", "8000")
-            with urllib.request.urlopen(f"http://localhost:{bot_port}/api/health", timeout=2) as response:
+            with urllib.request.urlopen(f"http://localhost:{bot_port}/health", timeout=2) as response:
                 self.bot_healthy = response.status == 200
         except (urllib.error.URLError, ConnectionRefusedError):
             # Bot health is optional - we consider it "OK" if the service isn't responding
