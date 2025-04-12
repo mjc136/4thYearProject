@@ -48,11 +48,11 @@ def get_scenario_intro(proficiency):
     """Return appropriate scenario introduction based on proficiency level."""
     proficiency = proficiency.lower()
     if proficiency == "beginner":
-        return "Imagine you just entered a taxi in a Spanish-speaking country. You need to communicate with the driver to get to your destination."
+        return "Imagine you just entered a taxi. You need to communicate with the driver to get to your destination."
     elif proficiency == "intermediate":
-        return "Imagine you are at a hotel reception in a French-speaking country. You need to book a room and discuss accommodations with the staff."
+        return "Imagine you are at a hotel reception. You need to book a room and discuss accommodations with the staff."
     elif proficiency == "advanced":
-        return "Imagine you are attending a job interview in Portuguese. You need to showcase your skills and experience to make a good impression."
+        return "Imagine you are attending a job interview. You need to showcase your skills and experience to make a good impression."
     else:
         return "Get ready for your language practice scenario."
 

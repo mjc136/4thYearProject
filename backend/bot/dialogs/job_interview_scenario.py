@@ -1,9 +1,10 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult, PromptOptions
 from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
-from botbuilder.schema import Activity
+from botbuilder.schema import Activity, CardAction, SuggestedActions, ActionTypes
 from .base_dialog import BaseDialog
 from bot.state.user_state import UserState
+import re
 
 class JobInterviewScenarioDialog(BaseDialog):
     def __init__(self, user_state: UserState):
@@ -18,6 +19,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         self.weaknesses = None
         self.salary_expectation = None
         self.score = 0
+        self.feedback_points = []
 
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         waterfall_dialog = WaterfallDialog(
@@ -38,33 +40,82 @@ class JobInterviewScenarioDialog(BaseDialog):
         )
         self.add_dialog(waterfall_dialog)
         self.initial_dialog_id = f"{dialog_id}.waterfall"
+        
+    async def check_formality(self, text: str, context=None) -> str:
+        prompt = """Check if the text is formal and professional for a job interview do not
+        be too harsh here just make sure grammar is good and that no slang is used.
+        Return FORMAL if it is appropriate, or provide a brief suggestion for improvement if not."""
+        response = await self.chatbot_respond(
+            context,
+            text,
+            prompt
+        )
+        return response
+
+    def create_suggested_actions(self, actions_list):
+        card_actions = []
+        for action in actions_list:
+            card_actions.append(CardAction(
+                title=action,
+                type=ActionTypes.im_back,
+                value=action
+            ))
+        return SuggestedActions(actions=card_actions)
 
     async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        message = "Welcome to the Job Interview Scenario (Advanced Level)."
-        tip = "Try to answer using professional, formal language and give specific examples."
+        message = "Welcome to the Job Interview Scenario"
+        sub_message = "This simulation will help you prepare for a customer service role interview. I'll be your interviewer, and you'll practice responding to common interview questions."
+        tip = "Tip:\n- Answer using professional, formal language\n- Provide specific examples from your experience\n- Keep your answers concise but detailed\n- Be honest and show enthusiasm"
+        
         await step_context.context.send_activity(self.translate_text(message, self.language))
+        await step_context.context.send_activity(self.translate_text(sub_message, self.language))
         await step_context.context.send_activity(self.translate_text(tip, self.language))
+        
+        # Ask if user is ready with suggested actions
+        ready_message = MessageFactory.text("Are you ready to begin the interview?")
+        ready_message.suggested_actions = self.create_suggested_actions(["Yes, I'm ready", "Tell me more about this scenario"])
+        
+        await step_context.context.send_activity(ready_message)
         return await step_context.next(None)
 
     async def initial_greeting_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(Activity(type="typing"))
+        
+        # Scenario context to help user understand the role
+        context_message = "📋 **Interview Context**: You're applying for a Customer Service Representative position at a technology company. The role involves handling customer inquiries, resolving issues, and ensuring customer satisfaction."
+        await step_context.context.send_activity(context_message)
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             "interview start",
-            "You are the interviewer. Begin formally. Ask the candidate to introduce themselves and outline their background."
+            "You are the interviewee for a customer service position. Begin formally. Ask the candidate to introduce themselves and outline their background. Keep your question concise."
         )
-        await step_context.context.send_activity(self.translate_text("Example: Good morning. Please introduce yourself and tell me about your background.", self.language))
+        
+        example = "Example: 'Good morning! I'm [Your Name], and I have [X years] of experience in customer service. My background includes...' (Feel free to create a professional persona for this practice)"
+        await step_context.context.send_activity(self.translate_text(example, self.language))
+        
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def experience_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.initial_impression = step_context.result
+        
+        # Check formality and provide feedback if needed
+        formality_check = await self.check_formality(step_context.result, step_context.context)
+        if "FORMAL" not in formality_check.upper():
+            await step_context.context.send_activity(f"💡 Tip for improvement: {formality_check}")
+            self.feedback_points.append("Work on maintaining professional tone throughout the interview")
+        
         await step_context.context.send_activity(Activity(type="typing"))
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask for specific customer service experience. Encourage the user to talk about responsibilities and achievements."
+            "Ask for specific customer service experience. Encourage the user to talk about responsibilities and achievements. Be encouraging and professional."
         )
-        await step_context.context.send_activity(self.translate_text("Tip: Use specific examples and action verbs like 'handled', 'led', or 'resolved'.", self.language))
+        
+        # More helpful guidance with structure
+        tips = "💼 **Response Tips**:\n- Mention 1-2 specific roles where you handled customer service\n- Describe key responsibilities using action verbs\n- Share a brief achievement that shows your skills\n- Keep your answer to 3-5 sentences"
+        await step_context.context.send_activity(self.translate_text(tips, self.language))
+        
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def skills_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -129,7 +180,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        self.score = self.calculate_score(step_context.result)
+        self.score = await self.calculate_score(step_context.result)
         self.user_state.update_score(self.score)
         await step_context.context.send_activity(Activity(type="typing"))
         feedback = self.generate_feedback()
@@ -144,30 +195,101 @@ class JobInterviewScenarioDialog(BaseDialog):
         await step_context.context.send_activity(translated_message)
         return await step_context.end_dialog()
 
-    def calculate_score(self, final_response: str) -> int:
+    async def calculate_score(self, final_response: str) -> int:
         score = 60
+        
+        # Check response quality based on length and content
         if self.experience:
-            score += 10
+            if len(self.experience) > 30:
+                score += 5
+            
+            # Use AI to evaluate content quality rather than specific English keywords
+            experience_quality = await self.chatbot_respond(
+                None,  # We don't have a context here, so use None
+                self.experience,
+                "Evaluate if this response mentions specific job responsibilities or achievements. Return YES if it does, NO if it doesn't."
+            )
+            if "YES" in experience_quality.upper():
+                score += 5
+            else:
+                self.feedback_points.append("Provide more detailed examples about your experience")
+        
         if self.skills:
-            score += 10
-        if self.strengths and self.weaknesses:
-            score += 10
+            if len(self.skills) > 30:
+                score += 5
+            
+            skills_quality = await self.chatbot_respond(
+                None,  # We don't have a context here, so use None
+                self.skills,
+                "Evaluate if this response mentions specific skills relevant to customer service. Return YES if it does, NO if it doesn't."
+            )
+            if "YES" in skills_quality.upper():
+                score += 5
+            else:
+                self.feedback_points.append("Elaborate more on relevant skills for the role")
+        
+        if self.strengths_weaknesses:
+            if len(self.strengths_weaknesses) > 40:
+                score += 5
+            
+            strengths_weaknesses_quality = await self.chatbot_respond(
+                None,  # We don't have a context here, so use None
+                self.strengths_weaknesses,
+                "Evaluate if this response discusses both strengths and weaknesses/areas for improvement. Return YES if it covers both, NO if it doesn't."
+            )
+            if "YES" in strengths_weaknesses_quality.upper():
+                score += 5
+            else:
+                self.feedback_points.append("Be more specific about your strengths and areas for improvement")
 
-        thank_you_phrases = ["thank", "gracias", "merci", "obrigado", "obrigada"]
-        if any(word in final_response.lower() for word in thank_you_phrases):
+        # Use language-independent detection for politeness
+        politeness_check = await self.chatbot_respond(
+            None,  # We don't have a context here, so use None
+            final_response,
+            "Does this response include expressions of gratitude or thanks in any language? Return YES or NO."
+        )
+        if "YES" in politeness_check.upper():
             score += 5
-
-        if any(keyword in final_response.lower() for keyword in ["question", "ask", "pregunta", "pergunta", "demander"]):
+        
+        # Use language-independent detection for questions
+        questions_check = await self.chatbot_respond(
+            None,  # We don't have a context here, so use None
+            final_response,
+            "Does this response include questions for the interviewer or mentions asking questions? Return YES or NO."
+        )
+        if "YES" in questions_check.upper():
             score += 5
-
+        
         return min(score, 100)
 
     def generate_feedback(self) -> str:
-        feedback = "Here's your interview feedback:\n"
+        feedback = "📊 **Interview Performance Feedback**:\n\n"
+        
         if self.score >= 90:
-            feedback += "Outstanding! You demonstrated fluent and professional communication throughout the interview."
+            feedback += "🌟 **Outstanding!** You demonstrated fluent and professional communication throughout the interview.\n\n"
         elif self.score >= 70:
-            feedback += "Strong performance. You addressed the questions well and showed clear motivation."
+            feedback += "👍 **Strong performance!** You addressed the questions well and showed clear motivation.\n\n"
         else:
-            feedback += "Keep practicing. Focus on expressing ideas more clearly and using formal language."
+            feedback += "💪 **Good start!** With more practice, you'll continue to improve your interview skills.\n\n"
+        
+        feedback += "**Strengths**:\n"
+        if self.score >= 80:
+            feedback += "- Professional communication style\n"
+        if self.score >= 75:  
+            feedback += "- Good use of specific examples\n"
+        if self.score >= 70:
+            feedback += "- Clear structure in responses\n"
+            
+        feedback += "\n**Areas to Improve**:\n"
+        if self.feedback_points:
+            for point in self.feedback_points[:3]:  # Show top 3 improvement areas
+                feedback += f"- {point}\n"
+        else:
+            feedback += "- Continue practicing concise, example-driven responses\n"
+            
+        feedback += "\n**Next Steps**:\n"
+        feedback += "- Review common interview questions for customer service roles\n"
+        feedback += "- Practice with different scenarios to build confidence\n"
+        feedback += "- Consider recording yourself to review your speaking pace and clarity"
+        
         return feedback

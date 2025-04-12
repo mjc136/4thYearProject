@@ -177,7 +177,7 @@ form .form-control, form .btn {
 form .form-control {
     background-color: #2c3e50;
     border: 1px solid #4a5568;
-    color: #f8f9fa;
+    color: #ffffff;
 }
 
 /* Make placeholder text visible */
@@ -195,11 +195,6 @@ option {
     color: #f8f9fa;
 }
 
-/* Make sure all inputs have visible text */
-input, textarea, select, .form-select {
-    color: #f8f9fa !important;
-}
-
 .form-control:disabled,
 .form-control[readonly],
 .form-select:disabled {
@@ -215,8 +210,9 @@ label, .form-label {
 
 /* Enhance visibility of focused elements */
 :focus {
-    color: #f8f9fa !important;
-}
+    color: #000 !important;
+    background-color: #fff !important;
+} 
 
 .form-select {
     background-color: #2c3e50;

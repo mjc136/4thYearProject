@@ -5,7 +5,6 @@ import json
 import os
 import urllib.request
 import urllib.error
-from threading import Thread
 import time
 
 class HealthStatus:
@@ -66,7 +65,6 @@ class HealthCheckHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"Not found")
 
-# Start health check service
 if __name__ == "__main__":
     port = 8080
     with socketserver.TCPServer(("", port), HealthCheckHandler) as httpd:

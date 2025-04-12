@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="LingoLizard - Your Language Learning Companion" />
+    <meta name="author" content="Michael Cullen" />
+    <meta name="keywords" content="language learning, chat, AI, LingoLizard" />
+
     <title>{% block title %}LingoLizard{% endblock %}</title>
 
     <!-- Bootstrap -->
@@ -10,14 +15,35 @@
 
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='styles/style.css') }}" rel="stylesheet">
-    
+    {% block styles %}{% endblock %}
 </head>
 <body class="text-bg-dark p-3">
-    {% comment %} <ul class="nav nav-pills nav-fill gap-2 p-1 small bg-primary rounded-5 shadow-sm">
-        <li class="nav-item"><a class="nav-link rounded-5 {% if request.path == '/' %}active{% endif %}" href="/">Home</a></li>
-        <li class="nav-item"><a class="nav-link rounded-5 {% if '/chat' in request.path %}active{% endif %}" href="/chat">Chat</a></li>
-        <li class="nav-item"><a class="nav-link rounded-5 {% if '/profile' in request.path %}active{% endif %}" href="/profile">Profile</a></li>
-    </ul> {% endcomment %}
+    {% if session.get("user_id") %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/profile">LingoLizard</a>
+        <div class="collapse navbar-collapse">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/profile">Profile</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/chat">Chat</a>
+            </li>
+            {% if user.admin %}
+            <li class="nav-item">
+              <a class="nav-link" href="/admin">Admin</a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link text-danger" href="/logout">Logout</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    {% endif %}
+    
     
     <div class="container my-4">
         {% block content %}{% endblock %}

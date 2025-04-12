@@ -33,7 +33,8 @@ class TaxiScenarioDialog(BaseDialog):
         You drive a yellow taxi and have been a driver for 5 years.
         You know the city well and can take passengers anywhere they need to go.
         You only accept payment in euros.
-        Always stay in character as a taxi driver throughout the conversation."""
+        Always stay in character as a taxi driver throughout the conversation.
+        Only speak in {self.language}."""
 
         self.fallback = self.translate_text("I didn't catch that. Could you repeat it?", self.language)
 
@@ -74,7 +75,7 @@ class TaxiScenarioDialog(BaseDialog):
             prompt = await self.chatbot_respond(
                 step_context.context,
                 "Greet",
-                f"{self.taxi_persona} Only greet the passenger with 'Hello! How are you?'"
+                f"{self.taxi_persona} greet the passenger with 'Hello! How are you?' in {self.language}."
             )
             example = self.translate_text("Example: Hello! I am Good, how are you?", self.language)
             self.greeted = True

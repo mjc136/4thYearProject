@@ -15,43 +15,40 @@ function stopTypingDots() {
 }
 
 function typeBotMessage(text, container) {
-    const bubble = document.createElement("div");
-    bubble.className = "bubble bot-bubble";
-    
-    // Check if this is an example message
-    if (text.startsWith("Example:") || text.startsWith("Tip:")) {
-        bubble.className += " example-bubble"; // Add a special class for examples
-        bubble.innerHTML = "<b>Bot:</b> <span class='example-text'>";
-    } else {
-        bubble.innerHTML = "<b>Bot:</b> ";
-    }
-    
-    container.appendChild(bubble);
+    return new Promise(resolve => {
+        console.log("Displaying bot message:", text);
+        const bubble = document.createElement("div");
+        bubble.className = "bubble bot-bubble";
 
-    let i = 0;
-    const speed = 30;
+        const prefix = document.createElement("b");
+        prefix.textContent = "Bot: ";
+        bubble.appendChild(prefix);
 
-    const interval = setInterval(() => {
-        if (i < text.length) {
-            if (text.startsWith("Example:") || text.startsWith("Tip:")) {
-                // For examples, we add to the span
-                const span = bubble.querySelector('.example-text');
-                span.textContent += text.charAt(i);
-            } else {
-                // Normal message
-                bubble.innerHTML += text.charAt(i);
-            }
-            i++;
-        } else {
-            clearInterval(interval);
-            if (text.startsWith("Example:") || text.startsWith("Tip:")) {
-                // Close the span
-                const span = bubble.querySelector('.example-text');
-                span.innerHTML += "</span>";
-            }
+        const messageContent = document.createElement("span");
+        bubble.appendChild(messageContent);
+
+        if (text.startsWith("Example:") || text.startsWith("Tip:")) {
+            bubble.className += " example-bubble";
+            messageContent.className = "example-text";
         }
-        container.scrollTop = container.scrollHeight;
-    }, speed);
+
+        container.appendChild(bubble);
+
+        let i = 0;
+        const speed = 30;
+
+        const interval = setInterval(() => {
+            if (i < text.length) {
+                messageContent.textContent = text.substring(0, i + 1);
+                i++;
+            } else {
+                clearInterval(interval);
+                console.log("Finished displaying message:", text);
+                container.scrollTop = container.scrollHeight;
+                resolve(); // Resolve the promise after the typing is done
+            }
+        }, speed);
+    });
 }
 
 async function sendMessage(msgOverride = null, auto = false) {
@@ -63,8 +60,14 @@ async function sendMessage(msgOverride = null, auto = false) {
 
     if (!message) return;
 
+    console.log(`Sending message: "${message}", auto=${auto}`);
+
     if (!auto) {
-        chatBox.innerHTML += `<div class="bubble user-bubble"><b>You:</b> ${message}</div>`;
+        // Display user message in chat
+        const userBubble = document.createElement("div");
+        userBubble.className = "bubble user-bubble";
+        userBubble.innerHTML = "<b>You:</b> " + message;
+        chatBox.appendChild(userBubble);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -101,28 +104,36 @@ async function sendMessage(msgOverride = null, auto = false) {
             if (data.reply) {
                 // Handle multiline responses by splitting on double newlines
                 const messages = data.reply.split("\n\n").filter(msg => msg.trim());
+                console.log("Parsed messages:", messages);
                 
-                // Display each message separately
-                for (const msg of messages) {
-                    // Check for instruction messages (Step X of Y)
-                    if (msg.startsWith("Step ") && msg.includes(" of ")) {
-                        const stepDiv = document.createElement("div");
-                        stepDiv.className = "step-indicator";
-                        stepDiv.textContent = msg;
-                        chatBox.appendChild(stepDiv);
-                    } else {
-                        // Normal bot message
-                        typeBotMessage(msg, chatBox);
-                    }
-                    // Short delay between multiple messages for better user experience
-                    if (messages.length > 1) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                if (messages.length === 0) {
+                    console.warn("No valid messages found in reply");
+                    typeBotMessage("I'm ready to help you practice your language skills!", chatBox);
+                } else {
+                    // Display each message separately
+                    for (const msg of messages) {
+                        // Check for instruction messages (Step X of Y)
+                        if (msg.startsWith("Step ") && msg.includes(" of ")) {
+                            const stepDiv = document.createElement("div");
+                            stepDiv.className = "step-indicator";
+                            stepDiv.textContent = msg;
+                            chatBox.appendChild(stepDiv);
+                        } else {
+                            // Normal bot message
+                            typeBotMessage(msg, chatBox);
+                        }
+                        // Short delay between multiple messages for better user experience
+                        if (messages.length > 1) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
                     }
                 }
             } else if (data.error) {
+                console.error("Error from server:", data.error);
                 typeBotMessage(`⚠️ Error: ${data.error}`, chatBox);
             } else {
-                typeBotMessage("⚠️ The bot is taking longer than expected to respond. Please try again.", chatBox);
+                console.warn("Empty response from server");
+                typeBotMessage("I'm here to help you practice. What would you like to talk about?", chatBox);
             }
 
             if (data.attachments && data.attachments.length > 0) {

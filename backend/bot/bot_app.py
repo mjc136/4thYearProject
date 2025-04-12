@@ -151,7 +151,6 @@ class DirectResponseAdapter(BotFrameworkAdapter):
                 
                 # Create context and call the bot logic directly
                 context = TurnContext(self, activity)
-                context.responded = False  # Explicitly set this flag
                 
                 try:
                     await logic(context)
@@ -350,10 +349,6 @@ async def messages(req):
             turn_context.send_activity = capture_send_activity
 
             try:
-                # Only set responded=False if it hasn't been set yet
-                if not hasattr(turn_context, "responded"):
-                    turn_context.responded = False
-                
                 # Run the dialog
                 try:
                     dialog_result = await dialog.run(turn_context, conversation_state.create_property("DialogState"))
@@ -362,9 +357,6 @@ async def messages(req):
                         LOGGER.warning(f"Dialog returned None result for user {user_id}")
                         if not bot_response["text"]:
                             bot_response["text"] = "I'm still processing. Let me think about that."
-                    else:
-                        # Mark as responded if we got a result
-                        turn_context.responded = True
                 except AttributeError as ae:
                     LOGGER.error(f"AttributeError in dialog execution: {str(ae)}", exc_info=True)
                     if "NoneType" in str(ae) and "status" in str(ae):

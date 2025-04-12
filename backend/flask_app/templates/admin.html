@@ -12,27 +12,24 @@
         <div class="mb-4">
           <label class="form-label">Current Language: <strong class="text-info">{{ user.language }}</strong></label>
           <select class="form-select form-select-lg rounded-pill" name="language">
-            <option value="english">English</option>
-            <option value="spanish">Spanish</option>
-            <option value="french">French</option>
-            <option value="portuguese">Portuguese</option>
+            <option value="english" {% if user.language == 'english' %}selected{% endif %}>English</option>
+            <option value="spanish" {% if user.language == 'spanish' %}selected{% endif %}>Spanish</option>
+            <option value="french" {% if user.language == 'french' %}selected{% endif %}>French</option>
+            <option value="portuguese" {% if user.language == 'portuguese' %}selected{% endif %}>Portuguese</option>
           </select>
         </div>
-
+      
         <div class="mb-4">
           <label class="form-label">Current Proficiency: <strong class="text-info">{{ user.proficiency }}</strong></label>
           <select class="form-select form-select-lg rounded-pill" name="proficiency">
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            <option value="beginner" {% if user.proficiency == 'beginner' %}selected{% endif %}>Beginner</option>
+            <option value="intermediate" {% if user.proficiency == 'intermediate' %}selected{% endif %}>Intermediate</option>
+            <option value="advanced" {% if user.proficiency == 'advanced' %}selected{% endif %}>Advanced</option>
           </select>
         </div>
-
-        <div class="d-grid gap-2">
-          <button class="btn btn-success btn-lg rounded-pill">💾 Update Settings</button>
-        </div>
+      
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Update</button>
       </form>
-
       <div class="text-center mt-4">
         <a href="/chat" class="btn btn-outline-light rounded-pill">⬅️ Back to Chat</a>
       </div>

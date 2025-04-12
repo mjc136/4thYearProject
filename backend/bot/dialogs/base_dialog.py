@@ -1,18 +1,18 @@
-from botbuilder.dialogs import ComponentDialog, DialogSet, DialogTurnStatus
+import time
+from botbuilder.dialogs import ComponentDialog, DialogSet
 from botbuilder.core import TurnContext
-from typing import Optional, Tuple, Dict
+from typing import Optional, Dict
 from botbuilder.schema import Activity
 import uuid
 import requests
 from urllib.parse import urlencode
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
+from azure.appconfiguration import AzureAppConfigurationClient
 import os
 import logging
 from dotenv import load_dotenv
 import language_tool_python
-from azure.appconfiguration import AzureAppConfigurationClient
-from azure.core.credentials import AzureKeyCredential
 from openai import OpenAI
 from bot.state.user_state import UserState
 
@@ -163,14 +163,28 @@ class BaseDialog(ComponentDialog):
                         languages through interactive role-playing in {proficiency_level} level {language}.
                         You will only reply in {language}. Do not use any emojis or special characters. if using numbers,
                         write them out in words. For example, write "five" instead of "5". Only use euro currency. 
-                        do not break the fourth wall. Do not mention that you are an AI or a bot or that you are helping them practice langauges. """      
+                        do not break the fourth wall. Do not mention that you are an AI or a bot or that you are helping them practice languages. """      
                         
         if proficiency_level == "beginner":
-            default_system_message += "in this role-play the user is a beginner and you are a native speaker so do not use complex words or phrases."
+            default_system_message += (
+                "In this role-play, the user is a beginner in the target language. "
+                "You are a native speaker of that language. Use very simple and clear sentences. "
+                "Avoid slang, idioms, advanced grammar, or rare vocabulary. "
+                "Speak slowly and repeat or rephrase when needed."
+            )
         elif proficiency_level == "intermediate":
-            default_system_message += "in this role-play the user is an intermediate speaker and you are a native speaker so use complex words or phrases."
+            default_system_message += (
+                "In this role-play, the user is an intermediate speaker of the target language. "
+                "You are a native speaker. Use natural speech with some moderately complex grammar or vocabulary. "
+                "Explain or rephrase if the user seems confused, and avoid overly idiomatic expressions."
+            )
         else:
-            default_system_message += "in this role-play the user is an advanced speaker and you are a native speaker so use complex words or phrases."
+            default_system_message += (
+                "In this role-play, the user is an advanced speaker of the target language. "
+                "You are a native speaker. Speak naturally and professionally, using more fluent and authentic expressions. "
+                "You may include some advanced vocabulary and nuanced phrasing, but keep clarity in mind."
+            )
+
 
         if language == "pt":
             default_system_message += " Use Portuguese from Portugal not brazil."
@@ -180,10 +194,6 @@ class BaseDialog(ComponentDialog):
             default_system_message += " Use Spanish from Spain not Latin America."
 
         combined_system_message = default_system_message + " " + system_message
-
-        # Add user input to conversation history
-        if user_input and user_input != "Greet" and user_input != "price?" and user_input != "eta confirmation":
-            self.conversation_history.append({"role": "user", "content": str(user_input)})
         
         if not user_input:
             user_input = "fallback"
@@ -228,7 +238,7 @@ class BaseDialog(ComponentDialog):
             "portuguese": "pt"
         }
 
-        lang_name = UserState.get_language(self.user_state).lower()
+        lang_name = self.user_state.get_language()
         target_language = LANGUAGE_CODE_MAP.get(lang_name)
 
         if not target_language:

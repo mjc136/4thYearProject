@@ -8,10 +8,6 @@
     <p><strong>Language:</strong> {{ user.language }}</p>
     <p><strong>proficiency:</strong> {{ user.proficiency }}</p>
     <p><strong>XP:</strong> {{ user.xp }}</p>
-    <a href="/chat" class="btn btn-primary">Go to Chat</a>
-    <a href="/logout" class="btn btn-secondary">Logout</a>
-    {% if user.admin %}
-    <a href="/admin" class="btn btn-warning mt-2">Admin Tools</a>
-    {% endif %}
+    <p><strong>Level:</strong> {{ user.level }}</p>
 </div>
 {% endblock %}
