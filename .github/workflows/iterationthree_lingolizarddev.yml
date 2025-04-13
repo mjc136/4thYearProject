@@ -117,7 +117,7 @@ jobs:
         run: |
           echo "Checking /health endpoint..."
           for i in {1..6}; do
-            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net/health)
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net/health
             if [ "$status_code" -eq 200 ]; then
               echo "Health check passed!"
               exit 0

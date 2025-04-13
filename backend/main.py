@@ -168,12 +168,6 @@ def run_bot():
         
         # Use a different port if PORT and FLASK_PORT are the same
         bot_port = int(os.getenv("PORT", "3978"))
-        flask_port = int(os.getenv("FLASK_PORT", "5000"))
-        
-        # If ports conflict, use a different port for the bot
-        if bot_port == flask_port:
-            bot_port = flask_port + 1
-            print(f"Port conflict detected. Using port {bot_port} for bot instead.")
         
         print(f"Starting Bot on port {bot_port}...")
         
