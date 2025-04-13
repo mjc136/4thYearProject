@@ -102,7 +102,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         # Check formality and provide feedback if needed
         formality_check = await self.check_formality(step_context.result, step_context.context)
         if "FORMAL" not in formality_check.upper():
-            await step_context.context.send_activity(f"💡 Tip for improvement: {formality_check}")
+            await step_context.context.send_activity(f"Tip for improvement: {formality_check}")
             self.feedback_points.append("Work on maintaining professional tone throughout the interview")
         
         await step_context.context.send_activity(Activity(type="typing"))

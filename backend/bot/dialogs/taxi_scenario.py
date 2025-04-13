@@ -1,6 +1,6 @@
 from botbuilder.dialogs import (
     ComponentDialog, DialogContext, DialogTurnResult,
-    DialogTurnStatus, WaterfallDialog, WaterfallStepContext
+    DialogTurnStatus, WaterfallDialog, WaterfallStepContext, TextPrompt, PromptOptions
 )
 from botbuilder.core import TurnContext, MessageFactory
 from botbuilder.schema import ActivityTypes, Activity

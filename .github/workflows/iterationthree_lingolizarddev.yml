@@ -117,13 +117,13 @@ jobs:
         run: |
           echo "Checking /health endpoint..."
           for i in {1..6}; do
-            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net/health
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net/health)
             if [ "$status_code" -eq 200 ]; then
-              echo "Health check passed!"
+              echo "✅ Health check passed!"
               exit 0
             fi
-            echo "Attempt $i failed (status: $status_code), retrying..."
+            echo "❌ Attempt $i failed (status: $status_code). Retrying in 20 seconds..."
             sleep 20
           done
-          echo "Health check failed after 6 attempts."
+          echo "❌ Health check failed after 6 attempts."
           exit 1
