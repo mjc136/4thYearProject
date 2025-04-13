@@ -141,7 +141,7 @@ def run_flask():
     print("Setting up Flask app...")
     try:
         # Import flask app here to avoid circular imports
-        from flask_app.flask_app import app as flask_app
+        from backend.flask_app.flask_app import app as flask_app
         port = int(os.getenv("FLASK_PORT", "5000"))
         print(f"Starting Flask on port {port}...")
         
@@ -152,25 +152,34 @@ def run_flask():
         flask_running = False
         print(f"Flask error: {str(e)}")
         traceback.print_exc()
-        
+
 def run_bot():
     global bot_running
-    print("Setting up Bot app...")
     try:
-        # Load configuration
-        load_configuration()
+        print("Setting up Bot app...")
         
-        # Import bot modules here to see any errors during import
+        # Check for environment variables
+        check_critical_env_vars()
+        
+        # Import bot app here to avoid circular imports
         print("Importing bot_app...")
-        from bot.bot_app import app as bot_app
+        from backend.bot.bot_app import app as bot_app
+        import aiohttp.web
         
-        port = int(os.getenv("PORT", "3978"))
-        print(f"Starting Bot on port {port}...")
+        # Use a different port if PORT and FLASK_PORT are the same
+        bot_port = int(os.getenv("PORT", "3978"))
+        flask_port = int(os.getenv("FLASK_PORT", "5000"))
         
-        # Start the bot app
-        from aiohttp import web
+        # If ports conflict, use a different port for the bot
+        if bot_port == flask_port:
+            bot_port = flask_port + 1
+            print(f"Port conflict detected. Using port {bot_port} for bot instead.")
+        
+        print(f"Starting Bot on port {bot_port}...")
+        
         bot_running = True
-        web.run_app(bot_app, host="0.0.0.0", port=port)
+        # Use the correct method to run an aiohttp application
+        aiohttp.web.run_app(bot_app, host="0.0.0.0", port=bot_port)
     except Exception as e:
         bot_running = False
         print(f"Bot error: {str(e)}")

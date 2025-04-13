@@ -1,14 +1,15 @@
-from botbuilder.core import MessageFactory, TurnContext
 from botbuilder.dialogs import (
-    WaterfallDialog,
-    WaterfallStepContext,
-    DialogTurnResult,
-    TextPrompt,
-    PromptOptions,
+    ComponentDialog, DialogContext, DialogTurnResult,
+    DialogTurnStatus, WaterfallDialog, WaterfallStepContext
 )
-from botbuilder.schema import Activity
-from bot.state.user_state import UserState
+from botbuilder.core import TurnContext, MessageFactory
+from botbuilder.schema import ActivityTypes, Activity
+import logging
+import os
+# Use relative imports for modules in the same package
 from .base_dialog import BaseDialog
+
+from backend.bot.state.user_state import UserState
 
 class TaxiScenarioDialog(BaseDialog):
     """Dialog for practising taxi-related conversations."""

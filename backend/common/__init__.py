@@ -1,8 +1,8 @@
 import os
 from flask import Flask, redirect
 from dotenv import load_dotenv
-from common.extensions import db, bcrypt
-from models import User
+from backend.common.extensions import db, bcrypt
+from backend.models import User
 
 
 # Load .env variables
@@ -40,7 +40,7 @@ db.init_app(app)
 bcrypt.init_app(app)
 
 from flask_migrate import Migrate
-from models import User
+from backend.models import User
 
 migrate = Migrate(app, db)
 

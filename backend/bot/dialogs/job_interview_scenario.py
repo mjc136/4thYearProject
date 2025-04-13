@@ -3,7 +3,7 @@ from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
 from botbuilder.schema import Activity, CardAction, SuggestedActions, ActionTypes
 from .base_dialog import BaseDialog
-from bot.state.user_state import UserState
+from backend.bot.state.user_state import UserState
 import re
 
 class JobInterviewScenarioDialog(BaseDialog):

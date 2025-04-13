@@ -15,9 +15,9 @@ from botbuilder.core import (
     AnonymousReceiveMiddleware
 )
 from botbuilder.schema import Activity, ResourceResponse
-from bot.dialogs.main_dialog import MainDialog
-from bot.state.user_state import UserState
-from common import app as flask_app
+from backend.bot.dialogs.main_dialog import MainDialog
+from backend.bot.state.user_state import UserState
+from backend.common import app as flask_app
 from azure.core.exceptions import DeserializationError
 from azure.appconfiguration import AzureAppConfigurationClient
 import time

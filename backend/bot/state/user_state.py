@@ -1,6 +1,6 @@
 from flask import session
-from models import User
-from common import app  # Ensure this points to your actual Flask app (flask_app.flask_app)
+from backend.models import User
+from backend.common import app  # Ensure this points to your actual Flask app (flask_app.flask_app)
 
 class UserState:
     """

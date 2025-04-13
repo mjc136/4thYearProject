@@ -1,17 +1,11 @@
-from botbuilder.core import MessageFactory, TurnContext
 from botbuilder.dialogs import (
-    WaterfallDialog,
-    WaterfallStepContext,
-    DialogTurnResult,
-    TextPrompt,
-    DialogTurnStatus,
-    DialogSet,
-    PromptOptions,
+    ComponentDialog, DialogSet, DialogTurnStatus, 
+    WaterfallDialog, WaterfallStepContext, DialogTurnResult
 )
-from bot.state.user_state import UserState
+from botbuilder.core import TurnContext
+from botbuilder.schema import ActivityTypes
+from backend.bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
-from .hotel_scenario import HotelScenarioDialog
-from .job_interview_scenario import JobInterviewScenarioDialog
 from .base_dialog import BaseDialog
 
 

@@ -1,5 +1,5 @@
 import time
-from botbuilder.dialogs import ComponentDialog, DialogSet
+from botbuilder.dialogs import ComponentDialog, DialogSet, DialogTurnStatus, DialogTurnResult
 from botbuilder.core import TurnContext
 from typing import Optional, Dict
 from botbuilder.schema import Activity
@@ -12,9 +12,8 @@ from azure.appconfiguration import AzureAppConfigurationClient
 import os
 import logging
 from dotenv import load_dotenv
-import language_tool_python
 from openai import OpenAI
-from bot.state.user_state import UserState
+from backend.bot.state.user_state import UserState
 
 class BaseDialog(ComponentDialog):
     """
@@ -131,24 +130,6 @@ class BaseDialog(ComponentDialog):
 
         except Exception as e:
             self.logger.error(f"Failed to initialise OpenAI: {e}")
-            raise
-    
-    def _initialise_language_tool(self, language: str):
-        """Initialise the LanguageTool instance."""
-        supported_languages = {
-            "es": "es",
-            "fr": "fr",
-            "pt": "pt"
-        }
-        if language.lower() not in supported_languages:
-            raise ValueError(f"Unsupported language: {language}")
-        
-        language_code = supported_languages[language.lower()]
-        try:
-            self.tool = language_tool_python.LanguageTool(language_code)
-            self.logger.info("LanguageTool initialised successfully")
-        except Exception as e:
-            self.logger.error(f"Failed to initialise LanguageTool: {e}")
             raise
         
     async def chatbot_respond(self, turn_context: TurnContext, user_input, system_message):
@@ -281,16 +262,6 @@ class BaseDialog(ComponentDialog):
             return "No text provided for language detection."
         response = self.text_analytics_client.detect_language(documents=[{"id": "1", "text": text}])[0]
         return response.primary_language.iso6391_name
-
-    def extract_entities(self, text: str):
-        """Extract named entities from the given text using Azure Text Analytics."""
-        if not text.strip():
-            return {}
-
-        response = self.text_analytics_client.recognize_entities(documents=[text])[0]
-        if not response.entities:
-            return {}
-        return response
 
     async def run(self, turn_context: TurnContext, accessor):
         """

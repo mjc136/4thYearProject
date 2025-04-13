@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, session, request, jsonify
-from models import User
+from backend.models import User
 import requests
 import os
 import logging
