@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask, redirect
 from dotenv import load_dotenv
 from backend.common.extensions import db, bcrypt
@@ -8,16 +9,24 @@ from flask_migrate import Migrate
 # Load .env variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Setup paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
-SQLITE_PATH = os.path.join("/home", "lingolizard.db")
+
+# Get database path from environment variable or use default
+# Azure environments typically use /home for persistent storage
+DB_PATH = os.getenv("DB_PATH", os.path.join("/home", "lingolizard.db"))
+logger.info(f"Using database path: {DB_PATH}")
 
 # Init app
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 # Config
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{SQLITE_PATH}"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -31,8 +40,9 @@ if connection_string:
         from azure.appconfiguration import AzureAppConfigurationClient
         client = AzureAppConfigurationClient.from_connection_string(connection_string)
         app.secret_key = client.get_configuration_setting(key="FLASK_SECRET").value
+        logger.info("Successfully loaded secret key from Azure App Configuration")
     except Exception as e:
-        print(f"[WARNING] Could not load secret key from Azure: {e}")
+        logger.warning(f"Could not load secret key from Azure: {e}")
 
 # Init extensions
 db.init_app(app)
@@ -41,34 +51,63 @@ migrate = Migrate(app, db)
 
 # Create tables & default users
 with app.app_context():
-    db.create_all()
+    try:
+        logger.info("Initializing database...")
+        db.create_all()
+        
+        if not User.query.filter_by(username="admin").first():
+            logger.info("Adding admin user")
+            db.session.add(User(
+                username="admin",
+                password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
+                language="english",
+                proficiency="beginner",
+                xp=0,
+                level=1,
+                admin=True
+            ))
 
-    if not User.query.filter_by(username="admin").first():
-        db.session.add(User(
-            username="admin",
-            password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
-            language="english",
-            proficiency="beginner",
-            xp=0,
-            level=1,
-            admin=True
-        ))
+        if not User.query.filter_by(username="testuser").first():
+            logger.info("Adding test user")
+            db.session.add(User(
+                username="testuser",
+                password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
+                language="spanish",
+                proficiency="beginner",
+                xp=0,
+                level=1,
+                admin=False
+            ))
 
-    if not User.query.filter_by(username="testuser").first():
-        db.session.add(User(
-            username="testuser",
-            password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
-            language="spanish",
-            proficiency="beginner",
-            xp=0,
-            level=1,
-            admin=False
-        ))
-
-    db.session.commit()
-    print("[INFO] Database ready and default users added.")
-    print("[DEBUG] DB path:", SQLITE_PATH)
+        db.session.commit()
+        logger.info("Database ready and default users added.")
+        logger.info(f"DB path: {DB_PATH}")
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+        # Don't crash the application, but log the error
 
 @app.route("/")
 def index():
     return redirect("/login")
+
+# Add a DB-checking health endpoint
+@app.route("/db-health")
+def db_health():
+    try:
+        # Test DB connection by querying a user
+        with app.app_context():
+            user_count = User.query.count()
+            return {
+                "status": "healthy",
+                "database": "connected",
+                "users": user_count,
+                "db_path": DB_PATH
+            }
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e),
+            "db_path": DB_PATH
+        }, 500

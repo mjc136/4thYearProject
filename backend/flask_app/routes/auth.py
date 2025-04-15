@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, session
 from backend.models import db, User
 from backend.common.extensions import bcrypt
+import logging
 
+logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__, template_folder="templates")
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -24,14 +26,23 @@ def register():
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        user = User.query.filter_by(username=username).first()
+        try:
+            username = request.form["username"]
+            password = request.form["password"]
+            
+            logger.info(f"Login attempt for user: {username}")
+            user = User.query.filter_by(username=username).first()
 
-        if user and bcrypt.check_password_hash(user.password, password):
-            session["user_id"] = user.id
-            return redirect("/profile")
-        return render_template("login.html", error="Invalid credentials")
+            if user and bcrypt.check_password_hash(user.password, password):
+                session["user_id"] = user.id
+                logger.info(f"User {username} logged in successfully")
+                return redirect("/profile")
+                
+            logger.warning(f"Failed login attempt for user: {username}")
+            return render_template("login.html", error="Invalid credentials")
+        except Exception as e:
+            logger.error(f"Login error: {e}")
+            return render_template("login.html", error=f"System error: {str(e)}")
     return render_template("login.html")
 
 @auth_bp.route("/logout")
