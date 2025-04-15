@@ -3,29 +3,28 @@ from flask import Flask, redirect
 from dotenv import load_dotenv
 from backend.common.extensions import db, bcrypt
 from backend.models import User
-
+from flask_migrate import Migrate
 
 # Load .env variables
 load_dotenv()
 
-# Define template directory (for Flask to find login.html, etc.)
+# Setup paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
+SQLITE_PATH = os.path.join("/home", "lingolizard.db")
 
-# Initialise the Flask app
+# Init app
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
-# Base configuration
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, '..', 'lingolizard.db')}"
+# Config
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{SQLITE_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-
-# Secret key (from Azure or fallback)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
+# Azure App Config fallback
 connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
 if connection_string:
     try:
@@ -35,21 +34,17 @@ if connection_string:
     except Exception as e:
         print(f"[WARNING] Could not load secret key from Azure: {e}")
 
-# Initialise extensions with app
+# Init extensions
 db.init_app(app)
 bcrypt.init_app(app)
-
-from flask_migrate import Migrate
-from backend.models import User
-
 migrate = Migrate(app, db)
 
-# Auto-create tables and default users
+# Create tables & default users
 with app.app_context():
     db.create_all()
 
     if not User.query.filter_by(username="admin").first():
-        admin_user = User(
+        db.session.add(User(
             username="admin",
             password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
             language="english",
@@ -57,11 +52,10 @@ with app.app_context():
             xp=0,
             level=1,
             admin=True
-        )
-        db.session.add(admin_user)
+        ))
 
     if not User.query.filter_by(username="testuser").first():
-        regular_user = User(
+        db.session.add(User(
             username="testuser",
             password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
             language="spanish",
@@ -69,18 +63,12 @@ with app.app_context():
             xp=0,
             level=1,
             admin=False
-        )
-        db.session.add(regular_user)
+        ))
 
     db.session.commit()
     print("[INFO] Database ready and default users added.")
+    print("[DEBUG] DB path:", SQLITE_PATH)
 
-    db_path = os.path.join(basedir, '..', 'lingolizard.db')
-    print("[DEBUG] DB path:", os.path.abspath(db_path))
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
-
-
-# Default redirect from `/` → `/login`
 @app.route("/")
 def index():
     return redirect("/login")
