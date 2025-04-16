@@ -51,6 +51,12 @@ function typeBotMessage(text, container) {
     });
 }
 
+function sanitiseInput(input) {
+    const temp = document.createElement('div');
+    temp.textContent = input;
+    return temp.innerHTML;
+}
+
 async function sendMessage(msgOverride = null, auto = false) {
     const inputBox = document.getElementById("userInput");
     const sendButton = document.getElementById("sendButton");
@@ -67,7 +73,7 @@ async function sendMessage(msgOverride = null, auto = false) {
         // Display user message in chat
         const userBubble = document.createElement("div");
         userBubble.className = "bubble user-bubble";
-        userBubble.innerHTML = "<b>You:</b> " + message;
+        userBubble.innerHTML = "<b>You:</b> " + sanitiseInput(message);
         chatBox.appendChild(userBubble);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -84,10 +90,15 @@ async function sendMessage(msgOverride = null, auto = false) {
     const retry = async () => {
         try {
             console.log(`Sending message to server (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+            
+            // Get CSRF token from the hidden input
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            
             const response = await fetch("/send", {
                 method: "POST",
                 headers: { 
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
                 },
                 body: JSON.stringify({ 
                     message,

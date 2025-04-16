@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 load_dotenv()
 
 # Set up Flask app
-from backend.common.extensions import db, bcrypt
+from backend.common.extensions import db, bcrypt, csrf
 from backend.flask_app.routes.auth import auth_bp
 from backend.flask_app.routes.user import user_bp
 from backend.flask_app.routes.admin import admin_bp
@@ -69,6 +69,7 @@ LOGGER.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
 # Init Flask extensions
 db.init_app(app)
 bcrypt.init_app(app)
+csrf.init_app(app)
 migrate = Migrate(app, db)  # Add migration support
 
 # Initialize database if necessary
