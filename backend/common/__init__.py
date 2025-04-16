@@ -19,7 +19,8 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
 
 # Get database path from environment variable or use default
 # Azure environments typically use /home for persistent storage
-DB_PATH = os.getenv("DB_PATH", os.path.join("/home", "lingolizard.db"))
+default_db_path = os.path.join("/home", "lingolizard.db") if os.access("/home", os.W_OK) else os.path.join(BASE_DIR, "lingolizard.db")
+DB_PATH = os.getenv("DB_PATH", default_db_path)
 logger.info(f"Using database path: {DB_PATH}")
 
 # Init app

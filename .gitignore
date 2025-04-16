@@ -48,7 +48,3 @@ env.bak/
 venv.bak/
 
 .vscode/
-
-/results
-/trained_model
-/migrations

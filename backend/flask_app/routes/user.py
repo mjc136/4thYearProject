@@ -15,6 +15,26 @@ def profile():
     user = User.query.get(session["user_id"])
     return render_template("profile.html", user=user)
 
+@user_bp.route("/scenarios")
+def scenarios():
+    """Render scenarios based on user proficiency."""
+    if "user_id" not in session:
+        return redirect("/login")
+    user = User.query.get(session["user_id"])
+    
+    # Define scenario tiers for progression tracking
+    scenario_tiers = {
+        'beginner': ['taxi', 'restaurant', 'shopping'],
+        'intermediate': ['hotel', 'doctor'],
+        'advanced': ['interview']
+    }
+    
+    # If user.completed_scenarios doesn't exist yet, initialise it
+    if not hasattr(user, 'completed_scenarios') or not user.completed_scenarios:
+        user.completed_scenarios = []
+        
+    return render_template("scenarios.html", user=user, scenario_tiers=scenario_tiers)
+
 @user_bp.route("/chat")
 def chat():
     """Render chat interface with custom welcome message."""
@@ -24,6 +44,9 @@ def chat():
     user = User.query.get(session["user_id"])
     if not user:
         return redirect("/logout")  # Invalid user session
+    
+    # Get the requested scenario
+    scenario = request.args.get('scenario', 'taxi')
     
     # Map language codes to display names
     language_display = {
@@ -36,12 +59,17 @@ def chat():
     # Get scenario intro based on proficiency level
     scenario_intro = get_scenario_intro(user.proficiency)
     
+    # Record scenario completion
+    if scenario not in user.completed_scenarios:
+        user.completed_scenarios.append(scenario)
+    
     return render_template(
         "chat.html", 
         user=user,
         language_display=language_display.get(user.language, user.language),
         proficiency=user.proficiency,
-        scenario_intro=scenario_intro
+        scenario_intro=scenario_intro,
+        scenario=scenario
     )
 
 def get_scenario_intro(proficiency):
@@ -138,3 +166,55 @@ def send_message():
                     "reply": "I'm currently unavailable. Please try again in a moment."
                 }), 503
 
+@user_bp.route("/scenario/complete", methods=["POST"])
+def complete_scenario():
+    """Mark a scenario as completed for the user and award XP."""
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+        
+    user = User.query.get(session["user_id"])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    scenario = request.json.get("scenario")
+    if not scenario:
+        return jsonify({"error": "No scenario specified"}), 400
+        
+    # Initialise completed_scenarios if it doesn't exist
+    if not hasattr(user, 'completed_scenarios') or user.completed_scenarios is None:
+        user.completed_scenarios = []
+        
+    # Add the scenario to completed list if not already there
+    if scenario not in user.completed_scenarios:
+        user.completed_scenarios.append(scenario)
+        
+        # Award XP based on scenario difficulty
+        xp_earned = 0
+        if scenario in ['taxi', 'restaurant', 'shopping']:  # Beginner
+            xp_earned = 10
+        elif scenario in ['hotel', 'doctor']:  # Intermediate
+            xp_earned = 20
+        elif scenario in ['interview']:  # Advanced
+            xp_earned = 30
+            
+        user.xp = (user.xp or 0) + xp_earned
+            
+        # Update user level based on XP milestones
+        if user.xp >= 100:
+            user.level = 3
+        elif user.xp >= 50:
+            user.level = 2
+        else:
+            user.level = 1
+            
+        # Save changes to database
+        from backend.models import db
+        db.session.commit()
+        
+    return jsonify({
+        "success": True,
+        "completed_scenarios": user.completed_scenarios,
+        "xp": user.xp,
+        "level": user.level,
+        "xp_earned": xp_earned if 'xp_earned' in locals() else 0
+    })

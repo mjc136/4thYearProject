@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Scenarios | LingoLizard{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-white">
+    <h2 class="mb-4">Choose Your Scenario</h2>
+    
+    <div class="mb-4">
+        <div class="progress" style="height: 25px; background-color: rgba(255,255,255,0.2);">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ user.xp }}%;" 
+                aria-valuenow="{{ user.xp }}" aria-valuemin="0" aria-valuemax="100">
+                Level {{ user.level }} - {{ user.xp }}%
+            </div>
+        </div>
+        <p class="mt-2 text-light"><small>Complete scenarios to earn XP and unlock more challenging conversations!</small></p>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        <!-- Beginner Scenarios -->
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Taxi Ride</h5>
+                    <p class="card-text">Navigate a conversation with a taxi driver to reach your destination.</p>
+                    <p class="text-light"><span class="badge bg-success">Beginner</span></p>
+                    <button class="btn btn-success w-100" onclick="location.href='/chat?scenario=taxi'">Start Scenario</button>
+                    {% if 'taxi' in user.completed_scenarios %}
+                        <div class="mt-2 text-center"><span class="badge bg-light text-dark">✓ Completed</span></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Restaurant Order</h5>
+                    <p class="card-text">Order food and drinks at a local restaurant.</p>
+                    <p class="text-light"><span class="badge bg-success">Beginner</span></p>
+                    <button class="btn btn-success w-100" onclick="location.href='/chat?scenario=restaurant'">Start Scenario</button>
+                    {% if 'restaurant' in user.completed_scenarios %}
+                        <div class="mt-2 text-center"><span class="badge bg-light text-dark">✓ Completed</span></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Shopping</h5>
+                    <p class="card-text">Shop for clothes and accessories at a local store.</p>
+                    <p class="text-light"><span class="badge bg-success">Beginner</span></p>
+                    <button class="btn btn-success w-100" onclick="location.href='/chat?scenario=shopping'">Start Scenario</button>
+                    {% if 'shopping' in user.completed_scenarios %}
+                        <div class="mt-2 text-center"><span class="badge bg-light text-dark">✓ Completed</span></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Intermediate Scenarios -->
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Hotel Booking</h5>
+                    <p class="card-text">Make a reservation and discuss accommodations with hotel staff.</p>
+                    <p class="text-light"><span class="badge bg-warning text-dark">Intermediate</span></p>
+                    {% if 'taxi' in user.completed_scenarios and 'restaurant' in user.completed_scenarios and 'shopping' in user.completed_scenarios %}
+                        <button class="btn btn-warning text-dark w-100" onclick="location.href='/chat?scenario=hotel'">Start Scenario</button>
+                        {% if 'hotel' in user.completed_scenarios %}
+                            <div class="mt-2 text-center"><span class="badge bg-light text-dark">✓ Completed</span></div>
+                        {% endif %}
+                    {% else %}
+                        <button class="btn btn-secondary w-100" disabled data-bs-toggle="tooltip" data-bs-placement="top" 
+                            title="Complete all Beginner scenarios first">Locked (Complete Beginner Scenarios)</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Doctor's Visit</h5>
+                    <p class="card-text">Explain symptoms and understand medical advice during a check-up.</p>
+                    <p class="text-light"><span class="badge bg-warning text-dark">Intermediate</span></p>
+                    {% if 'taxi' in user.completed_scenarios and 'restaurant' in user.completed_scenarios and 'shopping' in user.completed_scenarios %}
+                        <button class="btn btn-warning text-dark w-100" onclick="location.href='/chat?scenario=doctor'">Start Scenario</button>
+                        {% if 'doctor' in user.completed_scenarios %}
+                            <div class="mt-2 text-center"><span class="badge bg-light text-dark">✓ Completed</span></div>
+                        {% endif %}
+                    {% else %}
+                        <button class="btn btn-secondary w-100" disabled data-bs-toggle="tooltip" data-bs-placement="top" 
+                            title="Complete all Beginner scenarios first">Locked (Complete Beginner Scenarios)</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Scenarios -->
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Job Interview</h5>
+                    <p class="card-text">Showcase your skills and experience in a professional interview setting.</p>
+                    <p class="text-light"><span class="badge bg-danger">Advanced</span></p>
+                    {% if 'taxi' in user.completed_scenarios and 'restaurant' in user.completed_scenarios and 'shopping' in user.completed_scenarios and 'hotel' in user.completed_scenarios and 'doctor' in user.completed_scenarios %}
+                        <button class="btn btn-danger w-100" onclick="location.href='/chat?scenario=interview'">Start Scenario</button>
+                        {% if 'interview' in user.completed_scenarios %}
+                            <div class="mt-2 text-center"><span class="badge bg-light text-dark">✓ Completed</span></div>
+                        {% endif %}
+                    {% else %}
+                        <button class="btn btn-secondary w-100" disabled data-bs-toggle="tooltip" data-bs-placement="top" 
+                            title="Complete all Intermediate scenarios first">Locked (Complete Intermediate Scenarios)</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+{% endblock %}

@@ -4,6 +4,11 @@ import logging
 from flask import Flask, redirect
 from aiohttp import web
 from dotenv import load_dotenv
+from flask_migrate import Migrate
+
+# Configure logging first to capture all startup issues
+logging.basicConfig(level=logging.INFO)
+LOGGER = logging.getLogger(__name__)
 
 # Load env variables
 load_dotenv()
@@ -25,14 +30,54 @@ app = Flask(
 )
 
 # Config
-db_path = os.path.join(BASE_DIR, "lingolizard.db")
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+# Use Azure's persistent storage location for SQLite
+# On Azure App Service, use /home directory for persistence
+default_db_dir = "/home" if os.access("/home", os.W_OK) else BASE_DIR
+db_path = os.path.join(default_db_dir, os.getenv("DB_FILENAME", "lingolizard.db"))
+
+# Allow override with DATABASE_URL environment variable for flexibility
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{db_path}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Add database connection retry and timeout settings
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 280,  # Recycle connections before Azure's idle timeout (typically 300s)
+    "connect_args": {"timeout": 15}  # Connection timeout in seconds
+}
+
+# Add session cookie security settings
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("ENVIRONMENT") == "production"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+# Log the database location for debugging
+LOGGER.info(f"Using database at: {db_path}")
+LOGGER.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
 # Init Flask extensions
 db.init_app(app)
 bcrypt.init_app(app)
+migrate = Migrate(app, db)  # Add migration support
+
+# Initialize database if necessary
+with app.app_context():
+    try:
+        # Import models here to ensure they're registered with SQLAlchemy
+        from backend.models import User
+        
+        LOGGER.info("Checking database tables...")
+        # Check for required fields in User model
+        if not hasattr(User, 'completed_scenarios'):
+            LOGGER.warning("User model doesn't have completed_scenarios attribute! This will cause template errors.")
+        
+        # Only create tables if they don't exist (safer approach)
+        db.create_all()
+        LOGGER.info("Database tables verified.")
+    except Exception as e:
+        LOGGER.error(f"Database initialization error: {e}")
+        LOGGER.error("This could cause login issues!")
 
 # Register Flask routes
 app.register_blueprint(auth_bp)
@@ -44,10 +89,6 @@ app.register_blueprint(health_bp)
 @app.route("/")
 def index():
     return redirect("/login")
-
-# Logging
-logging.basicConfig(level=logging.INFO)
-LOGGER = logging.getLogger(__name__)
 
 # Setup aiohttp Bot Framework
 from botbuilder.core import (
