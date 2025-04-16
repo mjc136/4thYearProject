@@ -30,6 +30,7 @@
             </div>
             
             <button type="submit" class="btn btn-success w-100 mb-3">Create Account</button>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <div class="text-center">
                 <span class="text-light">Already have an account?</span>

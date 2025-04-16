@@ -20,6 +20,7 @@
         </div>
       
         <button type="submit" class="btn btn-primary rounded-pill px-4">Update</button>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       </form>
     </div>
   </div>
