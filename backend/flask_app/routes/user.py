@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, redirect, session, request, jsonify
-from backend.models import User
+from backend.models import User, UserScenarioProgress
 import requests
 import os
 import logging
 import time
+import traceback
 
 user_bp = Blueprint("user", __name__, template_folder="templates")
 BOT_URL = os.getenv("BOT_URL", "http://localhost:3978")
@@ -17,7 +18,7 @@ def profile():
 
 @user_bp.route("/scenarios")
 def scenarios():
-    """Render scenarios based on user proficiency."""
+    """Render scenarios based on user proficiency and progress."""
     if "user_id" not in session:
         return redirect("/login")
     user = User.query.get(session["user_id"])
@@ -28,11 +29,29 @@ def scenarios():
         'intermediate': ['hotel', 'doctor'],
         'advanced': ['interview']
     }
-    
-    # If user.completed_scenarios doesn't exist yet, initialise it
-    if not hasattr(user, 'completed_scenarios') or not user.completed_scenarios:
-        user.completed_scenarios = []
-        
+
+    # Get completed scenarios from DB
+    completed = [
+        p.scenario_name for p in user.scenario_progress if p.completed
+    ]
+
+    # Determine unlocked scenarios
+    if user.admin:  
+        # Admins can access everything
+        unlocked = [s for tier in scenario_tiers.values() for s in tier]
+    else:
+        unlocked = scenario_tiers['beginner'].copy()
+
+        if all(s in completed for s in scenario_tiers['beginner']):
+            unlocked += scenario_tiers['intermediate']
+
+            if all(s in completed for s in scenario_tiers['intermediate']):
+                unlocked += scenario_tiers['advanced']
+
+    # Attach dynamic lists to the user object for the template
+    user.completed_scenarios = completed
+    user.unlocked_scenarios = unlocked
+
     return render_template("scenarios.html", user=user, scenario_tiers=scenario_tiers)
 
 @user_bp.route("/chat")
@@ -42,47 +61,82 @@ def chat():
         return redirect("/login")
     
     user = User.query.get(session["user_id"])
-    if not user:
-        return redirect("/logout")  # Invalid user session
     
-    # Get the requested scenario
-    scenario = request.args.get('scenario', 'taxi')
+    # Get scenario from query params or use default based on proficiency
+    scenario = request.args.get("scenario", "")
+    if not scenario:
+        proficiency = user.proficiency or "beginner"
+        if proficiency == "beginner":
+            scenario = "taxi"
+        elif proficiency == "intermediate":
+            scenario = "hotel"
+        else:
+            scenario = "interview"
     
-    # Map language codes to display names
-    language_display = {
-        'en': 'English',
-        'es': 'Spanish',
-        'fr': 'French',
-        'pt': 'Portuguese'
+    # Define scenario info dictionary
+    scenario_info = {
+        'taxi': {
+            'title': 'Taxi Ride',
+            'intro': 'Imagine you just entered a taxi. You need to communicate with the driver to get to your destination.',
+            'tier': 'Beginner',
+            'badge': 'success'
+        },
+        'restaurant': {
+            'title': 'Restaurant Order',
+            'intro': 'You\'re at a local restaurant and need to order food and drinks.',
+            'tier': 'Beginner',
+            'badge': 'success'
+        },
+        'shopping': {
+            'title': 'Shopping',
+            'intro': 'You\'re at a clothing store and want to buy some new clothes.',
+            'tier': 'Beginner',
+            'badge': 'success'
+        },
+        'hotel': {
+            'title': 'Hotel Booking',
+            'intro': 'Imagine you are at a hotel reception. You need to book a room and discuss accommodations with the staff.',
+            'tier': 'Intermediate',
+            'badge': 'warning'
+        },
+        'doctor': {
+            'title': 'Doctor\'s Visit',
+            'intro': 'You\'re visiting a doctor and need to explain your symptoms and understand medical advice.',
+            'tier': 'Intermediate',
+            'badge': 'warning'
+        },
+        'interview': {
+            'title': 'Job Interview',
+            'intro': 'Imagine you are attending a job interview. You need to showcase your skills and experience to make a good impression.',
+            'tier': 'Advanced',
+            'badge': 'danger'
+        }
     }
     
-    # Get scenario intro based on proficiency level
-    scenario_intro = get_scenario_intro(user.proficiency)
+    # Update the user's settings for the bot to use
+    language = user.language
     
-    # Record scenario completion
-    if scenario not in user.completed_scenarios:
-        user.completed_scenarios.append(scenario)
+    # Map language codes to display names
+    language_map = {
+        "es": "Spanish",
+        "fr": "French", 
+        "pt": "Portuguese"
+    }
+    
+    # Get current scenario info
+    current_scenario = scenario_info[scenario]
     
     return render_template(
         "chat.html", 
         user=user,
-        language_display=language_display.get(user.language, user.language),
-        proficiency=user.proficiency,
-        scenario_intro=scenario_intro,
-        scenario=scenario
+        scenario=scenario,
+        scenario_title=current_scenario['title'],
+        scenario_intro=current_scenario['intro'],
+        scenario_tier=current_scenario['tier'],
+        scenario_badge=current_scenario['badge'],
+        language=language,
+        language_display=language_map.get(language, "Spanish"),
     )
-
-def get_scenario_intro(proficiency):
-    """Return appropriate scenario introduction based on proficiency level."""
-    proficiency = proficiency.lower()
-    if proficiency == "beginner":
-        return "Imagine you just entered a taxi. You need to communicate with the driver to get to your destination."
-    elif proficiency == "intermediate":
-        return "Imagine you are at a hotel reception. You need to book a room and discuss accommodations with the staff."
-    elif proficiency == "advanced":
-        return "Imagine you are attending a job interview. You need to showcase your skills and experience to make a good impression."
-    else:
-        return "Get ready for your language practice scenario."
 
 @user_bp.route("/send", methods=["POST"])
 def send_message():
@@ -91,6 +145,7 @@ def send_message():
 
     user_id = session["user_id"]
     message = request.json.get("message")
+    scenario = request.json.get("scenario")  # Get scenario from request JSON
 
     # Special trigger to auto-start conversation (sends blank to bot)
     if message == "__start__":
@@ -108,7 +163,7 @@ def send_message():
     retry_count = 0
     while retry_count < max_retries:
         try:
-            logging.info(f"Sending message to bot service for user {user_id}: {message[:50]}...")
+            logging.info(f"Sending message to bot service for user {user_id}: {message[:50]}... (Scenario: {scenario})")
             
             # Get the bot URL from environment, ensure it points to the correct endpoint
             bot_url = os.getenv("BOT_URL", "http://localhost:3978/api/messages")
@@ -119,12 +174,20 @@ def send_message():
                 
             logging.info(f"Using bot URL: {bot_url}")
             
+            # Include the scenario in headers
+            headers = {
+                "Content-Type": "application/json",
+                "X-User-ID": str(user_id)
+            }
+            
+            # Only add X-Scenario header if scenario is present
+            if scenario:
+                headers["X-Scenario"] = scenario
+                logging.info(f"Added X-Scenario header: {scenario}")
+            
             bot_response = requests.post(
                 bot_url,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-User-ID": str(user_id)
-                },
+                headers=headers,
                 json={
                     "type": "message",
                     "text": message

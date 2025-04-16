@@ -19,20 +19,8 @@
           </select>
         </div>
       
-        <div class="mb-4">
-          <label class="form-label">Current Proficiency: <strong class="text-info">{{ user.proficiency }}</strong></label>
-          <select class="form-select form-select-lg rounded-pill" name="proficiency">
-            <option value="beginner" {% if user.proficiency == 'beginner' %}selected{% endif %}>Beginner</option>
-            <option value="intermediate" {% if user.proficiency == 'intermediate' %}selected{% endif %}>Intermediate</option>
-            <option value="advanced" {% if user.proficiency == 'advanced' %}selected{% endif %}>Advanced</option>
-          </select>
-        </div>
-      
         <button type="submit" class="btn btn-primary rounded-pill px-4">Update</button>
       </form>
-      <div class="text-center mt-4">
-        <a href="/chat" class="btn btn-outline-light rounded-pill">⬅️ Back to Chat</a>
-      </div>
     </div>
   </div>
 </div>

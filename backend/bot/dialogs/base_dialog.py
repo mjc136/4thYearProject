@@ -134,41 +134,21 @@ class BaseDialog(ComponentDialog):
         
     async def chatbot_respond(self, turn_context: TurnContext, user_input, system_message):
         """Generate an AI response to the user input.""" 
-        proficiency_level = self.user_state.get_proficiency_level()
         language = self.user_state.get_language()
         
         await turn_context.send_activity(Activity(type="typing"))
         
-        # initialise memory for the conversation
+        # initialize memory for the conversation with simplified system message
         default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 
-                        languages through interactive role-playing in {proficiency_level} level {language}.
-                        You will only reply in {language}. Do not use any emojis or special characters. if using numbers,
+                        languages through interactive role-playing in {language}.
+                        You will only reply in {language}. Do not use any emojis or special characters. If using numbers,
                         write them out in words. For example, write "five" instead of "5". Only use euro currency. 
-                        do not break the fourth wall. Do not mention that you are an AI or a bot or that you are helping them practice languages. """      
-                        
-        if proficiency_level == "beginner":
-            default_system_message += (
-                "In this role-play, the user is a beginner in the target language. "
-                "You are a native speaker of that language. Use very simple and clear sentences. "
-                "Avoid slang, idioms, advanced grammar, or rare vocabulary. "
-                "Speak slowly and repeat or rephrase when needed."
-            )
-        elif proficiency_level == "intermediate":
-            default_system_message += (
-                "In this role-play, the user is an intermediate speaker of the target language. "
-                "You are a native speaker. Use natural speech with some moderately complex grammar or vocabulary. "
-                "Explain or rephrase if the user seems confused, and avoid overly idiomatic expressions."
-            )
-        else:
-            default_system_message += (
-                "In this role-play, the user is an advanced speaker of the target language. "
-                "You are a native speaker. Speak naturally and professionally, using more fluent and authentic expressions. "
-                "You may include some advanced vocabulary and nuanced phrasing, but keep clarity in mind."
-            )
+                        Do not break the fourth wall. Do not mention that you are an AI or a bot or that you are helping them practice languages.
+                        Adapt your responses to match the user's language complexity level naturally."""
 
-
+        # Add language-specific instructions
         if language == "pt":
-            default_system_message += " Use Portuguese from Portugal not brazil."
+            default_system_message += " Use Portuguese from Portugal not Brazil."
         elif language == "fr":
             default_system_message += " Use French from France not Canada."
         elif language == "es":

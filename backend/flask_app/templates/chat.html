@@ -1,30 +1,45 @@
 {% extends "base.html" %}
 
-{% block title %}Chat | LingoLizard{% endblock %}
+{% block title %}{{ scenario_title }} | LingoLizard{% endblock %}
 
 {% block content %}
-<h1 class="text-center mb-4">LingoLizard Chat</h1>
-
-<div id="chatBox" class="chat-box">
-  <!-- Welcome message is pre-rendered -->
-  <div class="bubble bot-bubble">
-    <b>Bot:</b> Welcome to LingoLizard! 🦎
-    <br><br>
-    You're practicing <strong>{{ language_display }}</strong> at <strong>{{ proficiency }}</strong> level.
-    <br><br>
-    <strong>Scenario:</strong> {{ scenario_intro }}
-    <br><br>
-    Type "start" when you're ready to begin!
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-12">
+      <a href="/scenarios" class="btn btn-sm btn-outline-light mb-3">← Back to Scenarios</a>
+      <h1 class="text-center">{{ scenario_title }}</h1>
+      <div class="scenario-badge text-center mb-3">
+        <span class="badge bg-{{ scenario_badge }}{% if scenario_badge == 'warning' %} text-dark{% endif %}">
+          {{ scenario_tier }} Level
+        </span>
+      </div>
+    </div>
   </div>
-</div>
 
-<div id="typingIndicator" class="text-white fst-italic mb-2" style="display: none;">
-  Bot is typing<span id="dots">.</span>
-</div>
+  <div id="chatBox" class="chat-box">
+    <!-- Welcome message is pre-rendered -->
+    <div class="bubble bot-bubble">
+      <b>Bot:</b> Welcome to LingoLizard
+      <br><br>
+      You're practicing <strong>{{ user.language }}.
+      <br><br>
+      <strong>Scenario:</strong> {{ scenario_intro }}
+      <br><br>
+      Type "start" when you're ready to begin!
+    </div>
+  </div>
 
-<div class="input-group">
-  <input type="text" id="userInput" class="form-control" placeholder="Type 'start' to begin...">
-  <button class="btn btn-primary" onclick="sendMessage()" id="sendButton">Send</button>
+  <div id="typingIndicator" class="text-white fst-italic mb-2" style="display: none;">
+    Bot is typing<span id="dots">.</span>
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="userInput" class="form-control" placeholder="Type 'start' to begin...">
+    <button class="btn btn-primary" onclick="sendMessage()" id="sendButton">Send</button>
+  </div>
+  
+  <!-- Hidden field to store scenario type -->
+  <input type="hidden" id="scenarioType" value="{{ scenario }}">
 </div>
 {% endblock %}
 
@@ -52,6 +67,21 @@
     margin: 5px 0;
     font-style: italic;
     color: #aaa;
+  }
+  
+  .scenario-badge {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .chat-box {
+    height: 400px;
+    overflow-y: auto;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
   }
 </style>
 {% endblock %}

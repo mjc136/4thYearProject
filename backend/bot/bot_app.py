@@ -117,51 +117,33 @@ SETTINGS = BotFrameworkAdapterSettings(
 # Custom adapter to handle direct responses without going through Bot Framework
 class DirectResponseAdapter(BotFrameworkAdapter):
     async def send_activities(self, context: TurnContext, activities):
-        """Custom implementation to bypass Bot Framework connector for local conversations."""
-        if (context.activity and context.activity.service_url and 
-            (context.activity.service_url.startswith('http://localhost') or
-             context.activity.service_url == 'http://localhost')):
-            
-            LOGGER.info("Using direct response adapter")
-            responses = []
-            for activity in activities:
-                # Create a resource response locally
-                response = ResourceResponse(id=activity.id or "direct-response")
-                responses.append(response)
-                
-                # Store the activity in the turn state so we can access it in our handler
-                if not hasattr(context, "sent_activities"):
-                    context.sent_activities = []
-                context.sent_activities.append(activity)
-                
-            return responses
-        # Fall back to standard behavior for non-local conversations
-        return await super().send_activities(context, activities)
-    
+        """Intercept and store messages locally for directline/local dev."""
+        responses = []
+        for activity in activities:
+            response = ResourceResponse(id=activity.id or "direct-response")
+            responses.append(response)
+
+            if not hasattr(context, "sent_activities"):
+                context.sent_activities = []
+            context.sent_activities.append(activity)
+
+        return responses
+
     async def process_activity(self, req_body, auth_header, logic):
-        """Override to bypass authentication for local development."""
-        try:
-            return await super().process_activity(req_body, auth_header, logic)
-        except Exception as e:
-            error_message = str(e)
-            if ("Authorization" in error_message or "authentication" in error_message.lower()) and BYPASS_AUTH:
-                LOGGER.info("Bypassing authentication error for local development")
-                # Convert the body to an Activity
+        """Custom process_activity that fully bypasses auth for localhost."""
+        if BYPASS_AUTH:
+            try:
                 activity = Activity().deserialize(req_body) if isinstance(req_body, dict) else req_body
-                
-                # Create context and call the bot logic directly
                 context = TurnContext(self, activity)
-                
-                try:
-                    await logic(context)
-                    return
-                except Exception as logic_error:
-                    LOGGER.error(f"Logic error after auth bypass: {str(logic_error)}", exc_info=True)
-                    raise logic_error
-            else:
-                # Re-raise for other exceptions
-                LOGGER.error(f"Error in process_activity: {error_message}")
-                raise
+                await logic(context)
+                return
+            except Exception as e:
+                LOGGER.error(f"[Bypass Mode] Error during bot logic execution: {e}", exc_info=True)
+                raise e
+        else:
+            # In production or test environments, use full pipeline
+            return await super().process_activity(req_body, auth_header, logic)
+
 
 # Create the custom adapter
 ADAPTER = DirectResponseAdapter(SETTINGS)
@@ -170,13 +152,13 @@ ADAPTER = DirectResponseAdapter(SETTINGS)
 async def on_error(context: TurnContext, error: Exception):
     LOGGER.error(f"Unhandled error: {str(error)}", exc_info=True)
     
-    error_message = "I apologize, but something went wrong. Let's try again."
+    error_message = "I apologise, but something went wrong. Let's try again."
     
     if isinstance(error, DeserializationError):
-        LOGGER.error(f"Deserialization error: {str(error)}")
+        LOGGER.error(f"Deserialisation error: {str(error)}")
         error_message = "I'm having trouble processing that. Let's start over."
-    elif "Authorization" in str(error):
-        LOGGER.error("Authorization error in request")
+    elif "Authorisation" in str(error):
+        LOGGER.error("Authorisation error in request")
         error_message = "There was an authentication issue. Let's try again."
     
     # Send a message to the user without going through the Bot Framework
@@ -198,7 +180,7 @@ async def on_error(context: TurnContext, error: Exception):
     
 ADAPTER.on_turn_error = on_error
 
-# Initialize storage
+# Initialise storage
 memory = MemoryStorage()
 conversation_state = ConversationState(memory)
 user_state_property = BotUserState(memory)
@@ -268,7 +250,7 @@ async def messages(req):
 
         activity = Activity().deserialize(body)
         # For local development, we don't need an auth header
-        auth_header = req.headers.get("Authorization", "") if not BYPASS_AUTH else ""
+        auth_header = req.headers.get("Authorisation", "") if not BYPASS_AUTH else ""
 
         bot_response = {"text": "", "attachments": []}
 
@@ -276,14 +258,19 @@ async def messages(req):
             try:
                 user_state = UserState(user_id)
                 
+                # Get scenario from header for all requests
+                scenario = req.headers.get("X-Scenario")
+                LOGGER.info(f"Scenario from header: {scenario}")
+                
                 # Force reset of active dialog if the message is "__start__" or similar
                 if body.get('text', '').lower() == "__start__" or body.get('text', '').lower() == "start":
                     user_state.set_active_dialog(None)
                     user_state.set_new_conversation(True)
-                    LOGGER.info(f"Starting new conversation for user {user_id}")
+                    LOGGER.info(f"Starting new conversation for user {user_id} with scenario: {scenario}")
                 
-                dialog = MainDialog(user_state)
-                LOGGER.info(f"Processing message for user {user_id}: '{activity.text}'")
+                # Always initialize the dialog with the scenario parameter
+                dialog = MainDialog(user_state, scenario)
+                LOGGER.info(f"Processing message for user {user_id}: '{activity.text}' for scenario: {scenario}")
             except Exception as e:
                 LOGGER.error(f"Failed to initialize dialog: {str(e)}", exc_info=True)
                 return web.json_response(
@@ -329,17 +316,17 @@ async def messages(req):
 
                     LOGGER.info(f"Bot response to {user_id}: {str(msg)[:100]}...")
                     
-                    # Try to send the message (might fail with deserialization errors)
+                    # Try to send the message (might fail with deserialisation errors)
                     return await original_send_activity(msg)
                 except DeserializationError as de:
-                    # If we get a deserialization error, just log it and continue
-                    LOGGER.error(f"Deserialization error during send_activity: {str(de)}")
+                    # If we get a deserialisation error, just log it and continue
+                    LOGGER.error(f"Deserialisation error during send_activity: {str(de)}")
                     # We already captured the message in bot_response, so no need to raise
                     return None
                 except Exception as e:
                     LOGGER.error(f"Error in send_activity: {str(e)}")
-                    if "Authorization" in str(e) and BYPASS_AUTH:
-                        LOGGER.info("Bypassing authorization error in send_activity")
+                    if "Authorisation" in str(e) and BYPASS_AUTH:
+                        LOGGER.info("Bypassing authorisation error in send_activity")
                         # We already captured the message in bot_response, so we're good
                         return None
                     # We already captured the message in bot_response, so no need to raise
@@ -369,16 +356,16 @@ async def messages(req):
                 await conversation_state.save_changes(turn_context)
                 await user_state_property.save_changes(turn_context)
                 
-            except DeserializationError as de:
+            except DeserialisationError as de:
                 # If we get HTML instead of JSON, this happens
-                LOGGER.error(f"Deserialization error: {str(de)}")
+                LOGGER.error(f"Deserialisation error: {str(de)}")
                 if "text/html" in str(de):
                     LOGGER.error("Received HTML response instead of JSON - this is likely due to a Bot Framework service URL issue")
                 
                 # Don't rethrow, we'll use the captured bot_response
             except Exception as e:
                 LOGGER.error(f"Dialog execution error: {str(e)}", exc_info=True)
-                bot_response["text"] = "I apologize, but I encountered an error. Let's try again."
+                bot_response["text"] = "I apologise, but I encountered an error. Let's try again."
 
             # After dialog execution, combine all responses
             if all_responses:
@@ -399,8 +386,8 @@ async def messages(req):
         except Exception as process_error:
             LOGGER.error(f"Error processing activity: {str(process_error)}")
             # If this is an auth error and we're bypassing auth, we can handle it specially
-            if "Authorization" in str(process_error) and BYPASS_AUTH:
-                LOGGER.info("Handling authorization error in process_activity")
+            if "Authorisation" in str(process_error) and BYPASS_AUTH:
+                LOGGER.info("Handling authorisation error in process_activity")
                 bot_response["text"] = "I'm here to help. What would you like to talk about?"
             # Continue execution - we'll use the captured bot_response if available
 

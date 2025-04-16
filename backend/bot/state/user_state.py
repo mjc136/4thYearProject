@@ -7,7 +7,7 @@ class UserState:
     A class to manage user state using user data from the database.
     """
 
-    def __init__(self, user_id: str, language: str = "en", proficiency_level: str = "Beginner"):
+    def __init__(self, user_id: str):
         """
         Initialise a UserState object using user record from DB.
         """
@@ -25,7 +25,6 @@ class UserState:
                 raise ValueError(f"User with ID {user_id} not found")
 
             self.language: str = user.language
-            self.proficiency_level: str = user.proficiency
             self.gender: str = "neutral"
             self.active_dialog = None
             self.final_score = 0
@@ -33,9 +32,6 @@ class UserState:
 
     def get_language(self) -> str:
         return self.language
-
-    def get_proficiency_level(self) -> str:
-        return self.proficiency_level
 
     def get_gender(self) -> str:
         return self.gender

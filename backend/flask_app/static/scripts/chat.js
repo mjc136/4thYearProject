@@ -57,10 +57,11 @@ async function sendMessage(msgOverride = null, auto = false) {
     const message = msgOverride || inputBox.value.trim();
     const chatBox = document.getElementById("chatBox");
     const typing = document.getElementById("typingIndicator");
+    const scenario = document.getElementById("scenarioType") ? document.getElementById("scenarioType").value : null;
 
     if (!message) return;
 
-    console.log(`Sending message: "${message}", auto=${auto}`);
+    console.log(`Sending message: "${message}", auto=${auto}, scenario=${scenario}`);
 
     if (!auto) {
         // Display user message in chat
@@ -79,13 +80,19 @@ async function sendMessage(msgOverride = null, auto = false) {
     
     let retryCount = 0;
     const maxRetries = 2;
+    
     const retry = async () => {
         try {
             console.log(`Sending message to server (attempt ${retryCount + 1}/${maxRetries + 1})...`);
             const response = await fetch("/send", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
+                headers: { 
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ 
+                    message,
+                    scenario  // Include the scenario in request body
+                })
             });
             
             if (!response.ok) {

@@ -15,12 +15,9 @@ def admin_tools():
 
     if request.method == "POST":
         new_language = request.form.get("language")
-        new_proficiency = request.form.get("proficiency")
 
         if new_language:
             user.language = new_language.lower()
-        if new_proficiency:
-            user.proficiency = new_proficiency.lower()
 
         db.session.commit()
         return redirect("/admin")
