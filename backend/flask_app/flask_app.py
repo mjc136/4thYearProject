@@ -32,7 +32,8 @@ app = Flask(
 # Config
 # Use Azure's persistent storage location for SQLite
 # On Azure App Service, use /home directory for persistence
-default_db_dir = "/home" if os.access("/home", os.W_OK) else BASE_DIR
+is_azure = os.getenv("WEBSITE_SITE_NAME") is not None
+default_db_dir = "/home" if is_azure else BASE_DIR
 db_path = os.path.join(default_db_dir, os.getenv("DB_FILENAME", "lingolizard.db"))
 
 # Allow override with DATABASE_URL environment variable for flexibility
@@ -49,12 +50,21 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("ENVIRONMENT") == "production"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = 86400  # Session lifetime in seconds (24 hours)
+
+# Secret key configuration - critical for sessions to work
+stored_key = os.getenv("SECRET_KEY")
+if not stored_key:
+    LOGGER.warning("SECRET_KEY not found in environment. Using a temporary key.")
+    # Store a consistent key for this app instance, don't regenerate on every request
+    app.secret_key = os.urandom(24)
+else:
+    LOGGER.info("Using SECRET_KEY from environment variables")
+    app.secret_key = stored_key
 
 # Log the database location for debugging
 LOGGER.info(f"Using database at: {db_path}")
 LOGGER.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
-
-app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
 # Init Flask extensions
 db.init_app(app)
