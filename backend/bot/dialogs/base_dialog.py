@@ -1,7 +1,6 @@
 import time
 from botbuilder.dialogs import ComponentDialog, DialogSet, DialogTurnStatus, DialogTurnResult
 from botbuilder.core import TurnContext
-from typing import Optional, Dict
 from botbuilder.schema import Activity
 import uuid
 import requests
@@ -14,6 +13,7 @@ import logging
 from dotenv import load_dotenv
 from openai import OpenAI
 from backend.bot.state.user_state import UserState
+from typing import Optional, List
 
 class BaseDialog(ComponentDialog):
     """
@@ -32,9 +32,9 @@ class BaseDialog(ComponentDialog):
         self._initialise_ai()
         self.score = 0  # Initialise the score
         
-        # Add conversation history to maintain context
-        self.conversation_history = []
-        self.max_history_length = 6  # Keep last 6 exchanges for context
+        # Generate a unique conversation ID for KV cache tracking
+        self.conversation_id = str(uuid.uuid4())
+        self.logger.info(f"Initialized new conversation with ID: {self.conversation_id}")
 
     def _initialise_configuration(self):
         """Load required environment variables for API keys and endpoints from Azure App Configuration."""
@@ -144,7 +144,7 @@ class BaseDialog(ComponentDialog):
                         You will only reply in {language}. Do not use any emojis or special characters. If using numbers,
                         write them out in words. For example, write "five" instead of "5". Only use euro currency. 
                         Do not break the fourth wall. Do not mention that you are an AI or a bot or that you are helping them practice languages.
-                        Adapt your responses to match the user's language complexity level naturally."""
+                        Adapt your responses to match the user's language complexity level naturally. You do not have a name."""
 
         # Add language-specific instructions
         if language == "pt":
@@ -159,31 +159,41 @@ class BaseDialog(ComponentDialog):
         if not user_input:
             user_input = "fallback"
         try:
+            # Get conversation history from user state
+            conversation_history = self.user_state.get_conversation_history()
+            
             # Build messages array with system message, conversation history, and current user input
-            messages = [{"role": "system", "content": combined_system_message}]
+            messages = [
+                {"role": "system", "content": combined_system_message}
+            ]
             
             # Add conversation history to provide context
-            for message in self.conversation_history[-self.max_history_length:]:
+            for message in conversation_history[-12:]:  # Include last 12 messages for context
                 messages.append(message)
                 
-            # Only add current user message if it's not already in conversation history
-            if not self.conversation_history or self.conversation_history[-1]["role"] != "user":
-                messages.append({"role": "user", "content": str(user_input)})
+            # Add current user message
+            messages.append({"role": "user", "content": str(user_input)})
+            
+            # Get the conversation ID from the user state
+            conversation_id = self.user_state.get_conversation_id()
             
             response = self.client.chat.completions.create(
                 model="deepseek-chat",
-                messages=messages
+                messages=messages,
+                temperature=0.1,
+                max_tokens=150,
+                user=conversation_id  # Use conversation_id to maintain context across calls
             )
             
             bot_response = response.choices[0].message.content
             
-            # Add bot response to conversation history
-            self.conversation_history.append({"role": "assistant", "content": bot_response})
+            # Add the messages to the conversation history
+            conversation_history.append({"role": "user", "content": str(user_input)})
+            conversation_history.append({"role": "assistant", "content": bot_response})
             
-            # Trim conversation history if it gets too long
-            if len(self.conversation_history) > self.max_history_length * 2:
-                self.conversation_history = self.conversation_history[-self.max_history_length * 2:]
-                
+            # Update the conversation history in the user state
+            self.user_state.set_conversation_history(conversation_history)
+            
             return bot_response
             
         except Exception as e:
@@ -226,15 +236,32 @@ class BaseDialog(ComponentDialog):
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Translation request failed: {str(e)}")
 
+    def entity_extraction(self, text: str, categories: Optional[List[str]] = None) -> str:
+        """Extract specific categories of entities from text using Azure Text Analytics."""
+        try:
+            response = self.text_analytics_client.recognize_entities(documents=[{"id": "1", "text": text}])[0]
+            result = ""
+
+            for entity in response.entities:
+                if categories is None or entity.category in categories:
+                    result += entity.text + ", "
+
+            return result[:-2] if result else "No entities found."
         
-    def analyse_sentiment(self, text: str) -> Dict[str, float]:
+        except Exception as e:
+            self.logger.error(f"Entity extraction failed: {e}")
+            return "Entity recognition failed."
+    
+    
+    def analyse_sentiment(self, text: str) -> str:
         """Analyse sentiment of the given text using Azure Text Analytics."""
-        if not text.strip():
-            return {"sentiment": "neutral", "positive": 0.5, "negative": 0.5, "neutral": 1.0}
+        try:
+            response = self.text_analytics_client.analyze_sentiment(documents=[{"id": "1", "text": text}])[0]
 
-        response = self.text_analytics_client.analyze_sentiment(documents=[{"id": "1", "text": text}])[0]
-
-        return response.sentiment
+            return response.sentiment
+        except Exception as e:
+            self.logger.error(f"Sentiment analysis failed: {e}")
+            return "Sentiment analysis failed."
 
     def detect_language(self, text: str) -> str:
         """Detect the language of the given text using Azure Text Analytics."""
@@ -275,3 +302,18 @@ class BaseDialog(ComponentDialog):
             # Return a default dialog result to prevent cascading errors
             from botbuilder.dialogs import DialogTurnResult, DialogTurnStatus
             return DialogTurnResult(DialogTurnStatus.Cancelled)
+        
+    def get_fallback(self):
+        return self.translate_text("I didn't catch that. Could you repeat it?", self.language)
+
+    def reset_conversation(self):
+        """Reset the conversation by generating a new conversation ID."""
+        old_id = self.conversation_id
+        self.conversation_id = str(uuid.uuid4())
+        self.logger.info(f"Reset conversation: {old_id} -> {self.conversation_id}")
+
+    def reset_conversation_history(self):
+        """Reset the conversation history and generate a new conversation ID."""
+        if self.user_state:
+            self.user_state.reset_conversation_id()
+            self.user_state.clear_conversation_history()

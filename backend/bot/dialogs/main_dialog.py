@@ -8,6 +8,9 @@ from backend.bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
+# from .restaurant_scenario import RestaurantScenarioDialog
+# from .shopping_scenario import ShoppingScenarioDialog
+# from .doctor_scenario import DoctorScenarioDialog
 from .base_dialog import BaseDialog
 
 

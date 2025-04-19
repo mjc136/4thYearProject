@@ -1,6 +1,7 @@
 from flask import session
 from backend.models import User
 from backend.common import app  # Ensure this points to your actual Flask app (flask_app.flask_app)
+import uuid
 
 class UserState:
     """
@@ -28,13 +29,17 @@ class UserState:
             self.gender: str = "neutral"
             self.active_dialog = None
             self.final_score = 0
-            self.new_conversation = True  # Add this line
+            self.new_conversation = True
+
+            # Initialize conversation history
+            self.conversation_history = []
+            
+            # Generate a unique conversation ID for KV cache tracking
+            self.conversation_id = str(uuid.uuid4())
+            print(f"[DEBUG] Initialized new conversation with ID: {self.conversation_id}")
 
     def get_language(self) -> str:
         return self.language
-
-    def get_gender(self) -> str:
-        return self.gender
 
     def set_active_dialog(self, dialog_id: str):
         """Store the active dialog ID."""
@@ -51,3 +56,35 @@ class UserState:
     def set_new_conversation(self, new_conversation):
         """Set whether this is a new conversation."""
         self.new_conversation = new_conversation
+
+    def get_conversation_history(self):
+        """Get the conversation history."""
+        return getattr(self, 'conversation_history', [])
+        
+    def set_conversation_history(self, history):
+        """Set the conversation history."""
+        self.conversation_history = history
+        
+    def clear_conversation_history(self):
+        """Clear the conversation history."""
+        self.conversation_history = []
+
+    def get_conversation_id(self) -> str:
+        """
+        Get the current conversation ID used for DeepSeek's KV Cache.
+        """
+        return getattr(self, 'conversation_id', None)
+    
+    def reset_conversation_id(self) -> str:
+        """
+        Generate a new conversation ID and return it.
+        This should be called when you want to start a fresh conversation context.
+        """
+        old_id = getattr(self, 'conversation_id', None)
+        self.conversation_id = str(uuid.uuid4())
+        print(f"[DEBUG] Reset conversation ID: {old_id} -> {self.conversation_id}")
+        
+        # Also clear the conversation history when resetting the ID
+        self.clear_conversation_history()
+        
+        return self.conversation_id

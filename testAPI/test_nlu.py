@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 
 # Load environment variables from a specific path
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bot', '.env')
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'backend', '.env')
 load_dotenv(dotenv_path=env_path)
         
 connection_string = os.getenv("AZURE_APP_CONFIG_CONNECTION_STRING")
@@ -45,16 +45,19 @@ def authenticate_client():
 
 def sentiment_analysis_example(client):
     """Analyse sentiment for a given text."""
-    input_text = "No that is too expensive."
+    input_text = "yes that is correct"
     response = client.analyze_sentiment(documents=[input_text])[0]
 
-    print(f"Document sentiment: {response.sentiment}\n")
-    for sentence in response.sentences:
-        print(f"\tText: \"{sentence.text}\"")
-        print(f"\tSentence sentiment: {sentence.sentiment}")
-        print(f"\tPositive score: {sentence.confidence_scores.positive:.2f}")
-        print(f"\tNegative score: {sentence.confidence_scores.negative:.2f}")
-        print(f"\tNeutral score: {sentence.confidence_scores.neutral:.2f}\n")
+    # print(f"Document sentiment: {response.sentiment}\n")
+    # for sentence in response.sentences:
+    #     print(f"\tText: \"{sentence.text}\"")
+    #     print(f"\tSentence sentiment: {sentence.sentiment}")
+    #     print(f"\tPositive score: {sentence.confidence_scores.positive:.2f}")
+    #     print(f"\tNegative score: {sentence.confidence_scores.negative:.2f}")
+    #     print(f"\tNeutral score: {sentence.confidence_scores.neutral:.2f}\n")
+        
+    if response.sentiment == "positive":
+        print("The sentiment is positive.")
 
 def language_detection_example(client):
     """Detect the language of a given text."""
@@ -66,12 +69,13 @@ def language_detection_example(client):
 
 def entity_recognition_example(client):
     """Extract entities from text."""
-    input_text = "I will travel to Paris next Friday."
-    response = client.recognize_entities(documents=[input_text])[0]
+    input_text = "i wanna go to the beach"
+    response = client.recognize_entities(documents=[{"id": "1", "text": input_text}])[0]
 
     print("Named Entities:")
     for entity in response.entities:
-        print(f"\tText: {entity.text}, Category: {entity.category}, Confidence: {entity.confidence_score:.2f}\n")
+        if entity.category == "Location" or (True):
+            print(f"\tText: {entity.text}, Category: {entity.category}, Confidence: {entity.confidence_score:.2f}\n")
 
 def key_phrase_extraction(client):
     """Extract key phrases from text."""
@@ -88,11 +92,11 @@ if __name__ == "__main__":
     # Perform sentiment analysis
     sentiment_analysis_example(client)
 
-    # Perform language detection
-    language_detection_example(client)
+    # # Perform language detection
+    # language_detection_example(client)
 
     # Perform entity recognition
     entity_recognition_example(client)
 
-    # Perform key phrase extraction
-    key_phrase_extraction(client)
+    # # Perform key phrase extraction
+    # key_phrase_extraction(client)

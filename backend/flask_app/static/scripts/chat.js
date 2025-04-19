@@ -211,3 +211,43 @@ document.getElementById("userInput").addEventListener("keypress", function (e) {
         sendMessage();
     }
 });
+
+// Call this when the dialog ends in feedback_step
+function markScenarioAsComplete(scenarioName) {
+  fetch('/scenario/complete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      scenario: scenarioName
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Show a success message with XP earned
+      showXpNotification(data.xp_earned, data.xp, data.level);
+    }
+  })
+  .catch(error => console.error('Error marking scenario complete:', error));
+}
+
+// Helper function to show XP notification
+function showXpNotification(xpEarned, totalXp, level) {
+  // Create and show a notification to the user about XP gained
+  const notification = document.createElement('div');
+  notification.className = 'xp-notification';
+  notification.innerHTML = `
+    <h3>Scenario Complete!</h3>
+    <p>You earned ${xpEarned} XP</p>
+    <p>Total XP: ${totalXp}</p>
+    <p>Level: ${level}</p>
+  `;
+  document.body.appendChild(notification);
+  
+  // Remove after a few seconds
+  setTimeout(() => {
+    notification.remove();
+  }, 5000);
+}
