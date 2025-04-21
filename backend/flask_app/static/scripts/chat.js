@@ -15,40 +15,26 @@ function stopTypingDots() {
 }
 
 function typeBotMessage(text, container) {
-    return new Promise(resolve => {
-        console.log("Displaying bot message:", text);
-        const bubble = document.createElement("div");
-        bubble.className = "bubble bot-bubble";
+    console.log("Displaying bot message:", text);
+    const bubble = document.createElement("div");
+    bubble.className = "bubble bot-bubble";
 
-        const prefix = document.createElement("b");
-        prefix.textContent = "Bot: ";
-        bubble.appendChild(prefix);
+    const prefix = document.createElement("b");
+    prefix.textContent = "Bot: ";
+    bubble.appendChild(prefix);
 
-        const messageContent = document.createElement("span");
-        bubble.appendChild(messageContent);
+    const messageContent = document.createElement("span");
+    messageContent.textContent = text; // Set text immediately without animation
+    bubble.appendChild(messageContent);
 
-        if (text.startsWith("Example:") || text.startsWith("Tip:")) {
-            bubble.className += " example-bubble";
-            messageContent.className = "example-text";
-        }
+    if (text.startsWith("Example:") || text.startsWith("Tip:")) {
+        bubble.className += " example-bubble";
+        messageContent.className = "example-text";
+    }
 
-        container.appendChild(bubble);
-
-        let i = 0;
-        const speed = 30;
-
-        const interval = setInterval(() => {
-            if (i < text.length) {
-                messageContent.textContent = text.substring(0, i + 1);
-                i++;
-            } else {
-                clearInterval(interval);
-                console.log("Finished displaying message:", text);
-                container.scrollTop = container.scrollHeight;
-                resolve(); // Resolve the promise after the typing is done
-            }
-        }, speed);
-    });
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+    return Promise.resolve(); // Resolve immediately without waiting for animation
 }
 
 function sanitiseInput(input) {
@@ -130,16 +116,9 @@ async function sendMessage(msgOverride = null, auto = false) {
                 } else {
                     // Display each message separately
                     for (const msg of messages) {
-                        // Check for instruction messages (Step X of Y)
-                        if (msg.startsWith("Step ") && msg.includes(" of ")) {
-                            const stepDiv = document.createElement("div");
-                            stepDiv.className = "step-indicator";
-                            stepDiv.textContent = msg;
-                            chatBox.appendChild(stepDiv);
-                        } else {
-                            // Normal bot message
-                            typeBotMessage(msg, chatBox);
-                        }
+                        // Convert step indicators to regular messages
+                        typeBotMessage(msg, chatBox);
+                        
                         // Short delay between multiple messages for better user experience
                         if (messages.length > 1) {
                             await new Promise(resolve => setTimeout(resolve, 500));

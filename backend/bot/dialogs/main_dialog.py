@@ -36,7 +36,6 @@ class MainDialog(BaseDialog):
         self.add_dialog(TaxiScenarioDialog(user_state))
         self.add_dialog(HotelScenarioDialog(user_state))
         self.add_dialog(JobInterviewScenarioDialog(user_state))
-        # placeholder for other scenario dialogs
         self.add_dialog(WaterfallDialog("RestaurantScenarioDialog", []))
         self.add_dialog(WaterfallDialog("ShoppingScenarioDialog", []))
         self.add_dialog(WaterfallDialog("DoctorScenarioDialog", []))
@@ -48,7 +47,6 @@ class MainDialog(BaseDialog):
         """Route to the appropriate scenario based on passed-in scenario or user proficiency."""
         dialog_id = None
 
-        # Scenario explicitly passed from request
         if self.scenario == "taxi":
             dialog_id = "TaxiScenarioDialog"
         elif self.scenario == "restaurant":
@@ -63,17 +61,25 @@ class MainDialog(BaseDialog):
             dialog_id = "JobInterviewScenarioDialog"
 
         if not dialog_id:
-            await step_context.context.send_activity("❗ No matching scenario available for your settings.")
+            await step_context.context.send_activity("No matching scenario available for your settings.")
             return await step_context.end_dialog()
 
         self.user_state.set_active_dialog(dialog_id)
-        return await step_context.begin_dialog(dialog_id)
+        return await step_context.begin_dialog(dialog_id)  # FIX: use begin_dialog instead of replace_dialog
 
     async def continue_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Re-enter the active scenario dialog."""
+        """Do not restart the scenario if it just ended."""
         active_dialog = self.user_state.get_active_dialog()
+
+        # Do not re-enter the same dialog if we just completed it
+        if step_context.result is not None:
+            await step_context.context.send_activity("Scenario completed.")
+            return await step_context.end_dialog()
+
+        # Otherwise, re-launch the dialog (e.g., user wants to retry)
         if active_dialog:
-            return await step_context.replace_dialog(active_dialog)
+            return await step_context.begin_dialog(active_dialog)
+
         return await step_context.replace_dialog(self.id)
 
     async def run(self, turn_context: TurnContext, dialog_state):

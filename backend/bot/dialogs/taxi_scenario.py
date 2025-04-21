@@ -106,6 +106,10 @@ class TaxiScenarioDialog(BaseDialog):
             example = self.translate_text("Example: Hello! I am good, how are you?", self.language)
             self.greeted = True
             self.greet_success = True
+
+            # Add to memory
+            self.add_to_memory("User greeted the bot.", "Bot responded with a greeting.")
+
             await step_context.context.send_activity(MessageFactory.text(example))
             return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
         return await step_context.next(None)
@@ -127,13 +131,16 @@ class TaxiScenarioDialog(BaseDialog):
     async def confirm_destination_with_user(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Extracts and confirms the destination provided by the user."""
         response = step_context.result
-        
         locations = self.entity_extraction(response, "Location")
         if locations:
             self.destination = locations[0]
             self.user_gave_destination = True
             self.destination_confirmed = True
             self.destination_changed = False
+
+            # Add to memory
+            self.add_to_memory(f"User provided destination: {response}", f"Bot confirmed destination: {self.destination}")
+
             prompt = await self.chatbot_respond(
                 step_context.context,
                 response,
@@ -143,6 +150,10 @@ class TaxiScenarioDialog(BaseDialog):
         else:
             await step_context.context.send_activity(MessageFactory.text(self.get_fallback()))
             self.destination_changed = True
+
+            # Add to memory
+            self.add_to_memory(f"User provided invalid destination: {response}", "Bot asked for the destination again.")
+
             prompt = await self.chatbot_respond(
                 step_context.context,
                 response,
@@ -174,20 +185,19 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def provide_price_quote(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Provides the base price quote for the taxi journey to the destination."""
-        if self.price:
-            return await step_context.next(None)
-            
-        confirmed_destination = self.destination 
-        
-        await step_context.context.send_activity(MessageFactory.text("Step 3 of 5: Hearing the price"))
-        self.price_offered = True
-        
-        prompt = await self.chatbot_respond(
-            step_context.context,
-            f"Destination confirmed: {confirmed_destination}",
-            f"{self.taxi_persona} The destination is confirmed as '{confirmed_destination}'. Now, state the price. Say ONLY: 'The trip costs twenty euros. Is that okay?'"
-        )
-        return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+        if not self.price:
+            self.price_offered = True
+
+            # Add to memory
+            self.add_to_memory(f"Destination confirmed: {self.destination}", "Bot provided price quote: 20 euros.")
+
+            prompt = await self.chatbot_respond(
+                step_context.context,
+                f"Destination confirmed: {self.destination}",
+                f"{self.taxi_persona} The destination is confirmed as '{self.destination}'. Now, state the price. Say ONLY: 'The trip costs twenty euros. Is that okay?'"
+            )
+            return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
+        return await step_context.next(None)
 
     async def handle_price_negotiation(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handles the user's response to the price quote - acceptance or negotiation."""
@@ -206,24 +216,33 @@ class TaxiScenarioDialog(BaseDialog):
         if sentiment == "positive" or ("accept" in ai_intent.lower()):
             self.price = self.base_price
             self.user_accepted_price = True
+            
+            # Store in step_context.values
+            step_context.values["price"] = self.base_price
+            step_context.values["user_accepted_price"] = True
+            
             return await step_context.next(None) 
 
         self.user_negotiated = True
+        # Store in step_context.values
+        step_context.values["user_negotiated"] = True
+        
         prompt = await self.chatbot_respond(
             step_context.context,
-            "Destination confirmed: {confirmed_destination}",
-            f"{self.taxi_persona} The user wants to negotiate the price 20 euros to their destination '{self.destination}'.DON'T ASK: for their destination again Ask: 'What price would you like to pay?"
+            f"Destination confirmed: {self.destination}",  # Fixed string formatting
+            f"{self.taxi_persona} The user wants to negotiate the price 20 euros to their destination '{self.destination}'. DON'T ASK: for their destination again Ask: 'What price would you like to pay?'"
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def validate_negotiated_price(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Validates the user's suggested price from the negotiation."""
-        if self.user_accepted_price:
+        # Check in both step_context.values and instance variable
+        if step_context.values.get("user_accepted_price", False) or self.user_accepted_price:
             return await step_context.next(None)
             
         response = step_context.result
 
-        price = self.entity_extraction(response, "Quantity",)
+        price = self.entity_extraction(response, "Quantity")
         
         if not price:
             await step_context.context.send_activity(MessageFactory.text(self.get_fallback()))
@@ -276,7 +295,7 @@ class TaxiScenarioDialog(BaseDialog):
     async def prepare_scenario_feedback(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prepares feedback for the user based on their interaction during the scenario."""
         await step_context.context.send_activity("Step 5 of 5: Feedback")
-        self.score = self.calculate_score()
+        self.score = self.calculate_score(step_context)  # Pass step_context to use its values
         self.user_state.update_xp(self.score)
         await step_context.context.send_activity(Activity(type="typing"))
         await step_context.context.send_activity(self.generate_feedback())
@@ -286,6 +305,12 @@ class TaxiScenarioDialog(BaseDialog):
         """Displays the user's score and completes the scenario."""
         message = f"You finished the scenario! Your score: {self.score}/100"
         translated = self.translate_text(message, self.language)
+
+        # Retrieve memory and display it
+        memory = self.get_memory()
+        await step_context.context.send_activity(MessageFactory.text("Conversation history:"))
+        await step_context.context.send_activity(MessageFactory.text(memory))
+
         await step_context.context.send_activity(Activity(type="typing"))
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated)
@@ -304,31 +329,44 @@ class TaxiScenarioDialog(BaseDialog):
         await step_context.context.send_activity(self.translate_text("Thank you for using the taxi scenario!", self.language))
         await step_context.context.send_activity("Goodbye!")
         await step_context.context.send_activity(self.translate_text("Goodbye!", self.language))
-        return await step_context.end_dialog()
+        return await step_context.end_dialog(result=True)
 
-    def calculate_score(self) -> int:
+    def calculate_score(self, step_context: WaterfallStepContext = None) -> int:
         """Calculates the user's score based on their performance in the scenario."""
-        score = 45  # Base score for completing the scenario
-        
-        print(f"[DEBUG] greet_success: {self.greet_success}")
-        print(f"[DEBUG] user_gave_destination: {self.user_gave_destination}")
-        print(f"[DEBUG] destination_confirmed: {self.destination_confirmed}")
-        print(f"[DEBUG] price_offered: {self.price_offered}")
-        print(f"[DEBUG] user_accepted_price: {self.user_accepted_price}")
-        print(f"[DEBUG] valid_negotiated_price: {self.valid_negotiated_price}")
-        
-        if self.greet_success:
+        score = 0  # Start with a base score of 0
+
+        # Use step_context values if provided, otherwise fall back to instance variables
+        if step_context:
+            greet_success = step_context.values.get("greet_success", False) or self.greet_success
+            user_gave_destination = step_context.values.get("user_gave_destination", False) or self.user_gave_destination
+            destination_confirmed = step_context.values.get("destination_confirmed", False) or self.destination_confirmed
+            price_offered = step_context.values.get("price_offered", False) or self.price_offered
+            user_accepted_price = step_context.values.get("user_accepted_price", False) or self.user_accepted_price
+            valid_negotiated_price = step_context.values.get("valid_negotiated_price", False) or self.valid_negotiated_price
+        else:
+            # If no step_context, use instance variables
+            greet_success = self.greet_success
+            user_gave_destination = self.user_gave_destination
+            destination_confirmed = self.destination_confirmed
+            price_offered = self.price_offered
+            user_accepted_price = self.user_accepted_price
+            valid_negotiated_price = self.valid_negotiated_price
+
+        # Update score based on flags
+        if greet_success:
             score += 10
-        if self.user_gave_destination:
+        if user_gave_destination:
             score += 15
-        if self.destination_confirmed:
+        if destination_confirmed:
             score += 10
-        if self.price_offered:
+        if price_offered:
             score += 10
-        if self.user_accepted_price or self.valid_negotiated_price:
-            score += 10
-            
-        return min(score, 100)
+        if user_accepted_price:
+            score += 20  # Higher weight for accepting the price
+        elif valid_negotiated_price:
+            score += 15  # Slightly lower weight for negotiating a valid price
+
+        return min(score, 100)  # Ensure the score does not exceed 100
 
     def generate_feedback(self) -> str:
         """Generates feedback text based on the user's score."""

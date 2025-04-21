@@ -180,7 +180,7 @@ class BaseDialog(ComponentDialog):
             response = self.client.chat.completions.create(
                 model="deepseek-chat",
                 messages=messages,
-                temperature=0.1,
+                temperature=0.5,
                 max_tokens=150,
                 user=conversation_id  # Use conversation_id to maintain context across calls
             )

@@ -6,19 +6,6 @@
 <div class="container mt-5 text-white">
     <h2 class="mb-4">Choose Your Scenario</h2>
 
-    <!-- XP Progress -->
-    <div class="mb-4">
-        <div class="progress" style="height: 25px; background-color: rgba(255,255,255,0.2);">
-            <div class="progress-bar bg-success" role="progressbar"
-                style="width: {{ [user.xp, 100]|min }}%;"
-                aria-valuenow="{{ user.xp }}" aria-valuemin="0" aria-valuemax="100"
-                aria-label="XP progress bar">
-                Level {{ user.level }} - {{ user.xp }}%
-            </div>
-        </div>
-        <p class="mt-2 text-light"><small>Complete scenarios to earn XP and unlock more challenging conversations!</small></p>
-    </div>
-
     <!-- Scenario Cards -->
     <div class="row row-cols-1 row-cols-md-3 g-4">
 
