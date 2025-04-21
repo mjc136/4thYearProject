@@ -27,7 +27,6 @@ function typeBotMessage(text, container) {
     messageContent.textContent = text; // Set text immediately without animation
     bubble.appendChild(messageContent);
 
-    // Better approach: Check for message structure rather than specific keywords
     // This handles both non-translated and translated examples/tips
     if (text.match(/^(\w+)\s*:\s(.+)/)) {
         // Any message that starts with a word followed by a colon is treated as special

@@ -25,15 +25,20 @@
       <br><br>
       <strong>Scenario:</strong> {{ scenario_intro }}
       <br><br>
-      Type "start" when you're ready to begin!
     </div>
   </div>
 
   <div id="typingIndicator" class="text-white fst-italic mb-2" style="display: none;">
     Bot is typing<span id="dots">.</span>
   </div>
+  
+  <div class="text-center mb-3">
+    <button id="startButton" class="btn btn-success btn-lg" onclick="startScenario()">
+      <i class="bi bi-play-fill"></i> Start Scenario
+    </button>
+  </div>
 
-  <div class="input-group">
+  <div class="input-group" id="inputArea" style="display: none;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="text" id="userInput" class="form-control" placeholder="Type your message here...">
     <button class="btn btn-primary" onclick="sendMessage()" id="sendButton">Send</button>
@@ -89,4 +94,19 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='scripts/chat.js') }}"></script>
+<script>
+  function startScenario() {
+    // Hide the start button
+    document.getElementById('startButton').style.display = 'none';
+    
+    // Show the input area
+    document.getElementById('inputArea').style.display = 'flex';
+    
+    // Focus on the input field
+    document.getElementById('userInput').focus();
+    
+    // Send the start message to begin the scenario
+    sendMessage('start', true);
+  }
+</script>
 {% endblock %}
