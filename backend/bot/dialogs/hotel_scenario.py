@@ -325,7 +325,7 @@ class HotelScenarioDialog(BaseDialog):
             await step_context.context.send_activity(MessageFactory.text(concern_handling))
             return await step_context.prompt(
                 TextPrompt.__name__,
-                PromptOptions(prompt=MessageFactory.text("Would you like to proceed with the booking?"))
+                PromptOptions(prompt=MessageFactory.text(self.translate_text("Would you like to proceed with the booking?")))
             )
         
         # Continue with payment if confirmed
@@ -544,7 +544,7 @@ class HotelScenarioDialog(BaseDialog):
             score += 15
             
         if payment_method_provided:
-            score += 10
+            score += 15
                 
         # Base participation score
         score += 10

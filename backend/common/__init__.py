@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, redirect
+from flask import Flask, redirect, request, jsonify
 from dotenv import load_dotenv
 from backend.common.extensions import db, bcrypt
 from backend.models import User
@@ -97,10 +97,28 @@ with app.app_context():
 def index():
     return redirect("/login")
 
+# Add a error handler for bad requests
+@app.errorhandler(400)
+def handle_bad_request(e):
+    """Handle bad request errors with a friendly response."""
+    logger.error(f"Bad request error: {str(e)}")
+    return jsonify({
+        "status": "error",
+        "message": "Bad Request: The server could not understand the request.",
+        "details": str(e)
+    }), 400
+
 # Add a DB-checking health endpoint
 @app.route("/db-health")
 def db_health():
     try:
+        # Validate request parameters if any
+        if request.args and not all(k in ['format', 'verbose'] for k in request.args):
+            return jsonify({
+                "status": "error",
+                "message": "Invalid query parameters"
+            }), 400
+            
         # Test DB connection by querying a user
         with app.app_context():
             user_count = User.query.count()

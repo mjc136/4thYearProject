@@ -27,14 +27,17 @@ function typeBotMessage(text, container) {
     messageContent.textContent = text; // Set text immediately without animation
     bubble.appendChild(messageContent);
 
-    if (text.startsWith("Example:") || text.startsWith("Tip:")) {
+    // Better approach: Check for message structure rather than specific keywords
+    // This handles both non-translated and translated examples/tips
+    if (text.match(/^(\w+)\s*:\s(.+)/)) {
+        // Any message that starts with a word followed by a colon is treated as special
         bubble.className += " example-bubble";
         messageContent.className = "example-text";
     }
 
     container.appendChild(bubble);
     container.scrollTop = container.scrollHeight;
-    return Promise.resolve(); // Resolve immediately without waiting for animation
+    return Promise.resolve();
 }
 
 function sanitiseInput(input) {
