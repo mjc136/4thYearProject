@@ -56,15 +56,16 @@ db.init_app(app)
 bcrypt.init_app(app)
 migrate = Migrate(app, db)
 
-# Initialise DB and users (if DB doesn't already exist)
+# Initialise DB and users (if User table is empty)
 with app.app_context():
     try:
-        if not os.path.exists(DB_PATH):
-            logger.info("Database not found. Creating new database...")
-            db.create_all()
-
-            logger.info("Creating default users...")
-
+        # Check if User table is populated rather than if DB file exists
+        user_count = User.query.count()
+        
+        if user_count == 0:
+            logger.info("Database exists but has no users. Creating default users...")
+            
+            # Create default users
             if not User.query.filter_by(username="admin").first():
                 db.session.add(User(
                     username="admin",
@@ -75,7 +76,7 @@ with app.app_context():
                     level=1,
                     admin=True
                 ))
-
+                
             if not User.query.filter_by(username="testuser").first():
                 db.session.add(User(
                     username="testuser",
@@ -86,14 +87,12 @@ with app.app_context():
                     level=1,
                     admin=False
                 ))
-
+                
             db.session.commit()
-            logger.info("Database initialized and default users added.")
+            logger.info(f"Created default users. Now have {User.query.count()} users.")
         else:
-            logger.info("Database already exists. Skipping creation.")
-        
-        user_count = User.query.count()
-        logger.info(f"Database contains {user_count} users.")
+            logger.info(f"Database already has {user_count} users. Skipping default user creation.")
+            
     except Exception as e:
         logger.error(f"Database initialization error: {e}", exc_info=True)
         logger.error(f"Current directory: {os.getcwd()}")
