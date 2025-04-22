@@ -6,33 +6,33 @@ from backend.common.extensions import db, bcrypt
 from backend.models import User
 from flask_migrate import Migrate
 
-# Load .env variables
+# Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
-
-# Setup paths
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
-
-# Get database path from environment variable or use default
-# Azure environments typically use /home for persistent storage
 
 # Determine environment
 is_azure = os.getenv("WEBSITE_SITE_NAME") is not None
 
-# Use /home in Azure, BASE_DIR locally
-default_db_path = os.path.join("/home", "lingolizard.db") if is_azure else os.path.join(BASE_DIR, "lingolizard.db")
+# Define paths
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
+azure_storage_path = "/home/data" if is_azure else BASE_DIR
+default_db_path = os.path.join(azure_storage_path, "lingolizard.db")
 DB_PATH = os.getenv("DB_PATH", default_db_path)
+
+# Ensure Azure storage path exists
+if is_azure:
+    os.makedirs(azure_storage_path, exist_ok=True)
 
 logger.info(f"Using database path: {DB_PATH}")
 
-# Init app
+# Initialise Flask app
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
-# Config
+# Flask config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SESSION_COOKIE_SECURE"] = True
@@ -56,51 +56,58 @@ db.init_app(app)
 bcrypt.init_app(app)
 migrate = Migrate(app, db)
 
-# Create tables & default users
+# Initialise DB and users (if DB doesn't already exist)
 with app.app_context():
     try:
-        logger.info("Initializing database...")
-        db.create_all()
+        if not os.path.exists(DB_PATH):
+            logger.info("Database not found. Creating new database...")
+            db.create_all()
+
+            logger.info("Creating default users...")
+
+            if not User.query.filter_by(username="admin").first():
+                db.session.add(User(
+                    username="admin",
+                    password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
+                    language="english",
+                    proficiency="beginner",
+                    xp=0,
+                    level=1,
+                    admin=True
+                ))
+
+            if not User.query.filter_by(username="testuser").first():
+                db.session.add(User(
+                    username="testuser",
+                    password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
+                    language="spanish",
+                    proficiency="beginner",
+                    xp=0,
+                    level=1,
+                    admin=False
+                ))
+
+            db.session.commit()
+            logger.info("Database initialized and default users added.")
+        else:
+            logger.info("Database already exists. Skipping creation.")
         
-        if not User.query.filter_by(username="admin").first():
-            logger.info("Adding admin user")
-            db.session.add(User(
-                username="admin",
-                password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
-                language="english",
-                proficiency="beginner",
-                xp=0,
-                level=1,
-                admin=True
-            ))
-
-        if not User.query.filter_by(username="testuser").first():
-            logger.info("Adding test user")
-            db.session.add(User(
-                username="testuser",
-                password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
-                language="spanish",
-                proficiency="beginner",
-                xp=0,
-                level=1,
-                admin=False
-            ))
-
-        db.session.commit()
-        logger.info("Database ready and default users added.")
-        logger.info(f"DB path: {DB_PATH}")
+        user_count = User.query.count()
+        logger.info(f"Database contains {user_count} users.")
     except Exception as e:
-        logger.error(f"Database initialization error: {e}")
-        # Don't crash the application, but log the error
+        logger.error(f"Database initialization error: {e}", exc_info=True)
+        logger.error(f"Current directory: {os.getcwd()}")
+        logger.error(f"DB path: {DB_PATH}")
+        logger.error(f"Directory writable: {os.access(os.path.dirname(DB_PATH), os.W_OK)}")
 
+# Root route
 @app.route("/")
 def index():
     return redirect("/login")
 
-# Add a error handler for bad requests
+# Handle 400 errors gracefully
 @app.errorhandler(400)
 def handle_bad_request(e):
-    """Handle bad request errors with a friendly response."""
     logger.error(f"Bad request error: {str(e)}")
     return jsonify({
         "status": "error",
@@ -108,31 +115,28 @@ def handle_bad_request(e):
         "details": str(e)
     }), 400
 
-# Add a DB-checking health endpoint
+# DB health check
 @app.route("/db-health")
 def db_health():
     try:
-        # Validate request parameters if any
         if request.args and not all(k in ['format', 'verbose'] for k in request.args):
             return jsonify({
                 "status": "error",
                 "message": "Invalid query parameters"
             }), 400
-            
-        # Test DB connection by querying a user
-        with app.app_context():
-            user_count = User.query.count()
-            return {
-                "status": "healthy",
-                "database": "connected",
-                "users": user_count,
-                "db_path": DB_PATH
-            }
+
+        user_count = User.query.count()
+        return jsonify({
+            "status": "healthy",
+            "database": "connected",
+            "users": user_count,
+            "db_path": DB_PATH
+        })
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
-        return {
+        return jsonify({
             "status": "unhealthy",
             "database": "disconnected",
             "error": str(e),
             "db_path": DB_PATH
-        }, 500
+        }), 500

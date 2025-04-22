@@ -154,24 +154,75 @@ class UserState:
         
         return self.conversation_id
     
-    def update_xp(self, xp: int) -> None:
+    def get_level(self) -> int:
         """
-        Update the user's XP in the database.
-        Adds the provided XP amount to the user's total.
+        Get the user's current level from the database.
         """
         try:
             with app.app_context():
                 user = User.query.get(int(self.user_id))
                 if user:
-                    user.xp = (user.xp or 0) + xp  # Handle None value
-                    self.xp = user.xp  # Update local state too
+                    return user.level
+                else:
+                    logger.error(f"User with ID {self.user_id} not found when getting level")
+                    return 1  # Default level
+        except Exception as e:
+            logger.error(f"Error getting level: {str(e)}")
+            return 1  # Default level
+
+    def calculate_level(self, xp: int) -> int:
+        """
+        Calculate what level a user should be based on their XP.
+        You can customize the XP thresholds for each level here.
+        
+        Basic formula: level = 1 + floor(sqrt(xp / 100))
+        This means:
+        - Level 1: 0-99 XP
+        - Level 2: 100-399 XP
+        - Level 3: 400-899 XP
+        - Level 4: 900-1599 XP
+        And so on...
+        """
+        import math
+        return 1 + math.floor(math.sqrt(xp / 100))
+
+    def update_xp(self, xp: int) -> int:
+        """
+        Update the user's XP in the database and handle level ups.
+        Adds the provided XP amount to the user's total.
+        
+        Returns:
+            int: The new total XP
+        """
+        try:
+            with app.app_context():
+                user = User.query.get(int(self.user_id))
+                if user:
+                    # Store old level to check for level up
+                    old_level = user.level
+                    
+                    # Update XP
+                    old_xp = user.xp or 0
+                    new_xp = old_xp + xp
+                    user.xp = new_xp
+                    self.xp = new_xp  # Update local state too
+                    
+                    # Calculate and update level if needed
+                    new_level = self.calculate_level(new_xp)
+                    if new_level > old_level:
+                        user.level = new_level
+                        logger.info(f"User {self.user_id} leveled up to {new_level}!")
+                    
                     db.session.commit()
-                    logger.info(f"Updated XP for user {self.user_id}: {user.xp}")
+                    logger.info(f"Updated XP for user {self.user_id}: {old_xp} -> {new_xp}")
+                    return new_xp
                 else:
                     logger.error(f"User with ID {self.user_id} not found for XP update")
+                    return 0
         except Exception as e:
             logger.error(f"Error updating XP: {str(e)}")
-    
+            return 0
+
     def update_score(self, score: int) -> None:
         """
         Update the user's scenario score.
