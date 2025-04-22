@@ -43,7 +43,6 @@ class HotelScenarioDialog(BaseDialog):
             WaterfallDialog(
                 "HotelScenarioDialog.waterfall",
                 [
-                    self.introduce_scenario,
                     self.initial_receptionist_greeting,
                     self.ask_length_of_stay,
                     self.process_stay_duration,
@@ -59,17 +58,6 @@ class HotelScenarioDialog(BaseDialog):
             )
         )
         self.initial_dialog_id = "HotelScenarioDialog.waterfall"
-
-    async def introduce_scenario(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        intro = "Welcome to the Hotel Booking Practise!"
-        instructions = (
-            "In this scenario, you'll practise booking a hotel room as a guest.\n\n"
-            "Tip: Try to be polite and detailed in your responses"
-        )
-        
-        await step_context.context.send_activity(MessageFactory.text(self.translate_text(intro, self.language)))
-        await step_context.context.send_activity(MessageFactory.text(self.translate_text(instructions, self.language)))
-        return await step_context.next(None)
 
     async def initial_receptionist_greeting(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step One of Six: Initial greeting"))

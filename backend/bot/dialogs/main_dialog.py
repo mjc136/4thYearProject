@@ -8,7 +8,7 @@ from backend.bot.state.user_state import UserState
 from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
-# from .restaurant_scenario import RestaurantScenarioDialog
+from .restaurant_scenario import RestaurantScenarioDialog
 # from .shopping_scenario import ShoppingScenarioDialog
 # from .doctor_scenario import DoctorScenarioDialog
 from .base_dialog import BaseDialog
@@ -36,7 +36,7 @@ class MainDialog(BaseDialog):
         self.add_dialog(TaxiScenarioDialog(user_state))
         self.add_dialog(HotelScenarioDialog(user_state))
         self.add_dialog(JobInterviewScenarioDialog(user_state))
-        self.add_dialog(WaterfallDialog("RestaurantScenarioDialog", []))
+        self.add_dialog(RestaurantScenarioDialog(user_state))
         self.add_dialog(WaterfallDialog("ShoppingScenarioDialog", []))
         self.add_dialog(WaterfallDialog("DoctorScenarioDialog", []))
         self.add_dialog(TextPrompt(TextPrompt.__name__))

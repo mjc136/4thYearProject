@@ -25,7 +25,6 @@ class JobInterviewScenarioDialog(BaseDialog):
         waterfall_dialog = WaterfallDialog(
             f"{dialog_id}.waterfall",
             [
-                self.intro_step,
                 self.initial_greeting_step,
                 self.experience_step,
                 self.skills_step,
@@ -62,24 +61,8 @@ class JobInterviewScenarioDialog(BaseDialog):
             ))
         return SuggestedActions(actions=card_actions)
 
-    async def intro_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        message = "Welcome to the Job Interview Scenario"
-        sub_message = "This simulation will help you prepare for a customer service role interview. I'll be your interviewer, and you'll practice responding to common interview questions."
-        tip = "Tip:\n- Answer using professional, formal language\n- Provide specific examples from your experience\n- Keep your answers concise but detailed\n- Be honest and show enthusiasm"
-        
-        await step_context.context.send_activity(self.translate_text(message, self.language))
-        await step_context.context.send_activity(self.translate_text(sub_message, self.language))
-        await step_context.context.send_activity(self.translate_text(tip, self.language))
-        
-        # Ask if user is ready with suggested actions
-        ready_message = MessageFactory.text("Are you ready to begin the interview?")
-        ready_message.suggested_actions = self.create_suggested_actions(["Yes, I'm ready", "Tell me more about this scenario"])
-        
-        await step_context.context.send_activity(ready_message)
-        return await step_context.next(None)
-
     async def initial_greeting_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         
         # Scenario context to help user understand the role
         context_message = "📋 **Interview Context**: You're applying for a Customer Service Representative position at a technology company. The role involves handling customer inquiries, resolving issues, and ensuring customer satisfaction."
@@ -105,7 +88,7 @@ class JobInterviewScenarioDialog(BaseDialog):
             await step_context.context.send_activity(f"Tip for improvement: {formality_check}")
             self.feedback_points.append("Work on maintaining professional tone throughout the interview")
         
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -120,7 +103,7 @@ class JobInterviewScenarioDialog(BaseDialog):
 
     async def skills_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.experience = step_context.result
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -131,7 +114,7 @@ class JobInterviewScenarioDialog(BaseDialog):
 
     async def motivation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.skills = step_context.result
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -141,7 +124,7 @@ class JobInterviewScenarioDialog(BaseDialog):
 
     async def strengths_weaknesses_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.motivation = step_context.result
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -151,7 +134,7 @@ class JobInterviewScenarioDialog(BaseDialog):
 
     async def salary_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.strengths_weaknesses = step_context.result
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -161,7 +144,7 @@ class JobInterviewScenarioDialog(BaseDialog):
 
     async def questions_for_interviewer_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.salary_expectation = step_context.result
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -171,7 +154,7 @@ class JobInterviewScenarioDialog(BaseDialog):
 
     async def closing_remarks_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.questions_for_interviewer = step_context.result
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -182,7 +165,7 @@ class JobInterviewScenarioDialog(BaseDialog):
     async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         self.score = await self.calculate_score(step_context.result)
         self.user_state.update_score(self.score)
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         feedback = self.generate_feedback()
         await step_context.context.send_activity(feedback)
         return await step_context.next(None)
@@ -190,7 +173,7 @@ class JobInterviewScenarioDialog(BaseDialog):
     async def feedback_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         message = f"You completed the job interview scenario. Your score: {self.score}/100"
         translated_message = self.translate_text(message, self.language)
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated_message)
         return await step_context.end_dialog()

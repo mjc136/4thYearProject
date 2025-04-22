@@ -54,7 +54,6 @@ class TaxiScenarioDialog(BaseDialog):
             WaterfallDialog(
                 "TaxiScenarioDialog.waterfall",
                 [
-                    self.display_scenario_introduction,  # Renamed from intro_step
                     self.handle_initial_greeting,        # Renamed from greet_step
                     self.request_destination,            # Renamed from get_destination_step
                     self.confirm_destination_with_user,  # Renamed from confirm_destination_step
@@ -84,15 +83,6 @@ class TaxiScenarioDialog(BaseDialog):
     def get_memory(self) -> str:
         """Retrieve the conversation memory as a formatted string for context awareness."""
         return "\n".join([f"User: {msg['user']}\nBot: {msg['bot']}" for msg in self.messages])
-
-    async def display_scenario_introduction(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """Introduces the taxi scenario and explains the context to the user."""
-        if not self.greeted:
-            intro = "Welcome to the Taxi Practice!\nIn this scenario, you are a passenger speaking to a taxi driver."
-            await step_context.context.send_activity(MessageFactory.text(intro))
-            await step_context.context.send_activity(MessageFactory.text(self.translate_text(intro, self.language)))
-            await step_context.context.send_activity(MessageFactory.text("Step 1 of 5: Greeting the driver"))
-        return await step_context.next(None)
 
     async def handle_initial_greeting(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handles the greeting phase where the taxi driver greets the user."""
