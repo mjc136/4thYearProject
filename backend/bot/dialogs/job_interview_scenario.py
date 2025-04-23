@@ -47,25 +47,14 @@ class JobInterviewScenarioDialog(BaseDialog):
         response = await self.chatbot_respond(
             context,
             text,
-            prompt
+            prompt,
+            temperature=0.1  # Lower temperature for formality assessment
         )
         return response
 
-    def create_suggested_actions(self, actions_list):
-        card_actions = []
-        for action in actions_list:
-            card_actions.append(CardAction(
-                title=action,
-                type=ActionTypes.im_back,
-                value=action
-            ))
-        return SuggestedActions(actions=card_actions)
-
     async def initial_greeting_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        
-        
         # Scenario context to help user understand the role
-        context_message = "📋 **Interview Context**: You're applying for a Customer Service Representative position at a technology company. The role involves handling customer inquiries, resolving issues, and ensuring customer satisfaction."
+        context_message = "Interview Context: You're applying for a Customer Service Representative position at a technology company. The role involves handling customer inquiries, resolving issues, and ensuring customer satisfaction."
         await step_context.context.send_activity(context_message)
         
         prompt = await self.chatbot_respond(
@@ -96,7 +85,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         )
         
         # More helpful guidance with structure
-        tips = "💼 **Response Tips**:\n- Mention 1-2 specific roles where you handled customer service\n- Describe key responsibilities using action verbs\n- Share a brief achievement that shows your skills\n- Keep your answer to 3-5 sentences"
+        tips = "Response Tips:\n- Mention 1-2 specific roles where you handled customer service\n- Describe key responsibilities using action verbs\n- Share a brief achievement that shows your skills\n- Keep your answer to 3-5 sentences"
         await step_context.context.send_activity(self.translate_text(tips, self.language))
         
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
@@ -190,7 +179,8 @@ class JobInterviewScenarioDialog(BaseDialog):
             experience_quality = await self.chatbot_respond(
                 None,  # We don't have a context here, so use None
                 self.experience,
-                "Evaluate if this response mentions specific job responsibilities or achievements. Return YES if it does, NO if it doesn't."
+                "Evaluate if this response mentions specific job responsibilities or achievements. Return YES if it does, NO if it doesn't.",
+                temperature=0.1
             )
             if "YES" in experience_quality.upper():
                 score += 5
@@ -229,7 +219,8 @@ class JobInterviewScenarioDialog(BaseDialog):
         politeness_check = await self.chatbot_respond(
             None,  # We don't have a context here, so use None
             final_response,
-            "Does this response include expressions of gratitude or thanks in any language? Return YES or NO."
+            "Does this response include expressions of gratitude or thanks in any language? Return YES or NO.",
+            temperature=0.1
         )
         if "YES" in politeness_check.upper():
             score += 5
@@ -238,7 +229,8 @@ class JobInterviewScenarioDialog(BaseDialog):
         questions_check = await self.chatbot_respond(
             None,  # We don't have a context here, so use None
             final_response,
-            "Does this response include questions for the interviewer or mentions asking questions? Return YES or NO."
+            "Does this response include questions for the interviewer or mentions asking questions? Return YES or NO.",
+            temperature=0.1
         )
         if "YES" in questions_check.upper():
             score += 5
@@ -246,16 +238,16 @@ class JobInterviewScenarioDialog(BaseDialog):
         return min(score, 100)
 
     def generate_feedback(self) -> str:
-        feedback = "📊 **Interview Performance Feedback**:\n\n"
+        feedback = "Interview Performance Feedback:\n\n"
         
         if self.score >= 90:
-            feedback += "🌟 **Outstanding!** You demonstrated fluent and professional communication throughout the interview.\n\n"
+            feedback += "Outstanding! You demonstrated fluent and professional communication throughout the interview.\n\n"
         elif self.score >= 70:
-            feedback += "👍 **Strong performance!** You addressed the questions well and showed clear motivation.\n\n"
+            feedback += "Strong performance! You addressed the questions well and showed clear motivation.\n\n"
         else:
-            feedback += "💪 **Good start!** With more practice, you'll continue to improve your interview skills.\n\n"
+            feedback += "Good start! With more practice, you'll continue to improve your interview skills.\n\n"
         
-        feedback += "**Strengths**:\n"
+        feedback += "Strengths:\n"
         if self.score >= 80:
             feedback += "- Professional communication style\n"
         if self.score >= 75:  
@@ -263,14 +255,14 @@ class JobInterviewScenarioDialog(BaseDialog):
         if self.score >= 70:
             feedback += "- Clear structure in responses\n"
             
-        feedback += "\n**Areas to Improve**:\n"
+        feedback += "\nAreas to Improve:\n"
         if self.feedback_points:
             for point in self.feedback_points[:3]:  # Show top 3 improvement areas
                 feedback += f"- {point}\n"
         else:
-            feedback += "- Continue practicing concise, example-driven responses\n"
+            feedback += "- Continue practising concise, example-driven responses\n"
             
-        feedback += "\n**Next Steps**:\n"
+        feedback += "\nNext Steps:\n"
         feedback += "- Review common interview questions for customer service roles\n"
         feedback += "- Practice with different scenarios to build confidence\n"
         feedback += "- Consider recording yourself to review your speaking pace and clarity"

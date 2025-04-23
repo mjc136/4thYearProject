@@ -292,7 +292,8 @@ class HotelScenarioDialog(BaseDialog):
         ai_intent = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The guest was asked to confirm their booking details and replied: '{user_input}'. Are they confirming the booking or do they have concerns? Reply with either 'CONFIRMED' or 'HAS_CONCERNS'."
+            f"The guest was asked to confirm their booking details and replied: '{user_input}'. Are they confirming the booking or do they have concerns? Reply with either 'CONFIRMED' or 'HAS_CONCERNS'.",
+            temperature=0.1  # Lower temperature for intent detection
         )
         
         # Add to memory
@@ -447,22 +448,22 @@ class HotelScenarioDialog(BaseDialog):
 
     async def extract_nights_with_ai(self, turn_context, user_input):
         """Extract the number of nights from user input using AI."""
+        response = await self.chatbot_respond(
+            turn_context,
+            user_input,
+            "Extract ONLY the number of nights the guest wants to stay from their message. If they mention a specific number of nights, respond with just that number. If they don't specify a number, respond with 'unspecified'.",
+            temperature=0.1  # Lower temperature for entity extraction
+        )
         try:
-            ai_response = await self.chatbot_respond(
-                turn_context,
-                user_input,
-                "The guest just told you how many nights they want to stay. Extract ONLY the number of nights as a digit from their message. Reply with just the number, or 'UNKNOWN' if you cannot determine it."
-            )
-            
             # Clean up AI response to get just the number
-            ai_response = ai_response.strip()
+            response = response.strip()
             
             # Check if the AI couldn't determine the number
-            if "UNKNOWN" in ai_response.upper():
+            if "unspecified" in response.lower():
                 return None
                 
             # Try to find a number in the AI's response
-            number_match = re.search(r'(\d+)', ai_response)
+            number_match = re.search(r'(\d+)', response)
             if number_match:
                 return int(number_match.group(1))
                 

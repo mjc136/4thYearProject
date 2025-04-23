@@ -156,7 +156,8 @@ class TaxiScenarioDialog(BaseDialog):
         ai_intent = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            f"{self.taxi_persona} The user said '{step_context.result}'. Did they clearly confirm the destination? Reply ONLY 'yes' or 'no'."
+            f"{self.taxi_persona} The user said '{step_context.result}'. Did they clearly confirm the destination? Reply ONLY 'yes' or 'no'.",
+            temperature=0.1  # Lower temperature for intent detection
         )
         sentiment = self.analyse_sentiment(step_context.result)
         if sentiment == "positive" or ("yes" in ai_intent.lower()):
@@ -200,7 +201,8 @@ class TaxiScenarioDialog(BaseDialog):
         ai_intent = await self.chatbot_respond(
             step_context.context,
             response,
-            f"{self.taxi_persona}The user was just told the price is {self.base_price} euros and asked 'Is that okay?'. Did the user clearly accept the price? Reply ONLY 'accept' or 'negotiate'."
+            f"{self.taxi_persona}The user was just told the price is {self.base_price} euros and asked 'Is that okay?'. Did the user clearly accept the price? Reply ONLY 'accept' or 'negotiate'.",
+            temperature=0.1  # Lower temperature for intent detection
         )
 
         if sentiment == "positive" or ("accept" in ai_intent.lower()):
@@ -231,6 +233,14 @@ class TaxiScenarioDialog(BaseDialog):
             return await step_context.next(None)
             
         response = step_context.result
+
+        # Use AI to extract price figure from potentially complex messages
+        suggested_price_response = await self.chatbot_respond(
+            step_context.context,
+            response,
+            f"{self.taxi_persona} Extract ONLY the exact price (as a number) the user is willing to pay from this message: '{response}'. Reply with JUST the number, or '0' if you can't find a specific price.",
+            temperature=0.1  # Lower temperature for price extraction
+        )
 
         price = self.entity_extraction(response, "Quantity")
         

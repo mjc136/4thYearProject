@@ -78,7 +78,6 @@ class RestaurantScenarioDialog(BaseDialog):
         user_input = step_context.result
         
         # Track that user greeted the server
-        self.greeted_server = True
         step_context.values["greeted_server"] = True
         
         # Provide a simple menu response
@@ -108,8 +107,6 @@ class RestaurantScenarioDialog(BaseDialog):
         user_input = step_context.result
         
         # Store food order
-        self.food_order = user_input
-        self.ordered_food = True
         step_context.values["ordered_food"] = True
         
         prompt = await self.chatbot_respond(
@@ -134,10 +131,8 @@ class RestaurantScenarioDialog(BaseDialog):
 
     async def offer_dessert(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Four of Five: Considering dessert"))
-        user_input = step_context.result
         
         # Store drink order
-        self.drink_order = user_input
         self.ordered_drinks = True
         step_context.values["ordered_drinks"] = True
         
@@ -166,41 +161,48 @@ class RestaurantScenarioDialog(BaseDialog):
     async def handle_bill_request(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Five of Five: Paying the bill"))
         user_input = step_context.result
+
+        sentiment = self.analyse_sentiment(user_input)
         
-        # Check if they ordered dessert
-        if "cake" in user_input.lower() or "ice cream" in user_input.lower() or "fruit" in user_input.lower():
+        ai_intent = await self.chatbot_respond(
+            step_context.context,
+            user_input,
+            "The customer has finished their meal and was offered dessert. They either want dessert or the bill. Determine if they want dessert or the bill. Reply ONLY with 'dessert' or 'bill'.",
+            temperature=0.1  # Lower temperature for intent detection
+        )
+
+        if sentiment == "positive" or ai_intent.strip().lower() == "dessert":
             self.dessert_order = user_input
             
-            # Brief acknowledgment of dessert
+            # Acknowledge dessert and time skip
             dessert_response = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                f"Acknowledge the dessert order briefly, then fast forward to after they've eaten it. Say: 'Here is your bill. The total is 25 euros. How would you like to pay?'"
+                f"Acknowledge the dessert order briefly. Then fast forward to after they've eaten it."
             )
             await step_context.context.send_activity(MessageFactory.text(dessert_response))
-        else:
-            # They asked for the bill directly
-            self.asked_for_bill = True
-            step_context.values["asked_for_bill"] = True
-            
-            bill_response = await self.chatbot_respond(
-                step_context.context,
-                user_input,
-                "The customer wants the bill. Say: 'Here is your bill. The total is 25 euros. How would you like to pay?'"
-            )
-            await step_context.context.send_activity(MessageFactory.text(bill_response))
-        
-        guidance = "Tell the waiter how you want to pay (cash or card)."
-        example = self.translate_text(
-            "Example: I'll pay by credit card, please.", 
-            self.language
+            await step_context.context.send_activity(MessageFactory.text("*Time passes as you enjoy your dessert...*"))
+
+        # Always present the bill
+        self.asked_for_bill = True
+        step_context.values["asked_for_bill"] = True
+
+        bill_message = await self.chatbot_respond(
+            step_context.context,
+            user_input,
+            "Present the final bill. Say: 'Here is your bill. The total is 25 euros. How would you like to pay?'"
         )
-        
+        await step_context.context.send_activity(MessageFactory.text(bill_message))
+
+        # Payment guidance
+        guidance = "Tell the waiter how you want to pay (cash or card)."
+        example = self.translate_text("Example: I'll pay by credit card, please.", self.language)
+
         await step_context.context.send_activity(MessageFactory.text(guidance))
         await step_context.context.send_activity(MessageFactory.text(example))
-        
+
         return await step_context.prompt(
-            TextPrompt.__name__, 
+            TextPrompt.__name__,
             PromptOptions(prompt=MessageFactory.text("How would you like to pay?"))
         )
 

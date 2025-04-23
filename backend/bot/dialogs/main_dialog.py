@@ -9,8 +9,8 @@ from .taxi_scenario import TaxiScenarioDialog
 from .hotel_scenario import HotelScenarioDialog
 from .job_interview_scenario import JobInterviewScenarioDialog
 from .restaurant_scenario import RestaurantScenarioDialog
-# from .shopping_scenario import ShoppingScenarioDialog
-# from .doctor_scenario import DoctorScenarioDialog
+from .shopping_scenario import ShoppingScenarioDialog
+from .doctor_visit_scenario import DoctorVisitScenarioDialog
 from .base_dialog import BaseDialog
 
 
@@ -37,8 +37,8 @@ class MainDialog(BaseDialog):
         self.add_dialog(HotelScenarioDialog(user_state))
         self.add_dialog(JobInterviewScenarioDialog(user_state))
         self.add_dialog(RestaurantScenarioDialog(user_state))
-        self.add_dialog(WaterfallDialog("ShoppingScenarioDialog", []))
-        self.add_dialog(WaterfallDialog("DoctorScenarioDialog", []))
+        self.add_dialog(ShoppingScenarioDialog(user_state))
+        self.add_dialog(DoctorVisitScenarioDialog(user_state))
         self.add_dialog(TextPrompt(TextPrompt.__name__))
 
         self.initial_dialog_id = f"{dialog_id}.waterfall"

@@ -132,7 +132,7 @@ class BaseDialog(ComponentDialog):
             self.logger.error(f"Failed to initialise OpenAI: {e}")
             raise
         
-    async def chatbot_respond(self, turn_context: TurnContext, user_input, system_message):
+    async def chatbot_respond(self, turn_context: TurnContext, user_input, system_message, temperature=0.5):
         """Generate an AI response to the user input.""" 
         language = self.user_state.get_language()
         
@@ -180,7 +180,7 @@ class BaseDialog(ComponentDialog):
             response = self.client.chat.completions.create(
                 model="deepseek-chat",
                 messages=messages,
-                temperature=0.5,
+                temperature=temperature,  # Now using the parameter instead of hardcoded 0.5
                 max_tokens=150,
                 user=conversation_id  # Use conversation_id to maintain context across calls
             )
