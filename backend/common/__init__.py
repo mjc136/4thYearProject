@@ -59,7 +59,10 @@ migrate = Migrate(app, db)
 # Initialise DB and users (if User table is empty)
 with app.app_context():
     try:
-        # Check if User table is populated rather than if DB file exists
+        # Create all tables if they don't exist
+        db.create_all()
+        
+        # Check if User table is populated
         user_count = User.query.count()
         
         if user_count == 0:
@@ -71,7 +74,6 @@ with app.app_context():
                     username="admin",
                     password=bcrypt.generate_password_hash("adminpass").decode("utf-8"),
                     language="english",
-                    proficiency="beginner",
                     xp=0,
                     level=1,
                     admin=True
@@ -82,7 +84,6 @@ with app.app_context():
                     username="testuser",
                     password=bcrypt.generate_password_hash("testpass").decode("utf-8"),
                     language="spanish",
-                    proficiency="beginner",
                     xp=0,
                     level=1,
                     admin=False

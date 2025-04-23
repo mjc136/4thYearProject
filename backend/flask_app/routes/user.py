@@ -13,7 +13,19 @@ BOT_URL = os.getenv("BOT_URL", "http://localhost:3978")
 def profile():
     if "user_id" not in session:
         return redirect("/login")
+        
     user = User.query.get(session["user_id"])
+    
+    # Calculate level progress
+    from backend.bot.state.user_state import UserState
+    user_state = UserState(str(user.id))
+    user.level_progress = user_state.calculate_level_progress(user.xp)
+    
+    # Get streak info if available
+    streak_info = user_state.get_streak_info()
+    user.streak_count = streak_info.get("streak_count", 0)
+    user.highest_streak = streak_info.get("highest_streak", 0)
+    
     return render_template("profile.html", user=user)
 
 @user_bp.route("/scenarios")

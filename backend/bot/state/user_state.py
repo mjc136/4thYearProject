@@ -9,6 +9,12 @@ from typing import Optional, Any, List, Dict
 # Configure logging
 logger = logging.getLogger(__name__)
 
+class UserProfile:
+    def __init__(self):
+        self.streak_count = 0
+        self.last_activity_date = None
+        self.highest_streak = 0
+
 class UserState:
     """
     A class to manage user state using user data from the database.
@@ -229,3 +235,113 @@ class UserState:
         This is an alias for update_xp for backward compatibility.
         """
         self.update_xp(score)
+
+    def calculate_level_progress(self, xp: int = None) -> int:
+        """
+        Calculate the percentage progress within the current level.
+        Returns a value from 0-100 representing current level progress.
+        """
+        if xp is None:
+            xp = self.xp
+            
+        current_level = self.calculate_level(xp)
+        
+        # Calculate XP thresholds for current and next level
+        xp_for_current_level = 100 * (current_level - 1) ** 2
+        xp_for_next_level = 100 * current_level ** 2
+        
+        # Calculate progress percentage within current level
+        if xp_for_next_level == xp_for_current_level:  # Edge case
+            return 100
+            
+        progress = ((xp - xp_for_current_level) / 
+                   (xp_for_next_level - xp_for_current_level)) * 100
+        
+        return int(progress)
+        
+    def get_streak_info(self) -> dict:
+        """
+        Get the user's streak information.
+        """
+        try:
+            with app.app_context():
+                user = User.query.get(int(self.user_id))
+                if user:
+                    return {
+                        "streak_count": user.streak_count if hasattr(user, 'streak_count') else 0,
+                        "highest_streak": user.highest_streak if hasattr(user, 'highest_streak') else 0,
+                        "last_activity_date": user.last_activity_date
+                    }
+                else:
+                    logger.error(f"User with ID {self.user_id} not found when getting streak info")
+                    return {"streak_count": 0, "highest_streak": 0, "last_activity_date": None}
+        except Exception as e:
+            logger.error(f"Error getting streak info: {str(e)}")
+            return {"streak_count": 0, "highest_streak": 0, "last_activity_date": None}
+            
+    def update_streak(self) -> dict:
+        """
+        Update the user's streak based on their last activity date.
+        Returns the updated streak information.
+        """
+        from datetime import datetime, timedelta
+        
+        try:
+            with app.app_context():
+                user = User.query.get(int(self.user_id))
+                if not user:
+                    logger.error(f"User with ID {self.user_id} not found for streak update")
+                    return {"streak_count": 0, "highest_streak": 0}
+                
+                current_date = datetime.now().date()
+                
+                # Initialize streak fields if they don't exist
+                if not hasattr(user, 'streak_count'):
+                    user.streak_count = 0
+                
+                if not hasattr(user, 'highest_streak'):
+                    user.highest_streak = 0
+                    
+                if not hasattr(user, 'last_activity_date'):
+                    user.last_activity_date = None
+                
+                # If this is the first activity ever
+                if user.last_activity_date is None:
+                    user.streak_count = 1
+                    user.highest_streak = 1
+                    user.last_activity_date = current_date
+                    db.session.commit()
+                    return {"streak_count": 1, "highest_streak": 1}
+                
+                # Get the last activity date
+                last_date = user.last_activity_date
+                
+                # If it's the same day, don't update streak
+                if current_date == last_date:
+                    return {
+                        "streak_count": user.streak_count,
+                        "highest_streak": user.highest_streak
+                    }
+                    
+                # If it's the next day, increment streak
+                if current_date == last_date + timedelta(days=1):
+                    user.streak_count += 1
+                    # Update highest streak if current streak is higher
+                    if user.streak_count > user.highest_streak:
+                        user.highest_streak = user.streak_count
+                # If more than one day has passed, reset streak
+                elif current_date > last_date + timedelta(days=1):
+                    user.streak_count = 1
+                
+                # Update the last activity date to today
+                user.last_activity_date = current_date
+                db.session.commit()
+                
+                return {
+                    "streak_count": user.streak_count,
+                    "highest_streak": user.highest_streak
+                }
+                
+        except Exception as e:
+            logger.error(f"Error updating streak: {str(e)}")
+            return {"streak_count": 0, "highest_streak": 0}

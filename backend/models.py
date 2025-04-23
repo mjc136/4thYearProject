@@ -14,6 +14,9 @@ class User(db.Model):
     streak = db.Column(db.Integer, default=0)
     last_login = db.Column(db.DateTime, nullable=True)
     admin = db.Column(db.Boolean, default=False)
+    streak_count = db.Column(db.Integer, default=0)
+    highest_streak = db.Column(db.Integer, default=0)
+    last_activity_date = db.Column(db.Date, nullable=True)
     
 class UserScenarioProgress(db.Model):
     __tablename__ = 'user_scenario_progress'
