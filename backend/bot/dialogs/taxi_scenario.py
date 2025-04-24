@@ -38,15 +38,11 @@ class TaxiScenarioDialog(BaseDialog):
         self.valid_negotiated_price = False
 
         self.taxi_persona = (
-            f"You are playing the role of a taxi driver. "
-            f"You ONLY offer taxi service - never suggest buses, trains, or other transportation alternatives. "
-            f"You only accept payment in euros. "
-            f"Always stay in character as a taxi driver throughout the conversation. "
-            f"Don't mention anything about the meter. "
-            f"If a user says 'hotel', just accept it as a location. Same for other general location names. "
-            f"Don't write any 'Notes:' in your response. "
-            f"The user is a non-native speaker of {self.language} and is learning the language, so do not use complex words. "
-            f"This is a simulation for a taxi ride. do not ask for specific details about the taxi ride like street names."
+            f"You are a taxi driver. You only offer taxi rides and never mention other transport like buses or trains. "
+            f"You accept only euros. Avoid complex words as the user is a non-native {self.language} speaker. "
+            f"Stay in character at all times. Do not mention the taxi meter. "
+            f"If the user says something like 'hotel', treat it as a valid destination. "
+            f"This is a conversation simulation. Keep your replies realistic and natural, but brief."
         )
 
         self.add_dialog(TextPrompt(TextPrompt.__name__))
@@ -87,7 +83,7 @@ class TaxiScenarioDialog(BaseDialog):
     async def handle_initial_greeting(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handles the greeting phase where the taxi driver greets the user."""
         if not self.greeted:
-            await step_context.context.send_activity(Activity(type="typing"))
+            
             prompt = await self.chatbot_respond(
                 step_context.context,
                 "start",
@@ -107,7 +103,13 @@ class TaxiScenarioDialog(BaseDialog):
     async def request_destination(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompts the user to provide their desired destination."""
         await step_context.context.send_activity(MessageFactory.text("Step 2 of 5: Saying where you want to go"))
-        await step_context.context.send_activity(Activity(type="typing"))
+        
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        
+        await step_context.context.send_activity(MessageFactory.text(feedback))        
+        
         self.asked_for_destination = True
         prompt = await self.chatbot_respond(
             step_context.context,
@@ -120,6 +122,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def confirm_destination_with_user(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Extracts and confirms the destination provided by the user."""
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         response = step_context.result
         locations = self.entity_extraction(response, "Location")
         if locations:
@@ -153,6 +161,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def validate_destination_response(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Validates if the user confirmed the destination or needs to change it."""
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         ai_intent = await self.chatbot_respond(
             step_context.context,
             step_context.result,
@@ -176,6 +190,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def provide_price_quote(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Provides the base price quote for the taxi journey to the destination."""
+        # Only check if there's user input (this step might not have user input)
+        if step_context.result:
+            user_input = step_context.result
+            feedback = await self.check_spelling_grammar(user_input)
+            await step_context.context.send_activity(MessageFactory.text(feedback))
+            
         if not self.price:
             self.price_offered = True
 
@@ -192,6 +212,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def handle_price_negotiation(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handles the user's response to the price quote - acceptance or negotiation."""
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         if self.price:
             return await step_context.next(None)
 
@@ -228,6 +254,12 @@ class TaxiScenarioDialog(BaseDialog):
 
     async def validate_negotiated_price(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Validates the user's suggested price from the negotiation."""
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         # Check in both step_context.values and instance variable
         if step_context.values.get("user_accepted_price", False) or self.user_accepted_price:
             return await step_context.next(None)
@@ -265,13 +297,13 @@ class TaxiScenarioDialog(BaseDialog):
             self.price = int(price)
             self.user_accepted_price = True
             self.valid_negotiated_price = True
-            await step_context.context.send_activity(MessageFactory.text(self.translate_text("That's a bit too much. I can only accept 20 euros."), self.language))
+            await step_context.context.send_activity(MessageFactory.text(self.translate_text("That's a bit too much. I can only accept 20 euros.", self.language)))
             return await step_context.next(None)
         elif int(price) < 15:
             self.price = int(price)
             self.user_accepted_price = True
             self.valid_negotiated_price = True
-            await step_context.context.send_activity(MessageFactory.text(self.translate_text("That's a bit too low. I can only accept up to 15 euros at the lowest."), self.language))
+            await step_context.context.send_activity(MessageFactory.text(self.translate_text("That's a bit too low. I can only accept up to 15 euros at the lowest.", self.language)))
             return await step_context.next(None)
         else:
             await step_context.context.send_activity(MessageFactory.text(self.get_fallback()))
@@ -297,7 +329,7 @@ class TaxiScenarioDialog(BaseDialog):
         await step_context.context.send_activity("Step 5 of 5: Feedback")
         self.score = self.calculate_score(step_context)  # Pass step_context to use its values
         self.user_state.update_xp(self.score)
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         await step_context.context.send_activity(self.generate_feedback())
         return await step_context.next(None)
 
@@ -311,7 +343,7 @@ class TaxiScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Conversation history:"))
         await step_context.context.send_activity(MessageFactory.text(memory))
 
-        await step_context.context.send_activity(Activity(type="typing"))
+        
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated)
 

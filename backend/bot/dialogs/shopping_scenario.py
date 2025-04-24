@@ -27,6 +27,14 @@ class ShoppingScenarioDialog(BaseDialog):
         self.made_purchase = False
         self.thanked_clerk = False
         
+        self.cashier_persona = (
+            "You are a friendly store clerk. Stay in character throughout the conversation. "
+            "Greet customers politely and help them find items in the shop. "
+            "Only talk about products in the store — do not suggest other stores or online options. "
+            "Accept payment in euros only. Keep your language simple and easy to understand for a language learner."
+        )
+
+        
         # Add prompts
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         
@@ -52,7 +60,7 @@ class ShoppingScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "start",
-            "You are a friendly shop clerk. Greet the customer warmly and ask if they're looking for anything specific today."
+            f"{self.cashier_persona} You are a friendly shop clerk. Greet the customer warmly and ask if they're looking for anything specific today."
         )
         
         guidance = "Greet the clerk and ask about what's available in the store."
@@ -71,7 +79,11 @@ class ShoppingScenarioDialog(BaseDialog):
 
     async def product_inquiry(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Two of Five: Asking about products"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Track that user greeted the clerk
         self.greeted_clerk = True
@@ -81,7 +93,7 @@ class ShoppingScenarioDialog(BaseDialog):
         products_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Mention that popular items today include t-shirts, sunglasses, and hats. Describe them briefly and ask if the customer is interested in any of them."
+            f"{self.cashier_persona} Mention that popular items today include t-shirts, sunglasses, and hats. Describe them briefly and ask if the customer is interested in any of them."
         )
         
         await step_context.context.send_activity(MessageFactory.text(products_response))
@@ -102,7 +114,11 @@ class ShoppingScenarioDialog(BaseDialog):
 
     async def price_check(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Three of Five: Checking the price"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Store item selected
         self.item_selected = user_input
@@ -113,7 +129,7 @@ class ShoppingScenarioDialog(BaseDialog):
         item_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The customer is interested in {user_input}. Show them the item and describe it briefly. Don't mention the price yet."
+            f"{self.cashier_persona} The customer is interested in {user_input}. Show them the item and describe it briefly. Don't mention the price yet."
         )
         
         await step_context.context.send_activity(MessageFactory.text(item_response))
@@ -134,7 +150,11 @@ class ShoppingScenarioDialog(BaseDialog):
 
     async def make_purchase(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Four of Five: Deciding to buy"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # User asked about price
         self.price_asked = True
@@ -145,7 +165,7 @@ class ShoppingScenarioDialog(BaseDialog):
         price_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"Tell the customer the {self.item_selected} costs 20 euros. Mention it's good quality and a popular choice. Ask if they'd like to buy it."
+            f"{self.cashier_persona} Tell the customer the {self.item_selected} costs 20 euros. Mention it's good quality and a popular choice. Ask if they'd like to buy it."
         )
         
         await step_context.context.send_activity(MessageFactory.text(price_response))
@@ -166,14 +186,18 @@ class ShoppingScenarioDialog(BaseDialog):
 
     async def complete_transaction(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Five of Five: Completing your purchase"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         intent = self.analyse_sentiment(user_input)
         
         ai_intent = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Analyse the customer's sentiment and determine if they want to buy the item or not. Respond ONLY 'yes' if so.",
+            f"{self.cashier_persona} Analyse the customer's sentiment and determine if they want to buy the item or not. Respond ONLY 'yes' if so.",
             temperature=0.1  # Lower temperature for intent detection
         )
         
@@ -185,7 +209,7 @@ class ShoppingScenarioDialog(BaseDialog):
             completion_response = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                f"The customer wants to buy the {self.item_selected}. Complete the sale, thank them, and wish them a good day."
+                f"{self.cashier_persona} The customer wants to buy the {self.item_selected}. Complete the sale, thank them, and wish them a good day."
             )
             await step_context.context.send_activity(MessageFactory.text(completion_response))
         else:
@@ -193,7 +217,7 @@ class ShoppingScenarioDialog(BaseDialog):
             rejection_response = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                "The customer doesn't want to buy. Be understanding, thank them for visiting, and invite them to come back another time."
+                f"{self.cashier_persona} The customer doesn't want to buy. Be understanding, thank them for visiting, and invite them to come back another time."
             )
             await step_context.context.send_activity(MessageFactory.text(rejection_response))
         
@@ -213,7 +237,10 @@ class ShoppingScenarioDialog(BaseDialog):
         )
 
     async def show_feedback(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Check for thanks using sentiment rather than English keywords
         step_context.values["thanked_clerk"] = True
@@ -222,7 +249,7 @@ class ShoppingScenarioDialog(BaseDialog):
         thanked_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Did the customer thank you or express gratitude in any way? Respond ONLY 'yes' or 'no'.",
+            f"{self.cashier_persona} Did the customer thank you or express gratitude in any way? Respond ONLY 'yes' or 'no'.",
             temperature=0.1  # Lower temperature for intent detection
         )
         
@@ -234,7 +261,7 @@ class ShoppingScenarioDialog(BaseDialog):
         farewell = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Give a friendly goodbye to the customer."
+            f"{self.cashier_persona} Give a friendly goodbye to the customer."
         )
         
         await step_context.context.send_activity(MessageFactory.text(farewell))

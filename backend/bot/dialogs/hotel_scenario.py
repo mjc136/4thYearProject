@@ -33,6 +33,14 @@ class HotelScenarioDialog(BaseDialog):
         self.payment_method_provided = False
         self.messages = []
         
+        # persona
+        self.receptionist_persona = (
+            "You are a hotel receptionist. Stay in character throughout the conversation. "
+            "Politely greet the guest and ask about their booking or needs. "
+            "Only offer information about room types, check-in, check-out, and amenities. "
+            "Do not ask for real names or IDs. Keep replies short and easy to understand, using basic vocabulary for learners."
+        )
+        
         # Add different prompt types for better guidance
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(ChoicePrompt("room_type_prompt"))
@@ -64,7 +72,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "start",
-            "You are a hotel receptionist. Politely greet the guest and ask how you can help."
+            f"{self.receptionist_persona} Politely greet the guest and ask how you can help."
         )
         
         guidance = "Respond as if you're a guest inquiring about booking a room."
@@ -84,11 +92,13 @@ class HotelScenarioDialog(BaseDialog):
     async def ask_length_of_stay(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Two of Six: Checking availability"))
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Ask how many nights they would like to stay, assuming they're checking in today."
+            f"{self.receptionist_persona} Ask how many nights they would like to stay, assuming they're checking in today."
         )
         
         guidance = "The receptionist is asking about your stay duration. Tell them how many nights you'd like to stay."
@@ -108,6 +118,8 @@ class HotelScenarioDialog(BaseDialog):
     async def process_stay_duration(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Two of Six: Providing stay duration"))
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         self.check_in_date = "Today"
         
@@ -131,7 +143,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "dates provided",
-            "Ask for preferred room type."
+            f"{self.receptionist_persona} Ask for preferred room type."
         )
         
         guidance = "The receptionist is asking about room preferences. Tell them what type of room you'd like."
@@ -151,6 +163,8 @@ class HotelScenarioDialog(BaseDialog):
     async def handle_room_selection(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Three of Six: Selecting room type"))
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         self.room_type = user_input
         
@@ -160,7 +174,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Ask how many guests will stay."
+            f"{self.receptionist_persona} Ask how many guests will stay."
         )
         
         guidance = "The receptionist wants to know how many people will be staying in the room."
@@ -182,6 +196,8 @@ class HotelScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Three of Six: Specifying number of guests"))
         
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         self.num_guests = user_input
         
@@ -195,7 +211,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Ask if they have any special requests or requirements."
+            f"{self.receptionist_persona} Ask if they have any special requests or requirements."
         )
         
         guidance = "The receptionist is asking if you have any special requests. Mention any preferences or needs you might have."
@@ -217,6 +233,8 @@ class HotelScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Four of Six: Noting special requests"))
         
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         self.special_requests = user_input
         
@@ -237,7 +255,7 @@ class HotelScenarioDialog(BaseDialog):
         ai_interpretation = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The guest just provided this special request: '{user_input}'. Summarise the key points in this request in one sentence. Include any detected preferences for room location, amenities, or services."
+            f"{self.receptionist_persona} The guest just provided this special request: '{user_input}'. Summarise the key points in this request in one sentence. Include any detected preferences for room location, amenities, or services."
         )
         
         # Update tracking flags
@@ -271,7 +289,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Ask the guest if all the booking details are correct and if they would like to confirm the booking."
+            f"{self.receptionist_persona} Ask the guest if all the booking details are correct and if they would like to confirm the booking."
         )
         
         return await step_context.prompt(
@@ -284,6 +302,8 @@ class HotelScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Five of Six: Confirming booking details"))
         
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Analyze sentiment to check if user is happy with the booking
         sentiment = self.analyse_sentiment(user_input)
@@ -292,7 +312,7 @@ class HotelScenarioDialog(BaseDialog):
         ai_intent = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The guest was asked to confirm their booking details and replied: '{user_input}'. Are they confirming the booking or do they have concerns? Reply with either 'CONFIRMED' or 'HAS_CONCERNS'.",
+            f"{self.receptionist_persona} The guest was asked to confirm their booking details and replied: '{user_input}'. Are they confirming the booking or do they have concerns? Reply with either 'CONFIRMED' or 'HAS_CONCERNS'.",
             temperature=0.1  # Lower temperature for intent detection
         )
         
@@ -308,7 +328,7 @@ class HotelScenarioDialog(BaseDialog):
             concern_handling = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                f"The guest has concerns about their booking: '{user_input}'. Respond empathetically, addressing their concerns, then ask if they'd like to proceed with the booking."
+                f"{self.receptionist_persona} The guest has concerns about their booking: '{user_input}'. Respond empathetically, addressing their concerns, then ask if they'd like to proceed with the booking."
             )
             
             await step_context.context.send_activity(MessageFactory.text(concern_handling))
@@ -321,7 +341,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Thank the guest for confirming the booking details and ask about payment method preferences (credit card, debit card, cash, etc.)."
+            f"{self.receptionist_persona} Thank the guest for confirming the booking details and ask about payment method preferences (credit card, debit card, cash, etc.)."
         )
         
         guidance = "The receptionist is asking about payment method. Tell them how you'd like to pay."
@@ -343,6 +363,8 @@ class HotelScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Six of Six: Payment method selection"))
         
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         self.payment_method = user_input
         self.payment_method_provided = True
@@ -354,7 +376,7 @@ class HotelScenarioDialog(BaseDialog):
         booking_completed = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The guest has provided their payment details ({user_input}). Confirm the booking is complete and provide a summary of their entire booking (check-in and check-out dates, room type, guests, special requests, and payment method). Conclude by saying 'Your booking is confirmed.' and provide a booking reference number that includes letters and numbers."
+            f"{self.receptionist_persona} The guest has provided their payment details ({user_input}). Confirm the booking is complete and provide a summary of their entire booking (check-in and check-out dates, room type, guests, special requests, and payment method). Conclude by saying 'Your booking is confirmed.' and provide a booking reference number that includes letters and numbers."
         )
         
         await step_context.context.send_activity(MessageFactory.text(booking_completed))
@@ -363,7 +385,7 @@ class HotelScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "booking complete",
-            "Ask the guest if they have any final questions about their booking."
+            f"{self.receptionist_persona} Ask the guest if they have any final questions about their booking."
         )
         
         return await step_context.prompt(
@@ -374,20 +396,22 @@ class HotelScenarioDialog(BaseDialog):
     async def finalize_reservation(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handles any final questions and concludes the booking process."""
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Check if user has questions
         if len(user_input) > 10 and user_input.lower() != "no":
             response = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                f"The guest has asked: '{user_input}'. Respond helpfully to their question about their hotel booking, then thank them for choosing our hotel."
+                f"{self.receptionist_persona} The guest has asked: '{user_input}'. Respond helpfully to their question about their hotel booking, then thank them for choosing our hotel."
             )
             await step_context.context.send_activity(MessageFactory.text(response))
         else:
             conclusion = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                "Thank the guest for their booking and wish them a pleasant stay."
+                f"{self.receptionist_persona} Thank the guest for their booking and wish them a pleasant stay."
             )
             await step_context.context.send_activity(MessageFactory.text(conclusion))
         
@@ -451,7 +475,7 @@ class HotelScenarioDialog(BaseDialog):
         response = await self.chatbot_respond(
             turn_context,
             user_input,
-            "Extract ONLY the number of nights the guest wants to stay from their message. If they mention a specific number of nights, respond with just that number. If they don't specify a number, respond with 'unspecified'.",
+            f"{self.receptionist_persona} Extract ONLY the number of nights the guest wants to stay from their message. If they mention a specific number of nights, respond with just that number. If they don't specify a number, respond with 'unspecified'.",
             temperature=0.1  # Lower temperature for entity extraction
         )
         try:

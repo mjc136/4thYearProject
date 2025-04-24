@@ -26,6 +26,15 @@ class DoctorVisitScenarioDialog(BaseDialog):
         self.understood_treatment = False
         self.thanked_doctor = False
         
+        # persona
+        self.doctor_persona = (
+            "You are a doctor in a walk-in clinic. Stay in character throughout the conversation. "
+            "Politely greet the patient, listen to their symptoms, and offer simple treatment advice. "
+            "Avoid medical jargon — use easy words that language learners will understand. "
+            "Do not ask for personal or sensitive medical history. Keep the interaction supportive and calm."
+        )
+
+        
         # Add prompts
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         
@@ -51,7 +60,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "start",
-            "You are a receptionist at a medical clinic. Greet the patient warmly and ask for their name and what brings them in today."
+            f"{self.doctor_persona} You are a receptionist at a medical clinic. Greet the patient warmly and ask for their name and what brings them in today."
         )
         
         guidance = "Greet the receptionist and explain that you have a sunburn."
@@ -70,7 +79,11 @@ class DoctorVisitScenarioDialog(BaseDialog):
 
     async def doctor_greeting(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Two of Five: Meeting the doctor"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Track that user greeted receptionist
         self.greeted_receptionist = True
@@ -84,7 +97,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         doctor_greeting = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "You are now a doctor. Greet the patient by name (extract from their previous message) and ask them to describe their sunburn in more detail."
+            f"{self.doctor_persona} You are now a doctor. Greet the patient by name (extract from their previous message) and ask them to describe their sunburn in more detail."
         )
         
         await step_context.context.send_activity(MessageFactory.text(doctor_greeting))
@@ -105,7 +118,11 @@ class DoctorVisitScenarioDialog(BaseDialog):
 
     async def symptom_description(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Three of Five: Describing your symptoms"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Store symptom information
         self.symptoms_described = user_input
@@ -116,7 +133,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         follow_up = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Ask the patient follow-up questions: When did they get the sunburn? Have they applied anything to it? Are they experiencing any other symptoms like fever or chills?"
+            f"{self.doctor_persona} Ask the patient follow-up questions: When did they get the sunburn? Have they applied anything to it? Are they experiencing any other symptoms like fever or chills?"
         )
         
         await step_context.context.send_activity(MessageFactory.text(follow_up))
@@ -137,12 +154,16 @@ class DoctorVisitScenarioDialog(BaseDialog):
 
     async def diagnosis(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Four of Five: Receiving a diagnosis"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         ai_question = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "The doctor is now explaining the treatment plan. Did the patient ask any questions about the treatment? Reply with 'YES' or 'NO'.",
+            f"{self.doctor_persona} The doctor is now explaining the treatment plan. Did the patient ask any questions about the treatment? Reply with 'YES' or 'NO'.",
             temperature=0.1  # Lower temperature for intent detection
         )
         
@@ -155,7 +176,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         diagnosis_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Provide a simple diagnosis for second-degree sunburn. Explain it's not serious but needs proper care. Mention they should avoid further sun exposure and that you'll recommend some treatments."
+            f"{self.doctor_persona} Provide a simple diagnosis for second-degree sunburn. Explain it's not serious but needs proper care. Mention they should avoid further sun exposure and that you'll recommend some treatments."
         )
         
         await step_context.context.send_activity(MessageFactory.text(diagnosis_response))
@@ -176,13 +197,17 @@ class DoctorVisitScenarioDialog(BaseDialog):
 
     async def treatment_plan(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Five of Five: Understanding treatment"))
+        
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Use lower temperature (0.1) for intent detection to get more deterministic results
         ai_question = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "The doctor is now explaining the treatment plan. Did the patient ask any questions about the treatment? Reply with 'YES' or 'NO'.",
+            f"{self.doctor_persona} The doctor is now explaining the treatment plan. Did the patient ask any questions about the treatment? Reply with 'YES' or 'NO'.",
             temperature=0.1  # Lower temperature for intent detection
         )
         
@@ -195,7 +220,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         treatment_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Recommend cool compresses, aloe vera gel, over-the-counter pain relievers, and plenty of water. Advise against petroleum jelly, butter, or other home remedies that trap heat. Ask if they understand the treatment plan."
+            f"{self.doctor_persona} Recommend cool compresses, aloe vera gel, over-the-counter pain relievers, and plenty of water. Advise against petroleum jelly, butter, or other home remedies that trap heat. Ask if they understand the treatment plan."
             # Using default temperature of 0.5 for conversational responses
         )
         
@@ -216,13 +241,16 @@ class DoctorVisitScenarioDialog(BaseDialog):
         )
 
     async def show_feedback(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
         user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
         
         # Check if patient understood treatment and thanked doctor
         ai_understood = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "The patient just responded after hearing the treatment plan. Did they confirm understanding? Reply with 'YES' or 'NO'."
+            f"{self.doctor_persona} The patient just responded after hearing the treatment plan. Did they confirm understanding? Reply with 'YES' or 'NO'."
         )
 
         if ai_understood.strip().upper() == "YES":
@@ -233,7 +261,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         ai_thanks = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "The patient just responded at the end of the visit. Did they thank the doctor? Reply with 'YES' or 'NO'."
+            f"{self.doctor_persona} The patient just responded at the end of the visit. Did they thank the doctor? Reply with 'YES' or 'NO'."
         )
 
         if sentiment == "positive" or ai_thanks.strip().upper() == "YES":
@@ -245,7 +273,7 @@ class DoctorVisitScenarioDialog(BaseDialog):
         final_advice = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Give some final encouragement and advice. Tell the patient they can call if they have any concerns and wish them a quick recovery."
+            f"{self.doctor_persona} Give some final encouragement and advice. Tell the patient they can call if they have any concerns and wish them a quick recovery."
         )
         
         await step_context.context.send_activity(MessageFactory.text(final_advice))

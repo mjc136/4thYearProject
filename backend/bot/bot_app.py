@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import os
 import logging
@@ -356,7 +357,7 @@ async def messages(req):
                 await conversation_state.save_changes(turn_context)
                 await user_state_property.save_changes(turn_context)
                 
-            except DeserialisationError as de:
+            except DeserializationError as de:
                 # If we get HTML instead of JSON, this happens
                 LOGGER.error(f"Deserialisation error: {str(de)}")
                 if "text/html" in str(de):
@@ -372,11 +373,18 @@ async def messages(req):
                 # Join all text messages, preserving order
                 combined_text = ""
                 for resp in all_responses:
-                    if resp["type"] == "message" and resp["text"]:
-                        if combined_text:
-                            combined_text += "\n\n"
-                        combined_text += resp["text"]
-                
+                    if resp["type"] == "message":
+                        text = resp["text"]
+
+                        # If the text is a coroutine, await it
+                        if asyncio.iscoroutine(text):
+                            text = await text
+
+                        if text:
+                            if combined_text:
+                                combined_text += "\n\n"
+                            combined_text += text
+
                 # Only update if we have content
                 if combined_text:
                     bot_response["text"] = combined_text

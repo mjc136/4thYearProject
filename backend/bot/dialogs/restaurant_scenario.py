@@ -29,6 +29,14 @@ class RestaurantScenarioDialog(BaseDialog):
         self.paid_bill = False
         self.messages = []
         
+        # persona
+        self.waiter_persona = (
+            "You are a polite and professional restaurant waiter. Stay in character throughout the conversation. "
+            "Greet the customer, explain menu options, and take food and drink orders. "
+            "Avoid complex language and keep your sentences clear. Do not make up exotic meals or prices. "
+            "Mention that the total bill is 25 euros. This is a simulation for language learners, so keep it realistic but simple."
+        )
+        
         # Add prompts
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         
@@ -56,7 +64,7 @@ class RestaurantScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "start",
-            "You are a waiter at a restaurant. Greet the customer warmly and ask if they are ready to order."
+            f"{self.waiter_persona} Greet the customer warmly and ask if they are ready to order."
         )
         
         guidance = "Respond to the waiter with a greeting and ask about the menu or specials."
@@ -77,6 +85,10 @@ class RestaurantScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Two of Five: Ordering food"))
         user_input = step_context.result
         
+        # Check spelling and grammar of user input
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         # Track that user greeted the server
         step_context.values["greeted_server"] = True
         
@@ -84,7 +96,7 @@ class RestaurantScenarioDialog(BaseDialog):
         menu_response = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Mention that today's specials are pasta and grilled chicken. Also mention the restaurant has burgers, salads, and fish. Ask what they would like to order for their main course."
+            f"{self.waiter_persona} Mention that today's specials are pasta and grilled chicken. Also mention the restaurant has burgers, salads, and fish. Ask what they would like to order for their main course."
         )
         
         await step_context.context.send_activity(MessageFactory.text(menu_response))
@@ -106,13 +118,17 @@ class RestaurantScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Three of Five: Ordering drinks"))
         user_input = step_context.result
         
+        # Check spelling and grammar of user input
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         # Store food order
         step_context.values["ordered_food"] = True
         
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The customer ordered {user_input}. Confirm their food order and ask what they would like to drink. Mention water, soda, juice, and wine are available."
+            f"{self.waiter_persona} The customer ordered {user_input}. Confirm their food order and ask what they would like to drink. Mention water, soda, juice, and wine are available."
         )
         
         guidance = "Tell the waiter what you would like to drink."
@@ -132,6 +148,11 @@ class RestaurantScenarioDialog(BaseDialog):
     async def offer_dessert(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Step Four of Five: Considering dessert"))
         
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         # Store drink order
         self.ordered_drinks = True
         step_context.values["ordered_drinks"] = True
@@ -141,7 +162,7 @@ class RestaurantScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "meal finished",
-            "The customer has finished their meal. Ask if they would like to see the dessert menu. Mention ice cream, cake, and fruit salad options."
+            f"{self.waiter_persona} The customer has finished their meal. Ask if they would like to see the dessert menu. Mention ice cream, cake, and fruit salad options."
         )
         
         guidance = "Tell the waiter if you want dessert or if you'd like the bill."
@@ -162,12 +183,16 @@ class RestaurantScenarioDialog(BaseDialog):
         await step_context.context.send_activity(MessageFactory.text("Step Five of Five: Paying the bill"))
         user_input = step_context.result
 
+        # Check spelling and grammar of user input
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+
         sentiment = self.analyse_sentiment(user_input)
         
         ai_intent = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "The customer has finished their meal and was offered dessert. They either want dessert or the bill. Determine if they want dessert or the bill. Reply ONLY with 'dessert' or 'bill'.",
+            f"{self.waiter_persona} The customer has finished their meal and was offered dessert. They either want dessert or the bill. Determine if they want dessert or the bill. Reply ONLY with 'dessert' or 'bill'.",
             temperature=0.1  # Lower temperature for intent detection
         )
 
@@ -178,7 +203,7 @@ class RestaurantScenarioDialog(BaseDialog):
             dessert_response = await self.chatbot_respond(
                 step_context.context,
                 user_input,
-                f"Acknowledge the dessert order briefly. Then fast forward to after they've eaten it."
+                f"{self.waiter_persona} Acknowledge the dessert order briefly. Then fast forward to after they've eaten it."
             )
             await step_context.context.send_activity(MessageFactory.text(dessert_response))
             await step_context.context.send_activity(MessageFactory.text("*Time passes as you enjoy your dessert...*"))
@@ -190,7 +215,7 @@ class RestaurantScenarioDialog(BaseDialog):
         bill_message = await self.chatbot_respond(
             step_context.context,
             user_input,
-            "Present the final bill. Say: 'Here is your bill. The total is 25 euros. How would you like to pay?'"
+            f"{self.waiter_persona} Present the final bill. Say: 'Here is your bill. The total is 25 euros. How would you like to pay?'"
         )
         await step_context.context.send_activity(MessageFactory.text(bill_message))
 
@@ -209,6 +234,10 @@ class RestaurantScenarioDialog(BaseDialog):
     async def process_payment(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         user_input = step_context.result
         
+        # Check spelling and grammar of user input
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         # Store payment method
         self.payment_method = user_input
         self.paid_bill = True
@@ -218,7 +247,7 @@ class RestaurantScenarioDialog(BaseDialog):
         farewell = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"The customer wants to pay by {user_input}. Process the payment and thank them for dining at your restaurant. Wish them a good day."
+            f"{self.waiter_persona} The customer wants to pay by {user_input}. Process the payment and thank them for dining at your restaurant. Wish them a good day."
         )
         
         await step_context.context.send_activity(MessageFactory.text(farewell))

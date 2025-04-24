@@ -20,6 +20,14 @@ class JobInterviewScenarioDialog(BaseDialog):
         self.salary_expectation = None
         self.score = 0
         self.feedback_points = []
+        
+        # persona 
+        self.interviewer_persona = (
+            "You are a hiring manager conducting a job interview for a customer service role. "
+            "Ask questions about the candidate's experience, skills, strengths, and motivation. "
+            "Maintain a professional and encouraging tone. Use simple and clear language for a non-native speaker. "
+            "Do not critique the candidate. This is a simulation to help them practise."
+        )
 
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         waterfall_dialog = WaterfallDialog(
@@ -47,7 +55,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         response = await self.chatbot_respond(
             context,
             text,
-            prompt,
+            f"{self.interviewer_persona} {prompt}",
             temperature=0.1  # Lower temperature for formality assessment
         )
         return response
@@ -60,7 +68,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             "interview start",
-            "You are the interviewee for a customer service position. Begin formally. Ask the candidate to introduce themselves and outline their background. Keep your question concise."
+            f"{self.interviewer_persona} Begin formally. Ask the candidate to introduce themselves and outline their background. Keep your question concise."
         )
         
         example = "Example: 'Good morning! I'm [Your Name], and I have [X years] of experience in customer service. My background includes...' (Feel free to create a professional persona for this practice)"
@@ -69,6 +77,11 @@ class JobInterviewScenarioDialog(BaseDialog):
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def experience_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.initial_impression = step_context.result
         
         # Check formality and provide feedback if needed
@@ -81,7 +94,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask for specific customer service experience. Encourage the user to talk about responsibilities and achievements. Be encouraging and professional."
+            f"{self.interviewer_persona} Ask for specific customer service experience. Encourage the user to talk about responsibilities and achievements. Be encouraging and professional."
         )
         
         # More helpful guidance with structure
@@ -91,67 +104,102 @@ class JobInterviewScenarioDialog(BaseDialog):
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def skills_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.experience = step_context.result
         
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask the candidate to describe their key skills and how they align with the role."
+            f"{self.interviewer_persona} Ask the candidate to describe their key skills and how they align with the role."
         )
         await step_context.context.send_activity(self.translate_text("Example: I have strong communication and problem-solving skills which help me handle customer issues effectively.", self.language))
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def motivation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.skills = step_context.result
         
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask about the candidate's motivation for working in customer service and what they enjoy most about it."
+            f"{self.interviewer_persona} Ask about the candidate's motivation for working in customer service and what they enjoy most about it."
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def strengths_weaknesses_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.motivation = step_context.result
         
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask the candidate to discuss both strengths and areas for improvement with honesty and self-awareness."
+            f"{self.interviewer_persona} Ask the candidate to discuss both strengths and areas for improvement with honesty and self-awareness."
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def salary_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.strengths_weaknesses = step_context.result
         
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask about salary expectations. Encourage the user to justify their expectation based on experience and value."
+            f"{self.interviewer_persona} Ask about salary expectations. Encourage the user to justify their expectation based on experience and value."
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def questions_for_interviewer_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.salary_expectation = step_context.result
         
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Ask if the candidate has any questions for the interviewer about the company or position."
+            f"{self.interviewer_persona} Ask if the candidate has any questions for the interviewer about the company or position."
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def closing_remarks_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.questions_for_interviewer = step_context.result
         
         prompt = await self.chatbot_respond(
             step_context.context,
             step_context.result,
-            "Conclude the interview. Thank the candidate and briefly mention the next steps."
+            f"{self.interviewer_persona} Conclude the interview. Thank the candidate and briefly mention the next steps."
         )
         return await step_context.prompt(TextPrompt.__name__, PromptOptions(prompt=MessageFactory.text(prompt)))
 
     async def final_confirmation_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        # Check spelling and grammar of user input
+        user_input = step_context.result
+        feedback = await self.check_spelling_grammar(user_input)
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
         self.score = await self.calculate_score(step_context.result)
         self.user_state.update_score(self.score)
         
@@ -179,7 +227,7 @@ class JobInterviewScenarioDialog(BaseDialog):
             experience_quality = await self.chatbot_respond(
                 None,  # We don't have a context here, so use None
                 self.experience,
-                "Evaluate if this response mentions specific job responsibilities or achievements. Return YES if it does, NO if it doesn't.",
+                f"{self.interviewer_persona} Evaluate if this response mentions specific job responsibilities or achievements. Return YES if it does, NO if it doesn't.",
                 temperature=0.1
             )
             if "YES" in experience_quality.upper():
@@ -194,7 +242,7 @@ class JobInterviewScenarioDialog(BaseDialog):
             skills_quality = await self.chatbot_respond(
                 None,  # We don't have a context here, so use None
                 self.skills,
-                "Evaluate if this response mentions specific skills relevant to customer service. Return YES if it does, NO if it doesn't."
+                f"{self.interviewer_persona} Evaluate if this response mentions specific skills relevant to customer service. Return YES if it does, NO if it doesn't."
             )
             if "YES" in skills_quality.upper():
                 score += 5
@@ -208,7 +256,7 @@ class JobInterviewScenarioDialog(BaseDialog):
             strengths_weaknesses_quality = await self.chatbot_respond(
                 None,  # We don't have a context here, so use None
                 self.strengths_weaknesses,
-                "Evaluate if this response discusses both strengths and weaknesses/areas for improvement. Return YES if it covers both, NO if it doesn't."
+                f"{self.interviewer_persona} Evaluate if this response discusses both strengths and weaknesses/areas for improvement. Return YES if it covers both, NO if it doesn't."
             )
             if "YES" in strengths_weaknesses_quality.upper():
                 score += 5
@@ -219,7 +267,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         politeness_check = await self.chatbot_respond(
             None,  # We don't have a context here, so use None
             final_response,
-            "Does this response include expressions of gratitude or thanks in any language? Return YES or NO.",
+            f"{self.interviewer_persona} Does this response include expressions of gratitude or thanks in any language? Return YES or NO.",
             temperature=0.1
         )
         if "YES" in politeness_check.upper():
@@ -229,7 +277,7 @@ class JobInterviewScenarioDialog(BaseDialog):
         questions_check = await self.chatbot_respond(
             None,  # We don't have a context here, so use None
             final_response,
-            "Does this response include questions for the interviewer or mentions asking questions? Return YES or NO.",
+            f"{self.interviewer_persona} Does this response include questions for the interviewer or mentions asking questions? Return YES or NO.",
             temperature=0.1
         )
         if "YES" in questions_check.upper():

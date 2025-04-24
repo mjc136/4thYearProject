@@ -15,6 +15,13 @@ from openai import OpenAI
 from backend.bot.state.user_state import UserState
 from typing import Optional, List
 
+LANGUAGE_CODE_MAP = {
+    "english": "en",
+    "spanish": "es",
+    "french": "fr",
+    "portuguese": "pt"
+}
+
 class BaseDialog(ComponentDialog):
     """
     Base class for bot dialogues. This class handles:
@@ -136,8 +143,6 @@ class BaseDialog(ComponentDialog):
         """Generate an AI response to the user input.""" 
         language = self.user_state.get_language()
         
-        await turn_context.send_activity(Activity(type="typing"))
-        
         # initialize memory for the conversation with simplified system message
         default_system_message = f"""You are LingoLizard, a language-learning assistant that helps users practice 
                         languages through interactive role-playing in {language}.
@@ -199,15 +204,44 @@ class BaseDialog(ComponentDialog):
         except Exception as e:
             self.logger.error(f"OpenAI API error: {str(e)}")
             return "I apologise, but I encountered an error. Please try again."
+        
+    async def check_spelling_grammar(self, text: str) -> str:
+        """Check spelling and grammar using Azure Translator service."""
+        language = self.user_state.get_language()
+        response = ""
+        
+        system_message = (
+            "You are a grammar checking tool. "
+            "You ONLY correct spelling and grammar mistakes. "
+            "You MUST NOT continue or expand the user's sentence. "
+            "Just return the corrected version with no explanation."
+        )
+        
+        if not text:
+            raise ValueError("No text provided for grammar check")
+        
+        detect_language = self.detect_language(text)
+
+        language = LANGUAGE_CODE_MAP.get(language.lower(), "en")
+        if detect_language != language:
+            response += "Please write in " + language + " only. Detecting " + detect_language + " instead."
+
+        correction = await self.chatbot_respond(
+            None,
+            text, 
+            system_message=system_message,
+            temperature=0.1
+        )
+
+        if correction.strip().lower() == text.strip().lower():
+            response += "Looks good!"
+        else:
+            response += f"Suggestion:\n{correction.strip()}"
+
+        return response        
 
     def translate_text(self, text: str, target_language: Optional[str] = None) -> str:
         """Translate text using Azure Translator service."""
-        LANGUAGE_CODE_MAP = {
-            "english": "en",
-            "spanish": "es",
-            "french": "fr",
-            "portuguese": "pt"
-        }
 
         lang_name = self.user_state.get_language()
         target_language = LANGUAGE_CODE_MAP.get(lang_name)
