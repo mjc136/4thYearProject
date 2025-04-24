@@ -73,8 +73,6 @@ class MainDialog(BaseDialog):
 
         # Do not re-enter the same dialog if we just completed it
         if step_context.result is not None:
-            # Update user streak when a scenario is completed successfully
-            await self.update_user_streak(step_context)
             await step_context.context.send_activity("Scenario completed.")
             return await step_context.end_dialog()
 

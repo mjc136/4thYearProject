@@ -270,6 +270,9 @@ class RestaurantScenarioDialog(BaseDialog):
         feedback = self.generate_feedback()
         await step_context.context.send_activity(MessageFactory.text(feedback))
         
+        # Update streak
+        self.update_user_streak()
+        
         # Send completion event for tracking
         completion_activity = Activity(
             type=ActivityTypes.event,

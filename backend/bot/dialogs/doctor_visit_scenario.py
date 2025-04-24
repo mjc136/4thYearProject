@@ -293,6 +293,9 @@ class DoctorVisitScenarioDialog(BaseDialog):
         feedback = self.generate_feedback()
         await step_context.context.send_activity(MessageFactory.text(feedback))
         
+        # Update streak
+        self.update_user_streak()
+        
         # Send completion event
         completion_activity = Activity(
             type=ActivityTypes.event,

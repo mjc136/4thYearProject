@@ -103,7 +103,7 @@ class HotelScenarioDialog(BaseDialog):
         
         guidance = "The receptionist is asking about your stay duration. Tell them how many nights you'd like to stay."
         example = self.translate_text(
-            "Example: I'd like to stay for 3 nights, please.", 
+            "Example: I'd like to stay for three nights, please.", 
             self.language
         )
         
@@ -216,7 +216,7 @@ class HotelScenarioDialog(BaseDialog):
         
         guidance = "The receptionist is asking if you have any special requests. Mention any preferences or needs you might have."
         example = self.translate_text(
-            "Example: I'd like a room on a higher floor with a non-smoking policy, and we'll need extra towels.", 
+            "Example: I'd like a room on a higher floor with a good view, please.", 
             self.language
         )
         
@@ -235,61 +235,15 @@ class HotelScenarioDialog(BaseDialog):
         user_input = step_context.result
         feedback = await self.check_spelling_grammar(user_input)
         await step_context.context.send_activity(MessageFactory.text(feedback))
-        
+            
         self.special_requests = user_input
-        
-        # Use entity extraction to identify specific amenities or features in the request
-        amenities = self.entity_extraction(user_input, ["Location", "Quantity", "DateTime", "Person"])
-        
-        # Analyze sentiment to gauge the importance of special requests
-        sentiment = self.analyse_sentiment(user_input)
-        
-        # Add to conversation memory with detected entities
-        special_requests_details = f"Special requests: {user_input}"
-        if amenities and amenities != "No entities found.":
-            special_requests_details += f" (Detected: {amenities})"
-            
-        self.add_to_memory(special_requests_details, "Bot asked for booking confirmation")
-        
-        # Get AI to determine the nature of the request for better handling
-        ai_interpretation = await self.chatbot_respond(
-            step_context.context,
-            user_input,
-            f"{self.receptionist_persona} The guest just provided this special request: '{user_input}'. Summarise the key points in this request in one sentence. Include any detected preferences for room location, amenities, or services."
-        )
-        
-        # Update tracking flags
-        self.special_requests_provided = True
         step_context.values["special_requests_provided"] = True
-        
-        # Add customised handling based on sentiment
-        request_importance = ""
-        if sentiment == "positive":
-            request_importance = "We'll make sure to address your preferences."
-        elif sentiment == "negative":
-            request_importance = "We understand your concerns and will address them accordingly."
-            
-        # Calculate check-out description
-        check_out_description = f"After {self.num_nights} nights" if self.num_nights else "Not specified"
-            
-        # Display a summary of the booking details so far
-        booking_summary = (
-            "Let me confirm your booking details:\n"
-            f"Check-in: Today\n"
-            f"Check-out: {check_out_description}\n"
-            f"Room Type: {self.room_type}\n"
-            f"Guests: {self.num_guests}\n"
-            f"Special Requests: {self.special_requests}\n"
-            f"Our understanding: {ai_interpretation}\n"
-            f"{request_importance}"
-        )
-        
-        await step_context.context.send_activity(MessageFactory.text(booking_summary))
+        self.add_to_memory(user_input, "Bot asked for booking confirmation")
         
         prompt = await self.chatbot_respond(
             step_context.context,
             user_input,
-            f"{self.receptionist_persona} Ask the guest if all the booking details are correct and if they would like to confirm the booking."
+            f"{self.receptionist_persona} Ask the guest if they would like to confirm the booking."
         )
         
         return await step_context.prompt(
@@ -399,6 +353,11 @@ class HotelScenarioDialog(BaseDialog):
         feedback = await self.check_spelling_grammar(user_input)
         await step_context.context.send_activity(MessageFactory.text(feedback))
         
+        # Store payment method
+        self.payment_method = user_input
+        self.payment_method_provided = True
+        step_context.values["payment_method_provided"] = True
+        
         # Check if user has questions
         if len(user_input) > 10 and user_input.lower() != "no":
             response = await self.chatbot_respond(
@@ -418,6 +377,9 @@ class HotelScenarioDialog(BaseDialog):
         # Calculate score before moving to feedback
         self.score = self.calculate_score(step_context)
         self.user_state.update_xp(self.score)
+        
+        # Update user streak
+        self.update_user_streak()
         
         await step_context.context.send_activity(MessageFactory.text("Your booking conversation is now complete. Let's see how you did!"))
         return await step_context.next(None)

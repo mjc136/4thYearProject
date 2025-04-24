@@ -257,6 +257,9 @@ class ShoppingScenarioDialog(BaseDialog):
         self.score = self.calculate_score(step_context)
         self.user_state.update_xp(self.score)
         
+        # Update user streak
+        self.update_user_streak()
+        
         # Final farewell
         farewell = await self.chatbot_respond(
             step_context.context,

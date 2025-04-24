@@ -1,7 +1,7 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult, PromptOptions
 from botbuilder.dialogs.prompts import TextPrompt
 from botbuilder.core import MessageFactory
-from botbuilder.schema import Activity, CardAction, SuggestedActions, ActionTypes
+from botbuilder.schema import Activity, CardAction, SuggestedActions, ActionTypes, ActivityTypes
 from .base_dialog import BaseDialog
 from backend.bot.state.user_state import UserState
 import re
@@ -213,6 +213,18 @@ class JobInterviewScenarioDialog(BaseDialog):
         
         await step_context.context.send_activity(message)
         await step_context.context.send_activity(translated_message)
+        
+        # Update streak
+        self.update_user_streak()
+        
+        # Send completion event
+        completion_activity = Activity(
+            type=ActivityTypes.event,
+            name="scenario_complete",
+            value={"scenario": "job_interview", "score": self.score}
+        )
+        await step_context.context.send_activity(completion_activity)
+        
         return await step_context.end_dialog()
 
     async def calculate_score(self, final_response: str) -> int:

@@ -215,6 +215,7 @@ class BaseDialog(ComponentDialog):
             "You ONLY correct spelling and grammar mistakes. "
             "You MUST NOT continue or expand the user's sentence. "
             "Just return the corrected version with no explanation."
+            "If the text is correct, just return the text back."
         )
         
         if not text:
@@ -296,6 +297,10 @@ class BaseDialog(ComponentDialog):
         except Exception as e:
             self.logger.error(f"Sentiment analysis failed: {e}")
             return "Sentiment analysis failed."
+            
+    def update_user_streak(self):
+        """Updates the user's streak for completing scenarios."""
+        self.user_state.update_streak()
 
     def detect_language(self, text: str) -> str:
         """Detect the language of the given text using Azure Text Analytics."""

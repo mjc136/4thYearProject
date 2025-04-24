@@ -59,7 +59,7 @@ class TaxiScenarioDialog(BaseDialog):
                     self.validate_negotiated_price,      # Renamed from verify_price_step
                     self.finalise_trip_details,          # Renamed from confirm_price_step
                     self.prepare_scenario_feedback,      # Renamed from final_confirmation_step
-                    self.display_user_score,             # Renamed from feedback_step
+                    self.show_performance_feedback,      # Updated to include streak update
                     self.end_taxi_scenario               # Renamed from completion_step
                 ]
             )
@@ -331,6 +331,31 @@ class TaxiScenarioDialog(BaseDialog):
         self.user_state.update_xp(self.score)
         
         await step_context.context.send_activity(self.generate_feedback())
+        return await step_context.next(None)
+
+    async def show_performance_feedback(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        """Displays performance feedback and score to the user."""
+        await step_context.context.send_activity(MessageFactory.text("Scenario Feedback:"))
+        
+        # Display score
+        score_message = f"Your final score: {self.score}/100"
+        await step_context.context.send_activity(MessageFactory.text(score_message))
+        
+        # Display feedback based on score
+        feedback = self.generate_feedback()
+        await step_context.context.send_activity(MessageFactory.text(feedback))
+        
+        # Update streak
+        self.update_user_streak()
+        
+        # Send completion event for tracking
+        completion_activity = Activity(
+            type=ActivityTypes.event,
+            name="scenario_complete",
+            value={"scenario": "taxi", "score": self.score}
+        )
+        await step_context.context.send_activity(completion_activity)
+        
         return await step_context.next(None)
 
     async def display_user_score(self, step_context: WaterfallStepContext) -> DialogTurnResult:
