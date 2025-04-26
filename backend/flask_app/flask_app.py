@@ -40,12 +40,6 @@ db_path = os.path.join(default_db_dir, os.getenv("DB_FILENAME", "lingolizard.db"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{db_path}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Add database connection retry and timeout settings
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 280,  # Recycle connections before Azure's idle timeout (typically 300s)
-    "connect_args": {"timeout": 15}  # Connection timeout in seconds
-}
-
 # Add session cookie security settings
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("ENVIRONMENT") == "production"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
