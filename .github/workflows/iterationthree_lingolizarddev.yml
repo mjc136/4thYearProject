@@ -28,13 +28,6 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio
-
-      # Optional Test Step – Uncomment when ready
-      # - name: Run Tests
-      #   run: |
-      #     source venv/bin/activate
-      #     pytest bot/tests --maxfail=3 --disable-warnings
 
       - name: Verify Environment
         run: |
@@ -95,8 +88,8 @@ jobs:
               MicrosoftAppId=${{ secrets.MICROSOFT_APP_ID }} \
               MicrosoftAppPassword=${{ secrets.MICROSOFT_APP_PASSWORD }} \
               SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }} \
-              DATABASE_URL="sqlite:///lingolizard.db" \
-              BOT_URL="https://lingolizard-bot-dev.azurewebsites.net/api/messages" \
+              DATABASE_URL="postgresql://postgres:Sydpuppy%3B2019@db.wflaylpymzwoofnwlkxa.supabase.co:5432/postgres" \
+              BOT_URL="lingolizardbot.azurewebsites.net/api/messages" \
               WEBSITE_HTTPLOGGING_RETENTION_DAYS=3
 
       - name: Deploy Flask to Azure Web App
@@ -151,7 +144,7 @@ jobs:
       - name: Configure Bot App Settings
         run: |
           az webapp config appsettings set \
-            --name LingoLizard-Bot-Dev \
+            --name LingoLizardBot \
             --resource-group LingoLizard-Dev \
             --settings \
               WEBSITES_PORT=3978 \
@@ -164,7 +157,7 @@ jobs:
       - name: Deploy Bot to Azure Web App
         run: |
           az webapp config container set \
-            --name LingoLizard-Bot-Dev \
+            --name LingoLizardBot \
             --resource-group LingoLizard-Dev \
             --docker-custom-image-name mjc136/lingolizard-bot:latest \
             --docker-registry-server-url https://index.docker.io/v1/
@@ -172,7 +165,7 @@ jobs:
       - name: Restart Bot Web App
         run: |
           az webapp restart \
-            --name LingoLizard-Bot-Dev \
+            --name LingoLizardBot \
             --resource-group LingoLizard-Dev
 
       - name: Wait for Bot Deployment to Settle
@@ -184,7 +177,7 @@ jobs:
         run: |
           echo "Checking Bot /health endpoint..."
           for i in {1..6}; do
-            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizard-bot-dev.azurewebsites.net/health)
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://LingoLizardBot.azurewebsites.net/health)
             if [ "$status_code" -eq 200 ]; then
               echo "✅ Bot health check passed!"
               exit 0
