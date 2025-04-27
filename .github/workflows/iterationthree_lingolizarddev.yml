@@ -57,15 +57,20 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker Image
+      - name: Build Flask Docker Image
         run: |
-          docker build -t mjc136/lingolizard:latest .
+          docker build -t mjc136/lingolizard-flask:latest -f Dockerfile.flask .
 
-      - name: Push Docker Image
+      - name: Build Bot Docker Image
         run: |
-          docker push mjc136/lingolizard:latest
+          docker build -t mjc136/lingolizard-bot:latest -f Dockerfile.bot .
 
-  deploy:
+      - name: Push Docker Images
+        run: |
+          docker push mjc136/lingolizard-flask:latest
+          docker push mjc136/lingolizard-bot:latest
+
+  deploy-flask:
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -80,7 +85,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Configure Web App Settings
+      - name: Configure Flask App Settings
         run: |
           az webapp config appsettings set \
             --name LingoLizardDev \
@@ -91,18 +96,18 @@ jobs:
               MicrosoftAppPassword=${{ secrets.MICROSOFT_APP_PASSWORD }} \
               SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }} \
               DATABASE_URL="sqlite:///lingolizard.db" \
-              BOT_URL="https://lingolizarddev.azurewebsites.net/api/messages" \
+              BOT_URL="https://lingolizard-bot-dev.azurewebsites.net/api/messages" \
               WEBSITE_HTTPLOGGING_RETENTION_DAYS=3
 
-      - name: Deploy to Azure Web App
+      - name: Deploy Flask to Azure Web App
         run: |
           az webapp config container set \
             --name LingoLizardDev \
             --resource-group LingoLizard-Dev \
-            --docker-custom-image-name mjc136/lingolizard:latest \
+            --docker-custom-image-name mjc136/lingolizard-flask:latest \
             --docker-registry-server-url https://index.docker.io/v1/
 
-      - name: Restart Azure Web App
+      - name: Restart Flask Web App
         run: |
           az webapp restart \
             --name LingoLizardDev \
@@ -110,20 +115,93 @@ jobs:
 
       - name: Wait for Deployment to Settle
         run: |
-          echo "Waiting for app to stabilize..."
+          echo "Waiting for Flask app to stabilize..."
           sleep 60
 
-      - name: Health Check
+      - name: Health Check for Flask
         run: |
           echo "Checking /health endpoint..."
           for i in {1..6}; do
             status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizarddev.azurewebsites.net/health)
             if [ "$status_code" -eq 200 ]; then
-              echo "✅ Health check passed!"
+              echo "✅ Flask health check passed!"
               exit 0
             fi
             echo "❌ Attempt $i failed (status: $status_code). Retrying in 20 seconds..."
             sleep 20
           done
-          echo "❌ Health check failed after 6 attempts."
+          echo "❌ Flask health check failed after 6 attempts."
+          exit 1
+
+  deploy-bot:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create Bot App Service if it doesn't exist
+        run: |
+          if ! az webapp show --name LingoLizard-Bot-Dev --resource-group LingoLizard-Dev &> /dev/null; then
+            echo "Bot app service doesn't exist, creating..."
+            az webapp create \
+              --name LingoLizard-Bot-Dev \
+              --resource-group LingoLizard-Dev \
+              --plan LingoLizard-Dev-Plan \
+              --deployment-container-image-name mjc136/lingolizard-bot:latest
+          fi
+
+      - name: Configure Bot App Settings
+        run: |
+          az webapp config appsettings set \
+            --name LingoLizard-Bot-Dev \
+            --resource-group LingoLizard-Dev \
+            --settings \
+              WEBSITES_PORT=3978 \
+              MicrosoftAppId=${{ secrets.MICROSOFT_APP_ID }} \
+              MicrosoftAppPassword=${{ secrets.MICROSOFT_APP_PASSWORD }} \
+              FLASK_URL="https://lingolizarddev.azurewebsites.net" \
+              AZURE_APP_CONFIG_CONNECTION_STRING="${{ secrets.AZURE_APP_CONFIG_CONNECTION_STRING }}" \
+              WEBSITE_HTTPLOGGING_RETENTION_DAYS=3
+
+      - name: Deploy Bot to Azure Web App
+        run: |
+          az webapp config container set \
+            --name LingoLizard-Bot-Dev \
+            --resource-group LingoLizard-Dev \
+            --docker-custom-image-name mjc136/lingolizard-bot:latest \
+            --docker-registry-server-url https://index.docker.io/v1/
+
+      - name: Restart Bot Web App
+        run: |
+          az webapp restart \
+            --name LingoLizard-Bot-Dev \
+            --resource-group LingoLizard-Dev
+
+      - name: Wait for Bot Deployment to Settle
+        run: |
+          echo "Waiting for Bot app to stabilize..."
+          sleep 60
+
+      - name: Health Check for Bot
+        run: |
+          echo "Checking Bot /health endpoint..."
+          for i in {1..6}; do
+            status_code=$(curl -o /dev/null -s -w "%{http_code}" https://lingolizard-bot-dev.azurewebsites.net/health)
+            if [ "$status_code" -eq 200 ]; then
+              echo "✅ Bot health check passed!"
+              exit 0
+            fi
+            echo "❌ Attempt $i failed (status: $status_code). Retrying in 20 seconds..."
+            sleep 20
+          done
+          echo "❌ Bot health check failed after 6 attempts."
           exit 1
