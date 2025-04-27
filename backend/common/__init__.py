@@ -3,7 +3,6 @@ import logging
 from flask import Flask, redirect, request, jsonify
 from dotenv import load_dotenv
 from backend.common.extensions import db, bcrypt
-from backend.models import User
 from flask_migrate import Migrate
 
 # Load environment variables
@@ -61,6 +60,9 @@ with app.app_context():
     try:
         # Create all tables if they don't exist
         db.create_all()
+        
+        # Import User model here to avoid circular imports
+        from backend.models import User
         
         # Check if User table is populated
         user_count = User.query.count()
@@ -125,6 +127,8 @@ def db_health():
                 "message": "Invalid query parameters"
             }), 400
 
+        # Import User model inside the function
+        from backend.models import User
         user_count = User.query.count()
         return jsonify({
             "status": "healthy",
