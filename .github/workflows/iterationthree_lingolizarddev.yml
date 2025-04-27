@@ -148,17 +148,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create Bot App Service if it doesn't exist
-        run: |
-          if ! az webapp show --name LingoLizard-Bot-Dev --resource-group LingoLizard-Dev &> /dev/null; then
-            echo "Bot app service doesn't exist, creating..."
-            az webapp create \
-              --name LingoLizard-Bot-Dev \
-              --resource-group LingoLizard-Dev \
-              --plan LingoLizard-Dev-Plan \
-              --deployment-container-image-name mjc136/lingolizard-bot:latest
-          fi
-
       - name: Configure Bot App Settings
         run: |
           az webapp config appsettings set \
