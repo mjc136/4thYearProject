@@ -1,113 +1,17 @@
-# Stage 1: Builder
-FROM python:3.10-slim-buster AS builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    python3-dev \
-    libffi-dev \
-    build-essential \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies from requirements.txt
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Final container
 FROM python:3.10-slim-buster
 
 WORKDIR /app
 
-# Force unbuffered Python output for immediate logs
-ENV PYTHONUNBUFFERED=1
-# Set default port (will be used if no env vars are provided)
-ENV PORT=8080
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev sqlite3 && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    sqlite3 \
-    && rm -rf /var/lib/apt/lists/*
+# Copy application files
+COPY . .
 
-# Set up directories
-RUN mkdir -p /app/backend /home/data && chmod -R 755 /app /home/data
+# Expose the Flask port
+EXPOSE 8080
 
-# Copy installed packages from builder
-COPY --from=builder /install /usr/local
-
-# Copy Flask app code
-COPY app_flask.py .
-COPY backend/flask_app/ ./backend/flask_app/
-COPY backend/common/ ./backend/common/
-COPY backend/models.py ./backend/
-COPY backend/__init__.py ./backend/
-
-# Create script to start the application with improved logging and fallback ports
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "CONTAINER STARTUP: $(date)"\n\
-echo "ENVIRONMENT VARIABLES:"\n\
-echo "  - Original PORT=$PORT"\n\
-echo "  - Original WEBSITES_PORT=$WEBSITES_PORT"\n\
-\n\
-# Default port if none is specified\n\
-DEFAULT_PORT=8080\n\
-\n\
-# Determine which port to use, with fallbacks\n\
-BIND_PORT=$DEFAULT_PORT\n\
-\n\
-# Check if PORT is set\n\
-if [ ! -z "$PORT" ]; then\n\
-    BIND_PORT=$PORT\n\
-    echo "Using PORT env variable: $BIND_PORT"\n\
-fi\n\
-\n\
-# Check if WEBSITES_PORT is set (Azure-specific)\n\
-if [ ! -z "$WEBSITES_PORT" ]; then\n\
-    BIND_PORT=$WEBSITES_PORT\n\
-    echo "Using WEBSITES_PORT env variable: $BIND_PORT"\n\
-fi\n\
-\n\
-# Final fallback to hard-coded ports that Azure might expect\n\
-if [ "$BIND_PORT" = "0" ] || [ "$BIND_PORT" = "" ]; then\n\
-    echo "WARNING: Invalid port value. Trying common Azure ports..."\n\
-    # Try common Azure App Service ports\n\
-    for port in 8080 80 443 5000 3000; do\n\
-        echo "Trying port $port..."\n\
-        BIND_PORT=$port\n\
-        break\n\
-    done\n\
-fi\n\
-\n\
-echo "STARTING: Gunicorn on port $BIND_PORT with 2 workers"\n\
-\n\
-# Export the chosen port so the Flask app can use it\n\
-export PORT=$BIND_PORT\n\
-\n\
-# Start Gunicorn with full output logging and port binding\n\
-exec gunicorn \\\n\
-    --bind=0.0.0.0:$BIND_PORT \\\n\
-    --workers=2 \\\n\
-    --timeout=120 \\\n\
-    --log-level=info \\\n\
-    --error-logfile=- \\\n\
-    --access-logfile=- \\\n\
-    --capture-output \\\n\
-    backend.flask_app.flask_app:app\n' > /app/start.sh
-
-RUN chmod +x /app/start.sh
-
-# Make sure all files are readable
-RUN chmod -R 755 /app
-
-# Expose multiple common ports Azure might use
-EXPOSE 8080 80 443 5000 3000
-
-# Use the startup script
-CMD ["/bin/bash", "-c", "/app/start.sh"]
+# Start the Flask application
+CMD ["python", "app_flask.py"]

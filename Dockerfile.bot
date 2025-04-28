@@ -1,96 +1,17 @@
-# Stage 1: Builder
-FROM python:3.10-slim-buster AS builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    python3-dev \
-    libffi-dev \
-    build-essential \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies from requirements.txt
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# Stage 2: Final container
 FROM python:3.10-slim-buster
 
 WORKDIR /app
 
-# Force unbuffered Python output for immediate logs
-ENV PYTHONUNBUFFERED=1
-# Set default port (will be used if no env vars are provided)
-ENV PORT=3978
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy installed packages from builder
-COPY --from=builder /install /usr/local
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY backend/__init__.py ./backend/
-COPY backend/models.py ./backend/
-COPY backend/common/ ./backend/common/
-COPY backend/bot/ ./backend/bot/
-COPY app_bot.py .
+COPY . .
 
-# Create startup script with port fallbacks
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "BOT CONTAINER STARTUP: $(date)"\n\
-echo "ENVIRONMENT VARIABLES:"\n\
-echo "  - Original PORT=$PORT"\n\
-echo "  - Original WEBSITES_PORT=$WEBSITES_PORT"\n\
-\n\
-# Default port if none is specified\n\
-DEFAULT_PORT=3978\n\
-\n\
-# Determine which port to use, with fallbacks\n\
-BIND_PORT=$DEFAULT_PORT\n\
-\n\
-# Check if PORT is set\n\
-if [ ! -z "$PORT" ]; then\n\
-    BIND_PORT=$PORT\n\
-    echo "Using PORT env variable: $BIND_PORT"\n\
-fi\n\
-\n\
-# Check if WEBSITES_PORT is set (Azure-specific)\n\
-if [ ! -z "$WEBSITES_PORT" ]; then\n\
-    BIND_PORT=$WEBSITES_PORT\n\
-    echo "Using WEBSITES_PORT env variable: $BIND_PORT"\n\
-fi\n\
-\n\
-# Final fallback to hard-coded ports that Azure might expect\n\
-if [ "$BIND_PORT" = "0" ] || [ "$BIND_PORT" = "" ]; then\n\
-    echo "WARNING: Invalid port value. Using default bot port."\n\
-    BIND_PORT=$DEFAULT_PORT\n\
-fi\n\
-\n\
-echo "STARTING: Bot application on port $BIND_PORT"\n\
-\n\
-# Export the chosen port so the Bot app can use it\n\
-export PORT=$BIND_PORT\n\
-\n\
-# Start the bot application\n\
-exec python -u app_bot.py\n' > /app/start.sh
+# Expose the bot port
+EXPOSE 3978
 
-RUN chmod +x /app/start.sh
-
-# Make sure all files are readable
-RUN chmod -R 755 /app
-
-# Expose bot ports 
-EXPOSE 3978 8080 80
-
-# Use the startup script
-CMD ["/bin/bash", "-c", "/app/start.sh"]
+# Start the bot application
+CMD ["python", "app_bot.py"]
