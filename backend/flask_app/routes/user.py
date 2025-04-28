@@ -60,11 +60,10 @@ def scenarios():
             if all(s in completed for s in scenario_tiers['intermediate']):
                 unlocked += scenario_tiers['advanced']
 
-    # Attach dynamic lists to the user object for the template
-    user.completed_scenarios = completed
+
     user.unlocked_scenarios = unlocked
 
-    return render_template("scenarios.html", user=user, scenario_tiers=scenario_tiers)
+    return render_template("scenarios.html", user=user, scenario_tiers=scenario_tiers, completed_scenarios=completed)
 
 @user_bp.route("/chat")
 def chat():

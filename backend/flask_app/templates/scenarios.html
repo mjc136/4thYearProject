@@ -33,7 +33,7 @@
                     {% if scenario in user.unlocked_scenarios %}
                         <button class="btn btn-{{ info.badge }}{% if info.badge == 'warning' %} text-dark{% endif %} w-100"
                                 onclick="location.href='/chat?scenario={{ scenario }}'">Start Scenario</button>
-                        {% if scenario in user.completed_scenarios %}
+                        {% if scenario in completed_scenarios %}
                             <div class="mt-2 text-center">
                                 <span class="badge bg-light text-dark">✓ Completed</span>
                             </div>
