@@ -4,10 +4,16 @@ ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Create a bot-specific requirements file
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir python-dotenv aiohttp botbuilder-core botbuilder-dialogs botbuilder-integration-aiohttp
 
-COPY . .
+# Only copy the necessary files for the bot application
+COPY app_bot.py .
+COPY backend/bot/ ./backend/bot/
+COPY backend/__init__.py ./backend/
+COPY backend/common/ ./backend/common/
+COPY backend/models.py ./backend/
 
 EXPOSE 3978
 

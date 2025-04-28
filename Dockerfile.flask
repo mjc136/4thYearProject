@@ -7,7 +7,17 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Only copy the necessary files for the Flask application
+COPY app_flask.py .
+COPY backend/flask_app/ ./backend/flask_app/
+COPY backend/__init__.py ./backend/
+COPY backend/common/ ./backend/common/
+COPY backend/models.py ./backend/
+COPY backend/lingolizard.db ./backend/
+
+# Copy static assets and templates
+COPY backend/flask_app/static/ ./backend/flask_app/static/
+COPY backend/flask_app/templates/ ./backend/flask_app/templates/
 
 EXPOSE 5000
 
