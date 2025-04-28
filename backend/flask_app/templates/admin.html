@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Admin | LingoLizard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card shadow-lg bg-dark text-white border-light rounded-4">
+    <div class="card-body">
+      <h2 class="card-title text-center mb-4">🛠️ Admin Tools</h2>
+
+      <form method="POST">
+        <div class="mb-4">
+          <label class="form-label">Current Language: <strong class="text-info">{{ user.language }}</strong></label>
+          <select class="form-select form-select-lg rounded-pill" name="language">
+            <option value="english" {% if user.language == 'english' %}selected{% endif %}>English</option>
+            <option value="spanish" {% if user.language == 'spanish' %}selected{% endif %}>Spanish</option>
+            <option value="french" {% if user.language == 'french' %}selected{% endif %}>French</option>
+            <option value="portuguese" {% if user.language == 'portuguese' %}selected{% endif %}>Portuguese</option>
+          </select>
+        </div>
+      
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Update</button>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

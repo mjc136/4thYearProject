@@ -1,0 +1,309 @@
+body {
+    background-color: #1c1f23;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #f8f9fa;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #f8f9fa;
+}
+
+h2 {
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+}
+
+.container {
+    max-width: 800px;
+    margin-top: 40px;
+}
+
+/* Navigation styling improvements */
+.nav {
+    background: linear-gradient(135deg, #2c3e50, #1c1f23);
+    border-radius: 10px !important;
+    padding: 5px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.nav .nav-link {
+    color: #e9ecef;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.nav .nav-link:hover {
+    transform: translateY(-2px);
+    color: white;
+}
+
+.nav .nav-link.active {
+    background: #2980b9 !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Chat interface improvements */
+#chatBox {
+    height: 450px;
+    overflow-y: auto;
+    background: #2c3e50;
+    padding: 1.5rem;
+    border: none;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    scrollbar-width: thin;
+    scrollbar-color: #4a5568 #2d3748;
+}
+
+#chatBox::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chatBox::-webkit-scrollbar-track {
+    background: #2d3748;
+    border-radius: 10px;
+}
+
+#chatBox::-webkit-scrollbar-thumb {
+    background-color: #4a5568;
+    border-radius: 10px;
+    border: 2px solid #2d3748;
+}
+
+.bubble {
+    padding: 0.75rem 1.25rem;
+    border-radius: 20px;
+    margin: 0.75rem 0;
+    max-width: 80%;
+    display: inline-block;
+    word-wrap: break-word;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-bubble {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    text-align: right;
+    float: right;
+    clear: both;
+    border-bottom-right-radius: 4px;
+}
+
+.bot-bubble {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    text-align: left;
+    float: left;
+    clear: both;
+    border-bottom-left-radius: 4px;
+}
+
+/* Message input styling */
+.input-group {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#userInput {
+    border: none;
+    background-color: #2c3e50;
+    color: white;
+    padding: 12px 15px;
+    font-size: 1rem;
+}
+
+#userInput:focus {
+    box-shadow: none;
+    outline: none;
+    background-color: #34495e;
+}
+
+#sendButton {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    border: none;
+    padding: 12px 20px;
+    transition: all 0.3s ease;
+}
+
+#sendButton:hover {
+    background: linear-gradient(135deg, #2980b9, #3498db);
+    transform: translateY(-2px);
+}
+
+/* Example message styling */
+.example-bubble {
+    border-left: 4px solid #ffc107; /* Yellow border to highlight examples */
+    background-color: #fff9e6; /* Slightly yellow background */
+}
+
+.example-text {
+    font-style: italic;
+    color: #a0aec0;
+    display: block;
+    margin-top: 8px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border-left: 3px solid #3498db;
+}
+
+/* Step indicators styling */
+.step-indicator {
+    text-align: center;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2));
+    color: #e9ecef;
+    border-radius: 12px;
+    padding: 8px 15px;
+    margin: 15px auto;
+    font-weight: bold;
+    max-width: 80%;
+    border-left: 3px solid #3498db;
+    border-right: 3px solid #3498db;
+}
+
+/* Forms styling */
+form .form-control, form .btn {
+    border-radius: 10px;
+    padding: 12px;
+}
+
+form .form-control {
+    background-color: #2c3e50;
+    border: 1px solid #4a5568;
+    color: #ffffff;
+}
+
+/* Make placeholder text visible */
+::placeholder,
+::-webkit-input-placeholder,
+:-ms-input-placeholder,
+::-ms-input-placeholder {
+    color: #a0aec0 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure select options are visible */
+option {
+    background-color: #2c3e50;
+    color: #f8f9fa;
+}
+
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+    background-color: #34495e;
+    color: #e9ecef !important;
+    opacity: 0.8;
+}
+
+/* Ensure form labels are visible */
+label, .form-label {
+    color: #e9ecef;
+}
+
+/* Enhance visibility of focused elements */
+:focus {
+    color: #000 !important;
+    background-color: #fff !important;
+} 
+
+.form-select {
+    background-color: #2c3e50;
+    color: white;
+    border-color: #4a5568;
+}
+
+.form-select:focus {
+    background-color: #34495e;
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9, #3498db);
+    transform: translateY(-2px);
+}
+
+.card {
+    border-radius: 16px;
+    background: linear-gradient(145deg, #1e2328, #1a1e22);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    border: 1px solid #2c3e50;
+    overflow: hidden;
+}
+
+/* Typing indicator animation */
+#typingIndicator {
+    padding: 10px 15px;
+    margin: 10px 0;
+    font-style: italic;
+    color: #a0aec0;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+/* Alerts and notifications */
+.alert {
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: none;
+}
+
+.alert-danger {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border-left: 4px solid #c0392b;
+}
+
+.alert-success {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border-left: 4px solid #27ae60;
+}
+
+/* XP Notification styling */
+.xp-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

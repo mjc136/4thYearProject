@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+venv/
+.git/
+.github/
+tests/
+.env
+Dockerfile.flask
+Dockerfile.bot
+.dockerignore
+README.md
+*.zip

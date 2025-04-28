@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ scenario_title }} | LingoLizard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-12">
+      <a href="/scenarios" class="btn btn-sm btn-outline-light mb-3">← Back to Scenarios</a>
+      <h1 class="text-center">{{ scenario_title }}</h1>
+      <div class="scenario-badge text-center mb-3">
+        <span class="badge bg-{{ scenario_badge }}{% if scenario_badge == 'warning' %} text-dark{% endif %}">
+          {{ scenario_tier }} Level
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div id="chatBox" class="chat-box">
+    <!-- Welcome message is pre-rendered -->
+    <div class="bubble bot-bubble">
+      <b>Bot:</b> Welcome to LingoLizard
+      <br><br>
+      You're practicing <strong>{{ user.language }}</strong>.
+      <br><br>
+      <strong>Scenario:</strong> {{ scenario_intro }}
+      <br><br>
+    </div>
+  </div>
+
+  <div id="typingIndicator" class="text-white fst-italic mb-2" style="display: none;">
+    Bot is typing<span id="dots">.</span>
+  </div>
+  
+  <div class="text-center mb-3">
+    <button id="startButton" class="btn btn-success btn-lg" onclick="startScenario()">
+      <i class="bi bi-play-fill"></i> Start Scenario
+    </button>
+  </div>
+
+  <div class="input-group" id="inputArea" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" id="userInput" class="form-control" placeholder="Type your message here...">
+    <button class="btn btn-primary" onclick="sendMessage()" id="sendButton">Send</button>
+  </div>
+  
+  <!-- Hidden field to store scenario type -->
+  <input type="hidden" id="scenarioType" value="{{ scenario }}">
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+  .step-indicator {
+    text-align: center;
+    background-color: rgba(75, 192, 192, 0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin: 10px auto;
+    font-weight: bold;
+    max-width: 80%;
+  }
+  
+  .example-text {
+    font-style: italic;
+    color: #ccf;
+  }
+  
+  /* Improved typing indicator */
+  #typingIndicator {
+    padding: 5px 10px;
+    margin: 5px 0;
+    font-style: italic;
+    color: #aaa;
+  }
+  
+  .scenario-badge {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .chat-box {
+    height: 400px;
+    overflow-y: auto;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='scripts/chat.js') }}"></script>
+<script>
+  function startScenario() {
+    // Hide the start button
+    document.getElementById('startButton').style.display = 'none';
+    
+    // Show the input area
+    document.getElementById('inputArea').style.display = 'flex';
+    
+    // Focus on the input field
+    document.getElementById('userInput').focus();
+    
+    // Send the start message to begin the scenario
+    sendMessage('start', true);
+  }
+</script>
+{% endblock %}
