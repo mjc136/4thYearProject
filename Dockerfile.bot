@@ -18,21 +18,7 @@ COPY requirements.txt .
 
 # Install just the Bot-related dependencies for faster builds
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --prefix=/install \
-        aiohttp==3.10.5 \
-        botbuilder-core==4.16.2 \
-        botbuilder-dialogs==4.16.2 \
-        botbuilder-integration-aiohttp==4.16.2 \
-        botbuilder-schema==4.16.2 \
-        botbuilder-azure==4.16.2 \
-        azure-ai-textanalytics==5.3.0 \
-        python-dotenv==1.1.0 \
-        sqlalchemy==2.0.40 \
-        Flask==3.1.0 \
-        Flask-SQLAlchemy==3.1.1 \
-        Flask-Bcrypt==1.0.1 \
-        Flask-WTF==1.2.2 \
-        psycopg2-binary>=2.9.5
+    pip install --no-cache-dir -r requirements.txt || \
 
 # Stage 2: Final container
 FROM python:3.10-slim-buster
