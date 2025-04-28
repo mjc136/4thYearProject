@@ -38,7 +38,8 @@ def run_flask():
         # Import flask app here to avoid circular imports
         from backend.flask_app.flask_app import app as flask_app
         
-        port = int(os.getenv("PORT", "5000"))
+        # Dynamically determine the port
+        port = int(os.getenv("WEBSITES_PORT", os.getenv("PORT", "8080")))
         print(f"Starting Flask on port {port}...")
         
         # Start the Flask app
