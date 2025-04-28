@@ -1,8 +1,6 @@
 import os
-import threading
 import logging
 from flask import Flask, redirect
-from aiohttp import web
 from dotenv import load_dotenv
 from flask_migrate import Migrate
 
@@ -95,70 +93,10 @@ app.register_blueprint(health_bp)
 def index():
     return redirect("/login")
 
-# Setup aiohttp Bot Framework
-from botbuilder.core import (
-    BotFrameworkAdapter, BotFrameworkAdapterSettings,
-    TurnContext, MemoryStorage, ConversationState, UserState as BotUserState
-)
-from botbuilder.schema import Activity
-from backend.bot.dialogs.main_dialog import MainDialog
-from backend.bot.state.user_state import UserState
+# The Bot-related code has been removed since it's now handled by app_bot.py
+# and running in a separate Azure App Service
 
-APP_ID = os.getenv("MicrosoftAppId")
-APP_PASSWORD = os.getenv("MicrosoftAppPassword")
-
-SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
-ADAPTER = BotFrameworkAdapter(SETTINGS)
-
-memory = MemoryStorage()
-conversation_state = ConversationState(memory)
-user_state_property = BotUserState(memory)
-
-async def on_error(context: TurnContext, error: Exception):
-    LOGGER.error(f"Unhandled bot error: {error}")
-    await context.send_activity("Sorry, something went wrong.")
-ADAPTER.on_turn_error = on_error
-
-# aiohttp handlers
-aio_app = web.Application()
-
-async def messages(req):
-    body = await req.json()
-    activity = Activity().deserialize(body)
-    auth_header = req.headers.get("Authorization", "")
-
-    user_id = req.headers.get("X-User-ID", "unknown")
-
-    bot_response = {"text": "", "attachments": []}
-
-    with app.app_context():
-        user_state = UserState(user_id)
-        dialog = MainDialog(user_state)
-
-    async def turn_logic(turn_context: TurnContext):
-        async def capture_send_activity(msg):
-            bot_response["text"] = msg.text if isinstance(msg, Activity) else str(msg)
-        turn_context.send_activity = capture_send_activity
-        await dialog.run(turn_context, conversation_state.create_property("DialogState"))
-        await conversation_state.save_changes(turn_context)
-        await user_state_property.save_changes(turn_context)
-
-    await ADAPTER.process_activity(activity, auth_header, turn_logic)
-    return web.json_response({"bot_reply": bot_response["text"]})
-
-aio_app.router.add_post("/api/messages", messages)
-
-# Run Flask + Bot
+# Only this single-process run block remains
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 3978))
-    flask_port = int(os.getenv("FLASK_PORT", 5000))
-
-    def run_flask():
-        app.run(host="0.0.0.0", port=flask_port)
-
-    def run_bot():
-        LOGGER.info(f"Starting bot on port {port}")
-        web.run_app(aio_app, host="0.0.0.0", port=port)
-
-    threading.Thread(target=run_flask).start()
-    run_bot()
+    flask_port = int(os.getenv("FLASK_PORT", "5000"))
+    app.run(host="0.0.0.0", port=flask_port)

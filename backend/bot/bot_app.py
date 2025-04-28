@@ -18,7 +18,6 @@ from botbuilder.core import (
 from botbuilder.schema import Activity, ResourceResponse
 from backend.bot.dialogs.main_dialog import MainDialog
 from backend.bot.state.user_state import UserState
-from backend.common import app as flask_app
 from azure.core.exceptions import DeserializationError
 from azure.appconfiguration import AzureAppConfigurationClient
 import time
@@ -255,29 +254,28 @@ async def messages(req):
 
         bot_response = {"text": "", "attachments": []}
 
-        with flask_app.app_context():
-            try:
-                user_state = UserState(user_id)
-                
-                # Get scenario from header for all requests
-                scenario = req.headers.get("X-Scenario")
-                LOGGER.info(f"Scenario from header: {scenario}")
-                
-                # Force reset of active dialog if the message is "__start__" or similar
-                if body.get('text', '').lower() == "__start__" or body.get('text', '').lower() == "start":
-                    user_state.set_active_dialog(None)
-                    user_state.set_new_conversation(True)
-                    LOGGER.info(f"Starting new conversation for user {user_id} with scenario: {scenario}")
-                
-                # Always initialize the dialog with the scenario parameter
-                dialog = MainDialog(user_state, scenario)
-                LOGGER.info(f"Processing message for user {user_id}: '{activity.text}' for scenario: {scenario}")
-            except Exception as e:
-                LOGGER.error(f"Failed to initialize dialog: {str(e)}", exc_info=True)
-                return web.json_response(
-                    {"error": "Failed to initialize dialog", "reply": "System error. Please try again later."}, 
-                    status=500
-                )
+        try:
+            user_state = UserState(user_id)
+            
+            # Get scenario from header for all requests
+            scenario = req.headers.get("X-Scenario")
+            LOGGER.info(f"Scenario from header: {scenario}")
+            
+            # Force reset of active dialog if the message is "__start__" or similar
+            if body.get('text', '').lower() == "__start__" or body.get('text', '').lower() == "start":
+                user_state.set_active_dialog(None)
+                user_state.set_new_conversation(True)
+                LOGGER.info(f"Starting new conversation for user {user_id} with scenario: {scenario}")
+            
+            # Always initialize the dialog with the scenario parameter
+            dialog = MainDialog(user_state, scenario)
+            LOGGER.info(f"Processing message for user {user_id}: '{activity.text}' for scenario: {scenario}")
+        except Exception as e:
+            LOGGER.error(f"Failed to initialize dialog: {str(e)}", exc_info=True)
+            return web.json_response(
+                {"error": "Failed to initialize dialog", "reply": "System error. Please try again later."}, 
+                status=500
+            )
 
         async def turn_logic(turn_context: TurnContext):
             # Store the original send_activity method
