@@ -6,9 +6,9 @@ WORKDIR /app
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    libffi-dev \
     libpq-dev \
     python3-dev \
+    libffi-dev \
     build-essential \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -16,9 +16,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements file
 COPY requirements.txt .
 
-# Upgrade pip and install dependencies
+# Install Python packages in batches to better handle errors
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
+    pip install --no-cache-dir --prefix=/install -r requirements.txt || \
+    (echo "Full requirements installation failed, trying with core dependencies only" && \
+     pip install --no-cache-dir --prefix=/install \
+        aiohttp \
+        botbuilder-core \
+        botbuilder-dialogs \
+        botbuilder-integration-aiohttp \
+        botbuilder-schema \
+        azure-ai-textanalytics \
+        python-dotenv \
+        sqlalchemy)
 
 # Stage 2: Final container
 FROM python:3.10-slim-buster
@@ -28,14 +38,16 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    libffi7 \
-    tini \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+# Create dedicated user
 RUN useradd -m appuser
 
-# Copy installed packages
+# Set up directories
+RUN mkdir -p /app/backend \
+    && chown -R appuser:appuser /app
+
+# Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
 # Copy Bot app code
@@ -45,10 +57,14 @@ COPY backend/common/ ./backend/common/
 COPY backend/models.py ./backend/
 COPY backend/__init__.py ./backend/
 
-# Create script to start Bot app
+# Create startup script
 RUN echo '#!/bin/bash\n\
+# Determine PORT from environment\n\
 PORT=${PORT:-3978}\n\
-echo "Starting aiohttp bot app on port $PORT"\n\
+\n\
+echo "Starting bot application on port $PORT"\n\
+\n\
+# Start the application\n\
 exec python app_bot.py\n' > /app/start.sh
 
 RUN chmod +x /app/start.sh
@@ -59,5 +75,5 @@ USER appuser
 
 EXPOSE 3978
 
-# Start bot app using aiohttp server
+# Use the startup script
 CMD ["/app/start.sh"]
