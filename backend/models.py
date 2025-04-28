@@ -18,6 +18,12 @@ class User(db.Model):
     highest_streak = db.Column(db.Integer, default=0)
     last_activity_date = db.Column(db.Date, nullable=True)
     
+    @property
+    def completed_scenarios(self):
+        """Return a list of completed scenario names for this user.
+        This property is used by templates that expect this attribute."""
+        return [progress.scenario_name for progress in self.scenario_progress if progress.completed]
+    
 class UserScenarioProgress(db.Model):
     __tablename__ = 'user_scenario_progress'
     __table_args__ = {'extend_existing': True}

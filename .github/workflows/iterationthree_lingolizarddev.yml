@@ -85,10 +85,11 @@ jobs:
             --resource-group LingoLizard-Dev \
             --settings \
               WEBSITES_PORT=5000 \
+              PORT=8000 \
               MicrosoftAppId=${{ secrets.MICROSOFT_APP_ID }} \
               MicrosoftAppPassword=${{ secrets.MICROSOFT_APP_PASSWORD }} \
               SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }} \
-              DATABASE_URL="postgresql://postgres:Sydpuppy%3B2019@db.wflaylpymzwoofnwlkxa.supabase.co:5432/postgres" \
+              DATABASE_URL=${{ secrets.DATABASE_URL }} \
               BOT_URL="lingolizardbot.azurewebsites.net/api/messages" \
               WEBSITE_HTTPLOGGING_RETENTION_DAYS=3
 

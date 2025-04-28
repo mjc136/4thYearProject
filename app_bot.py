@@ -42,7 +42,7 @@ def run_bot():
         import aiohttp.web
         
         # Use BOT_PORT env var if set, fall back to PORT, then default to 3978
-        bot_port = int(os.getenv("BOT_PORT", os.getenv("PORT", "3978")))
+        bot_port = int(os.getenv("PORT", "3978"))
         
         print(f"Starting Bot on port {bot_port}...")
         
