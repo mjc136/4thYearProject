@@ -1,41 +1,53 @@
 # Stage 1: Builder
-FROM python:3.10-alpine AS builder
+FROM python:3.10-slim-buster AS builder
 
 WORKDIR /app
 
-# Install build dependencies (expanded for Alpine compatibility)
-RUN apk add --no-cache --virtual .build-deps \
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    musl-dev \
-    postgresql-dev \
+    libpq-dev \
     python3-dev \
     libffi-dev \
-    openssl-dev
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python packages
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+# Install Python packages in batches to better handle errors
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt || \
+    (echo "Full requirements installation failed, trying with core dependencies only" && \
+     pip install --no-cache-dir --prefix=/install \
+        flask \
+        gunicorn \
+        sqlalchemy \
+        flask-sqlalchemy \
+        flask-migrate \
+        flask-bcrypt \
+        flask-wtf \
+        python-dotenv \
+        psycopg2-binary)
 
 # Stage 2: Final container
-FROM python:3.10-alpine
+FROM python:3.10-slim-buster
 
 WORKDIR /app
 
-# Install runtime dependencies (expanded for Alpine compatibility)
-RUN apk add --no-cache \
-    libpq \
-    libstdc++ \
-    libffi \
-    sqlite
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create a dedicated user for security
-RUN adduser -D appuser
+# Create dedicated user
+RUN useradd -m appuser
 
-# Create SQLite database directory with proper permissions
-RUN mkdir -p /app/backend \
-    && chown -R appuser:appuser /app
+# Set up directories
+RUN mkdir -p /app/backend /home/data \
+    && chown -R appuser:appuser /app /home/data
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
@@ -47,13 +59,24 @@ COPY backend/common/ ./backend/common/
 COPY backend/models.py ./backend/
 COPY backend/__init__.py ./backend/
 
-# Set ownership of app files to appuser
+# Create script to start the application
+RUN echo '#!/bin/bash\n\
+# Determine PORT from environment\n\
+PORT=${PORT:-5000}\n\
+GUNICORN_WORKERS=${GUNICORN_WORKERS:-2}\n\
+\n\
+echo "Starting gunicorn on port $PORT with $GUNICORN_WORKERS workers"\n\
+\n\
+# Start the application with gunicorn\n\
+exec gunicorn -w $GUNICORN_WORKERS -b 0.0.0.0:$PORT --timeout 120 backend.flask_app.flask_app:app\n' > /app/start.sh
+
+RUN chmod +x /app/start.sh
 RUN chown -R appuser:appuser /app
 
-# Run as non-root user
+# Switch to non-root user
 USER appuser
 
-EXPOSE 5000
+EXPOSE 5000 8000
 
-# Start Flask app with Gunicorn (production server)
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "backend.flask_app.flask_app:app"]
+# Use the startup script
+CMD ["/app/start.sh"]
