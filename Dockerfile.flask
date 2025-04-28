@@ -13,7 +13,6 @@ COPY backend/flask_app/ ./backend/flask_app/
 COPY backend/__init__.py ./backend/
 COPY backend/common/ ./backend/common/
 COPY backend/models.py ./backend/
-COPY backend/lingolizard.db ./backend/
 
 # Copy static assets and templates
 COPY backend/flask_app/static/ ./backend/flask_app/static/
