@@ -38,7 +38,6 @@ def run_flask():
         # Import flask app here to avoid circular imports
         from backend.flask_app.flask_app import app as flask_app
         
-        # Use PORT env var if set (Azure sets this), otherwise use FLASK_PORT, or default to 5000
         port = int(os.getenv("PORT", "5000"))
         print(f"Starting Flask on port {port}...")
         
