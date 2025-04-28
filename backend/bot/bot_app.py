@@ -13,14 +13,12 @@ from botbuilder.core import (
     MemoryStorage,
     ConversationState,
     UserState as BotUserState,
-    AnonymousReceiveMiddleware
 )
 from botbuilder.schema import Activity, ResourceResponse
 from backend.bot.dialogs.main_dialog import MainDialog
 from backend.bot.state.user_state import UserState
 from azure.core.exceptions import DeserializationError
 from azure.appconfiguration import AzureAppConfigurationClient
-import time
 import threading
 
 # Configure logging

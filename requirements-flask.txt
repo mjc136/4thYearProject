@@ -1,0 +1,9 @@
+-r requirements-common.txt
+Flask==3.1.0
+Flask-Bcrypt==1.0.1
+Flask-Migrate==4.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.0
+gunicorn==21.2.0
+Jinja2==3.1.6
+Werkzeug==3.1.3

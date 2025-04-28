@@ -27,7 +27,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv
           source venv/bin/activate
-          pip install -r requirements.txt
+          pip install -r requirements-common.txt
+          pip install -r requirements-flask.txt
+          pip install -r requirements-bot.txt
 
       - name: Verify Environment
         run: |
@@ -50,18 +52,28 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Flask Docker Image
-        run: |
-          docker build -t mjc136/lingolizard-flask:latest -f Dockerfile.flask .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build Bot Docker Image
-        run: |
-          docker build -t mjc136/lingolizard-bot:latest -f Dockerfile.bot .
+      - name: Build and Push Flask Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.flask
+          push: true
+          tags: mjc136/lingolizard-flask:latest
+          cache-from: type=registry,ref=mjc136/lingolizard-flask:buildcache
+          cache-to: type=registry,ref=mjc136/lingolizard-flask:buildcache,mode=max
 
-      - name: Push Docker Images
-        run: |
-          docker push mjc136/lingolizard-flask:latest
-          docker push mjc136/lingolizard-bot:latest
+      - name: Build and Push Bot Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.bot
+          push: true
+          tags: mjc136/lingolizard-bot:latest
+          cache-from: type=registry,ref=mjc136/lingolizard-bot:buildcache
+          cache-to: type=registry,ref=mjc136/lingolizard-bot:buildcache,mode=max
 
   deploy-flask:
     runs-on: ubuntu-latest

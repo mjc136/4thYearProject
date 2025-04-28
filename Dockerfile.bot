@@ -1,16 +1,40 @@
-FROM python:3.10-slim-buster
-
-ENV PIP_NO_CACHE_DIR=1
+# Stage 1: Builder
+FROM python:3.10-alpine AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Install build dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    musl-dev \
+    postgresql-dev \
+    python3-dev
 
-RUN pip install -r requirements.txt
+# Copy requirements files
+COPY requirements-common.txt requirements-bot.txt ./
 
-COPY . .
+# Install Python packages
+RUN pip install --no-cache-dir --prefix=/install -r requirements-bot.txt
+
+# Stage 2: Final container
+FROM python:3.10-alpine
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache libpq
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy Bot app code
+COPY app_bot.py .
+COPY backend/bot/ ./backend/bot/
+COPY backend/common/ ./backend/common/
+COPY backend/models.py ./backend/
+COPY backend/__init__.py ./backend/
 
 EXPOSE 3978
 
-# Run only the Bot application
+# Start Bot app normally (aiohttp web server)
 CMD ["python", "app_bot.py"]

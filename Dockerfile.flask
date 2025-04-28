@@ -1,15 +1,40 @@
-FROM python:3.10-slim-buster
-
-ENV PIP_NO_CACHE_DIR=1
+# Stage 1: Builder
+FROM python:3.10-alpine AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Install build dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    musl-dev \
+    postgresql-dev \
+    python3-dev
 
-COPY . .
+# Copy requirements files
+COPY requirements-common.txt requirements-flask.txt ./
+
+# Install Python packages
+RUN pip install --no-cache-dir --prefix=/install -r requirements-flask.txt
+
+# Stage 2: Final container
+FROM python:3.10-alpine
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache libpq
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy Flask app code
+COPY app_flask.py .
+COPY backend/flask_app/ ./backend/flask_app/
+COPY backend/common/ ./backend/common/
+COPY backend/models.py ./backend/
+COPY backend/__init__.py ./backend/
 
 EXPOSE 5000
 
-# Run only the Flask application
-CMD ["python", "app_flask.py"]
+# Start Flask app with Gunicorn (production server)
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "backend.flask_app.flask_app:app"]

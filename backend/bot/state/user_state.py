@@ -1,4 +1,3 @@
-from flask import session
 from backend.models import User
 from backend.common import app  # Ensure this points to your actual Flask app (flask_app.flask_app)
 import uuid
