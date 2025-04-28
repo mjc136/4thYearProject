@@ -7,6 +7,7 @@ import sqlalchemy
 health_bp = Blueprint('health', __name__)
 
 @health_bp.route('/health', methods=['GET'])
+@health_bp.route('/', methods=['GET'])  # Add root route for Azure default health checks
 def health_check():
     """Health check endpoint for the Flask application."""
     # Basic system info

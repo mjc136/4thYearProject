@@ -16,64 +16,92 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python packages in batches to better handle errors
+# Install just the Bot-related dependencies for faster builds
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt || \
-    (echo "Full requirements installation failed, trying with core dependencies only" && \
-     pip install --no-cache-dir --prefix=/install \
-        aiohttp \
-        botbuilder-core \
-        botbuilder-dialogs \
-        botbuilder-integration-aiohttp \
-        botbuilder-schema \
-        azure-ai-textanalytics \
-        python-dotenv \
-        sqlalchemy)
+    pip install --no-cache-dir --prefix=/install \
+        aiohttp==3.10.5 \
+        botbuilder-core==4.16.2 \
+        botbuilder-dialogs==4.16.2 \
+        botbuilder-integration-aiohttp==4.16.2 \
+        botbuilder-schema==4.16.2 \
+        botbuilder-azure==4.16.2 \
+        azure-ai-textanalytics==5.3.0 \
+        python-dotenv==1.1.0 \
+        sqlalchemy==2.0.40
 
 # Stage 2: Final container
 FROM python:3.10-slim-buster
 
 WORKDIR /app
 
+# Force unbuffered Python output for immediate logs
+ENV PYTHONUNBUFFERED=1
+# Set default port (will be used if no env vars are provided)
+ENV PORT=3978
+
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create dedicated user
-RUN useradd -m appuser
-
-# Set up directories
-RUN mkdir -p /app/backend \
-    && chown -R appuser:appuser /app
-
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy Bot app code
-COPY app_bot.py .
-COPY backend/bot/ ./backend/bot/
-COPY backend/common/ ./backend/common/
-COPY backend/models.py ./backend/
+# Copy application files
 COPY backend/__init__.py ./backend/
+COPY backend/models.py ./backend/
+COPY backend/common/ ./backend/common/
+COPY backend/bot/ ./backend/bot/
+COPY app_bot.py .
 
-# Create startup script
+# Create startup script with port fallbacks
 RUN echo '#!/bin/bash\n\
-# Determine PORT from environment\n\
-PORT=${PORT:-3978}\n\
+set -e\n\
 \n\
-echo "Starting bot application on port $PORT"\n\
+echo "BOT CONTAINER STARTUP: $(date)"\n\
+echo "ENVIRONMENT VARIABLES:"\n\
+echo "  - Original PORT=$PORT"\n\
+echo "  - Original WEBSITES_PORT=$WEBSITES_PORT"\n\
 \n\
-# Start the application\n\
-exec python app_bot.py\n' > /app/start.sh
+# Default port if none is specified\n\
+DEFAULT_PORT=3978\n\
+\n\
+# Determine which port to use, with fallbacks\n\
+BIND_PORT=$DEFAULT_PORT\n\
+\n\
+# Check if PORT is set\n\
+if [ ! -z "$PORT" ]; then\n\
+    BIND_PORT=$PORT\n\
+    echo "Using PORT env variable: $BIND_PORT"\n\
+fi\n\
+\n\
+# Check if WEBSITES_PORT is set (Azure-specific)\n\
+if [ ! -z "$WEBSITES_PORT" ]; then\n\
+    BIND_PORT=$WEBSITES_PORT\n\
+    echo "Using WEBSITES_PORT env variable: $BIND_PORT"\n\
+fi\n\
+\n\
+# Final fallback to hard-coded ports that Azure might expect\n\
+if [ "$BIND_PORT" = "0" ] || [ "$BIND_PORT" = "" ]; then\n\
+    echo "WARNING: Invalid port value. Using default bot port."\n\
+    BIND_PORT=$DEFAULT_PORT\n\
+fi\n\
+\n\
+echo "STARTING: Bot application on port $BIND_PORT"\n\
+\n\
+# Export the chosen port so the Bot app can use it\n\
+export PORT=$BIND_PORT\n\
+\n\
+# Start the bot application\n\
+exec python -u app_bot.py\n' > /app/start.sh
 
 RUN chmod +x /app/start.sh
-RUN chown -R appuser:appuser /app
 
-# Switch to non-root user
-USER appuser
+# Make sure all files are readable
+RUN chmod -R 755 /app
 
-EXPOSE 3978
+# Expose bot ports 
+EXPOSE 3978 8080 80
 
 # Use the startup script
-CMD ["/app/start.sh"]
+CMD ["/bin/bash", "-c", "/app/start.sh"]
