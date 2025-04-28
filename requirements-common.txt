@@ -1,7 +1,0 @@
-aiohttp==3.10.5
-azure-core==1.33.0
-azure-appconfiguration==1.7.1
-python-dotenv==1.1.0
-SQLAlchemy==2.0.40
-psycopg2-binary>=2.9.5
-requests==2.32.3

@@ -8,13 +8,15 @@ RUN apk add --no-cache --virtual .build-deps \
     gcc \
     musl-dev \
     postgresql-dev \
-    python3-dev
+    python3-dev \
+    libffi-dev \
+    openssl-dev
 
-# Copy requirements files
-COPY requirements-common.txt requirements-bot.txt ./
+# Copy requirements file
+COPY requirements.txt .
 
 # Install Python packages
-RUN pip install --no-cache-dir --prefix=/install -r requirements-bot.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: Final container
 FROM python:3.10-alpine
@@ -22,7 +24,13 @@ FROM python:3.10-alpine
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache libpq
+RUN apk add --no-cache \
+    libpq \
+    libstdc++ \
+    libffi
+
+# Create a dedicated user for security
+RUN adduser -D appuser
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
@@ -33,6 +41,12 @@ COPY backend/bot/ ./backend/bot/
 COPY backend/common/ ./backend/common/
 COPY backend/models.py ./backend/
 COPY backend/__init__.py ./backend/
+
+# Set ownership of app files to appuser
+RUN chown -R appuser:appuser /app
+
+# Run as non-root user
+USER appuser
 
 EXPOSE 3978
 
