@@ -18,13 +18,19 @@ is_azure = os.getenv("WEBSITE_SITE_NAME") is not None
 # Define paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "flask_app", "templates")
-azure_storage_path = "/home/data" if is_azure else BASE_DIR
-default_db_path = os.path.join(azure_storage_path, "lingolizard.db")
+
+# Detect where to store SQLite DB if no DATABASE_URL is provided
+if is_azure:
+    storage_path = "/tmp/lingolizard_data"
+else:
+    storage_path = BASE_DIR
+
+default_db_path = os.path.join(storage_path, "lingolizard.db")
 DB_PATH = os.getenv("DB_PATH", default_db_path)
 
-# Ensure Azure storage path exists
-if is_azure:
-    os.makedirs(azure_storage_path, exist_ok=True)
+# Only create local storage if using SQLite
+if "postgresql" not in os.getenv("DATABASE_URL", ""):
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 logger.info(f"Using database path: {DB_PATH}")
 
@@ -55,22 +61,16 @@ db.init_app(app)
 bcrypt.init_app(app)
 migrate = Migrate(app, db)
 
-# Initialise DB and users (if User table is empty)
+# Initialise DB and users
 with app.app_context():
     try:
-        # Create all tables if they don't exist
         db.create_all()
-        
-        # Import User model here to avoid circular imports
         from backend.models import User
-        
-        # Check if User table is populated
         user_count = User.query.count()
-        
+
         if user_count == 0:
             logger.info("Database exists but has no users. Creating default users...")
-            
-            # Create default users
+
             if not User.query.filter_by(username="admin").first():
                 db.session.add(User(
                     username="admin",
@@ -80,7 +80,7 @@ with app.app_context():
                     level=1,
                     admin=True
                 ))
-                
+
             if not User.query.filter_by(username="testuser").first():
                 db.session.add(User(
                     username="testuser",
@@ -90,12 +90,12 @@ with app.app_context():
                     level=1,
                     admin=False
                 ))
-                
+
             db.session.commit()
             logger.info(f"Created default users. Now have {User.query.count()} users.")
         else:
             logger.info(f"Database already has {user_count} users. Skipping default user creation.")
-            
+
     except Exception as e:
         logger.error(f"Database initialization error: {e}", exc_info=True)
         logger.error(f"Current directory: {os.getcwd()}")
@@ -127,7 +127,6 @@ def db_health():
                 "message": "Invalid query parameters"
             }), 400
 
-        # Import User model inside the function
         from backend.models import User
         user_count = User.query.count()
         return jsonify({
